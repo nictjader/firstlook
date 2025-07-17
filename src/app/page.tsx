@@ -15,7 +15,7 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
     initialStories = await getStories({ subgenre: selectedSubgenre });
   } catch (error) {
     console.error("Failed to fetch stories:", error);
-    // In case of an error (like the 5 NOT_FOUND issue),
+    // In case of an error (like PERMISSION_DENIED),
     // we'll proceed with an empty array. The StoryList component
     // will then render a helpful message.
   }
