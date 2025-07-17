@@ -31,3 +31,4 @@ const storage: FirebaseStorage = getStorage(app);
 const functions = getFunctions(app);
 
 export { app, auth, db, storage, functions };
+
