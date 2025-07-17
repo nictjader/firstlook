@@ -1,4 +1,3 @@
-
 // THIS FILE IS FOR SERVER-SIDE FIREBASE INIT ONLY
 
 import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, getApp as getAdminApp } from 'firebase-admin/app';
