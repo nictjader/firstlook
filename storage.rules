@@ -1,0 +1,22 @@
+
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow public read access ONLY to the story-covers directory.
+    // This is secure because only your trusted server backend can write here.
+    match /story-covers/{allPaths=**} {
+      allow read;
+      // Write access is restricted. Only your backend service account, which bypasses
+      // these rules, should be writing to this path.
+      allow write: if false;
+    }
+
+    // For all other paths in your bucket, default to private access.
+    // Only the authenticated user who owns the content can read or write it.
+    // Example for user-specific files:
+    // match /users/{userId}/{allPaths=**} {
+    //   allow read, write: if request.auth != null && request.auth.uid == userId;
+    // }
+  }
+}

@@ -1,0 +1,21 @@
+
+{
+  "hosting": {
+    "source": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "frameworksBackend": {
+      "region": "us-central1",
+      "runtime": "nodejs20",
+      "memory": "1GiB",
+      "minInstances": 0,
+      "maxInstances": 100,
+      "concurrency": 80,
+      "cpu": 1,
+      "name": "ssrsirenh2y45-v2"
+    }
+  }
+}

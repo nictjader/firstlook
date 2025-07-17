@@ -1,0 +1,117 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 340 50% 98%;
+    --foreground: 346 30% 25%;
+    --card: 0 0% 100%;
+    --card-foreground: 346 30% 25%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 346 30% 25%;
+    --primary: 346.8 96.1% 54.1%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 340 20% 92%;
+    --secondary-foreground: 346 30% 25%;
+    --muted: 340 20% 92%;
+    --muted-foreground: 340 5% 45%;
+    --accent: 330 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 340 20% 85%;
+    --input: 340 20% 85%;
+    --ring: 346.8 96.1% 54.1%;
+    --radius: 0.5rem;
+
+    --chart-1: 346.8 96.1% 54.1%;
+    --chart-2: 160 95% 45%;
+    --chart-3: 40 95% 55%;
+    --chart-4: 280 95% 65%;
+    --chart-5: 220 95% 50%;
+  }
+
+  .dark {
+    --background: 348 40% 10%;
+    --foreground: 340 10% 80%;
+    --card: 348 40% 12%;
+    --card-foreground: 340 10% 80%;
+    --popover: 348 40% 10%;
+    --popover-foreground: 340 10% 80%;
+    --primary: 346.8 96.1% 54.1%;
+    --primary-foreground: 355.7 100% 97.3%;
+    --secondary: 348 30% 20%;
+    --secondary-foreground: 340 10% 80%;
+    --muted: 348 30% 20%;
+    --muted-foreground: 340 10% 60%;
+    --accent: 330 80% 60%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 348 30% 25%;
+    --input: 348 30% 25%;
+    --ring: 346.8 96.1% 54.1%;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom styles for the app */
+.font-headline {
+  font-family: var(--font-playfair-display), serif;
+}
+
+.prose {
+  --tw-prose-body: hsl(var(--foreground) / 0.9);
+  --tw-prose-headings: hsl(var(--primary));
+  --tw-prose-lead: hsl(var(--muted-foreground));
+  --tw-prose-links: hsl(var(--primary));
+  --tw-prose-bold: hsl(var(--foreground));
+  --tw-prose-counters: hsl(var(--muted-foreground));
+  --tw-prose-bullets: hsl(var(--primary));
+  --tw-prose-hr: hsl(var(--border));
+  --tw-prose-quotes: hsl(var(--foreground));
+  --tw-prose-quote-borders: hsl(var(--primary));
+  --tw-prose-captions: hsl(var(--muted-foreground));
+  --tw-prose-code: hsl(var(--primary));
+  --tw-prose-pre-code: hsl(var(--secondary-foreground));
+  --tw-prose-pre-bg: hsl(var(--secondary));
+  --tw-prose-th-borders: hsl(var(--border));
+  --tw-prose-td-borders: hsl(var(--border));
+  --tw-prose-invert-body: hsl(var(--foreground) / 0.9);
+  --tw-prose-invert-headings: hsl(var(--primary));
+  --tw-prose-invert-lead: hsl(var(--muted-foreground));
+  --tw-prose-invert-links: hsl(var(--primary));
+  --tw-prose-invert-bold: hsl(var(--foreground));
+  --tw-prose-invert-counters: hsl(var(--muted-foreground));
+  --tw-prose-invert-bullets: hsl(var(--primary));
+  --tw-prose-invert-hr: hsl(var(--border));
+  --tw-prose-invert-quotes: hsl(var(--foreground));
+  --tw-prose-invert-quote-borders: hsl(var(--primary));
+  --tw-prose-invert-captions: hsl(var(--muted-foreground));
+  --tw-prose-invert-code: hsl(var(--primary));
+  --tw-prose-invert-pre-code: hsl(var(--secondary-foreground));
+  --tw-prose-invert-pre-bg: hsl(var(--secondary));
+  --tw-prose-invert-th-borders: hsl(var(--border));
+  --tw-prose-invert-td-borders: hsl(var(--border));
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

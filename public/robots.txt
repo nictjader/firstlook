@@ -1,0 +1,9 @@
+# See https://www.robotstxt.org/robotstxt.html for documentation
+#
+# Allow all crawlers to access all parts of the site.
+# This is a good default for a public-facing web app.
+User-agent: *
+Allow: /
+
+# Point crawlers to the sitemap (even if it's not generated yet, it's good practice)
+Sitemap: https://siren-h2y45.web.app/sitemap.xml
