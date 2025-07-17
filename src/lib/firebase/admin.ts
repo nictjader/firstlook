@@ -14,7 +14,7 @@ if (!getAdminApps().some(app => app.name === ADMIN_APP_NAME)) {
     // the SDK will automatically find the default credentials.
     // Explicitly setting the projectId ensures it connects to the correct database.
     adminApp = initializeAdminApp({
-        projectId: 'sirens-kiss',
+        projectId: 'siren-h2y45',
     }, ADMIN_APP_NAME);
 } else {
     adminApp = getAdminApp(ADMIN_APP_NAME);

@@ -8,9 +8,9 @@ import { getFunctions } from 'firebase/functions';
 // NOTE: Using hardcoded values as environment variables are not being picked up correctly in the execution environment.
 const firebaseConfig = {
     apiKey: "CHANGEME",
-    authDomain: "sirens-kiss.firebaseapp.com",
-    projectId: "sirens-kiss",
-    storageBucket: "sirens-kiss.appspot.com",
+    authDomain: "siren-h2y45.firebaseapp.com",
+    projectId: "siren-h2y45",
+    storageBucket: "siren-h2y45.appspot.com",
     messagingSenderId: "565398696245",
     appId: "1:565398696245:web:e003423ba0199e3a6a9b40",
     measurementId: "G-J03V624R60",
