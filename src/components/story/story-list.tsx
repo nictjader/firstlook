@@ -63,7 +63,7 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
     if (inView) {
       loadMoreStories();
     }
-  }, [inView]);
+  }, [inView, loadMoreStories]);
 
 
   if (initialStories.length === 0) {
@@ -97,24 +97,25 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:col-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {stories.map((story, index) => (
           <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
         ))}
       </div>
       
-      {hasMore && (
-        <div ref={ref} className="flex justify-center items-center col-span-full py-6">
-          {isLoading ? (
-            <Button disabled>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Loading More...
-            </Button>
-          ) : (
-            <div className="h-10"></div> 
-          )}
-        </div>
-      )}
+      <div ref={ref} className="flex justify-center items-center col-span-full py-6">
+        {isLoading ? (
+          <Button disabled>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading More...
+          </Button>
+        ) : !hasMore && stories.length > 0 ? (
+          <p className="text-muted-foreground">You've reached the end!</p>
+        ) : (
+          <div className="h-10"></div>
+        )}
+      </div>
     </>
   );
 }
+

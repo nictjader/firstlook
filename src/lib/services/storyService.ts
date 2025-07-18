@@ -29,6 +29,8 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
       return null;
     }
     
+    const publishedAt = data.publishedAt;
+    
     return {
       storyId: doc.id,
       title: data.title || 'Untitled',
@@ -43,7 +45,7 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
       previewText: data.previewText || '',
       subgenre: data.subgenre || 'contemporary',
       wordCount: data.wordCount || 0,
-      publishedAt: safeToISOString(data.publishedAt), // Convert to ISO string here
+      publishedAt: safeToISOString(publishedAt), // Convert to ISO string here
       coverImageUrl: data.coverImageUrl || '',
       coverImagePrompt: data.coverImagePrompt || '',
       author: data.author || 'Anonymous',
@@ -73,14 +75,19 @@ export async function getStories(
   }
   
   // ALWAYS order by a consistent field for pagination to work reliably.
-  // This requires a composite index on (subgenre, publishedAt).
   storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
 
-  // Handle pagination
+  // Handle pagination using a cursor
   if (pagination.cursor) {
-    const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
-    if (cursorDoc.exists) {
-      storiesQuery = storiesQuery.startAfter(cursorDoc);
+    try {
+        const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
+        if (cursorDoc.exists) {
+            storiesQuery = storiesQuery.startAfter(cursorDoc);
+        } else {
+            console.warn(`Cursor document with ID ${pagination.cursor} not found.`);
+        }
+    } catch(e) {
+        console.error(`Error fetching cursor document:`, e);
     }
   }
 
