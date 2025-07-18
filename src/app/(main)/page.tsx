@@ -23,7 +23,23 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
       <Suspense fallback={<div>Loading filter...</div>}>
         <SubgenreFilter />
       </Suspense>
-      <StoryList initialSubgenre={selectedSubgenre} />
+      <Suspense fallback={<StoryListSkeleton />}>
+        <StoryList selectedSubgenre={selectedSubgenre} />
+      </Suspense>
     </div>
   );
 }
+
+const StoryListSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="flex flex-col space-y-3">
+                <div className="w-full bg-muted aspect-[2/3] rounded-lg"></div>
+                <div className="space-y-2">
+                    <div className="h-4 bg-muted rounded w-3/4" />
+                    <div className="h-4 bg-muted rounded w-1/2" />
+                </div>
+            </div>
+        ))}
+    </div>
+);

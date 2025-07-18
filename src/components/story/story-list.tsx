@@ -1,18 +1,18 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { BookX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { getStories } from '@/app/actions/storyActions';
+import { getStoriesBySubgenre } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface StoryListProps {
-  initialSubgenre: Subgenre | 'all';
+  selectedSubgenre: Subgenre | 'all';
 }
 
 const StoryListSkeleton = () => (
@@ -28,7 +28,6 @@ const StoryListSkeleton = () => (
         ))}
     </div>
 );
-
 
 function groupAndSortStories(stories: Story[]): Story[] {
   const storyMap = new Map<string, Story[]>();
@@ -64,63 +63,28 @@ function groupAndSortStories(stories: Story[]): Story[] {
 }
 
 
-export default function StoryList({ initialSubgenre }: StoryListProps) {
-  const [allStories, setAllStories] = useState<Story[]>([]);
-  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
-  const [hasMore, setHasMore] = useState(true);
+export default function StoryList({ selectedSubgenre }: StoryListProps) {
+  const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const selectedSubgenre = (searchParams.get('subgenre') as Subgenre) || 'all';
 
-  const loadMoreStories = useCallback(async () => {
-    if (!hasMore || isLoading) return;
-    setIsLoading(true);
-    
-    const newStories = await getStories(lastPublishedAt);
-    
-    if (newStories.length > 0) {
-      setAllStories((prev) => [...prev, ...newStories]);
-      const lastStory = newStories[newStories.length - 1];
-      setLastPublishedAt(lastStory.publishedAt);
-    } else {
-      setHasMore(false);
-    }
-    setIsLoading(false);
-  }, [hasMore, isLoading, lastPublishedAt]);
-  
-  // Initial load effect
   useEffect(() => {
     setIsLoading(true);
-    setAllStories([]);
-    setLastPublishedAt(null);
-    setHasMore(true);
-    
-    getStories(null).then((initialStories) => {
-        if (initialStories.length > 0) {
-            setAllStories(initialStories);
-            const lastStory = initialStories[initialStories.length - 1];
-            setLastPublishedAt(lastStory.publishedAt);
-        } else {
-            setHasMore(false);
-        }
-        setIsLoading(false);
+    getStoriesBySubgenre(selectedSubgenre).then((fetchedStories) => {
+      setStories(fetchedStories);
+      setIsLoading(false);
     });
-  }, []); 
+  }, [selectedSubgenre]); 
 
   const displayedStories = useMemo(() => {
-    const filtered = selectedSubgenre === 'all' 
-      ? allStories 
-      : allStories.filter(story => story.subgenre === selectedSubgenre);
-    
-    return groupAndSortStories(filtered);
-  }, [allStories, selectedSubgenre]);
+    return groupAndSortStories(stories);
+  }, [stories]);
 
-  if (allStories.length === 0 && isLoading) {
+  if (isLoading) {
     return <StoryListSkeleton />;
   }
 
-  if (displayedStories.length === 0 && !isLoading) {
+  if (displayedStories.length === 0) {
     return (
       <div className="w-full text-center py-12 md:py-24 col-span-full space-y-4">
         <Separator/>
@@ -144,26 +108,10 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
   }
 
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {displayedStories.map((story, index) => (
-          <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
-        ))}
-      </div>
-
-      <div className="flex justify-center items-center col-span-full py-6">
-        {hasMore ? (
-          <Button onClick={loadMoreStories} disabled={isLoading}>
-            {isLoading && allStories.length > 0 ? (
-              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</>
-            ) : (
-              'Load More'
-            )}
-          </Button>
-        ) : (
-          displayedStories.length > 0 && <p className="text-muted-foreground">You've reached the end!</p>
-        )}
-      </div>
-    </>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+      {displayedStories.map((story, index) => (
+        <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
+      ))}
+    </div>
   );
 }
