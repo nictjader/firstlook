@@ -132,42 +132,37 @@ export async function countStoriesInDB(): Promise<StoryCountBreakdown> {
     // Fetch only the fields needed for counting and categorization to be efficient.
     const snapshot = await storiesCollection.select('seriesId', 'subgenre').get();
 
-    if (snapshot.empty) {
-      return {
+    const emptyBreakdown: StoryCountBreakdown = {
         totalStories: 0,
         standaloneStories: 0,
         multiPartSeriesCount: 0,
         storiesPerGenre: {},
-      };
+    };
+
+    if (snapshot.empty) {
+      return emptyBreakdown;
     }
     
-    let standaloneStories = 0;
     const seriesIds = new Set<string>();
+    let multiPartStoryDocCount = 0;
     const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({...acc, [genre]: 0}), {} as Record<string, number>);
 
     snapshot.docs.forEach(doc => {
       const data = doc.data();
       if (data.seriesId) {
         seriesIds.add(data.seriesId);
-      } else {
-        standaloneStories++;
+        multiPartStoryDocCount++;
       }
       if (data.subgenre && storiesPerGenre.hasOwnProperty(data.subgenre)) {
           storiesPerGenre[data.subgenre]++;
       }
     });
     
-    // To get the number of multi-part stories, we need to count how many stories are in those series
-    let multiPartStoryDocCount = 0;
-    if (seriesIds.size > 0) {
-        const seriesQuery = db.collection('stories').where('seriesId', 'in', Array.from(seriesIds));
-        const seriesSnapshot = await seriesQuery.select().get();
-        multiPartStoryDocCount = seriesSnapshot.size;
-    }
+    const totalStories = snapshot.size;
 
     return {
-      totalStories: snapshot.size,
-      standaloneStories: snapshot.size - multiPartStoryDocCount,
+      totalStories: totalStories,
+      standaloneStories: totalStories - multiPartStoryDocCount,
       multiPartSeriesCount: seriesIds.size,
       storiesPerGenre,
     };
