@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useTransition, useMemo } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -10,12 +10,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getStories } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const STORIES_PER_PAGE = 12;
-
-interface StoryListProps {
-  initialSubgenre: Subgenre | 'all';
-}
 
 const StoryListSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
@@ -32,58 +26,60 @@ const StoryListSkeleton = () => (
 );
 
 export default function StoryList({ initialSubgenre }: StoryListProps) {
-  const [allFetchedStories, setAllFetchedStories] = useState<Story[]>([]);
+  const [allStories, setAllStories] = useState<Story[]>([]);
+  const [filteredStories, setFilteredStories] = useState<Story[]>([]);
   const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedSubgenre = (searchParams.get('subgenre') as Subgenre) || 'all';
 
-  const loadStories = useCallback(async (isInitialLoad = false) => {
-    if (isLoading || (!isInitialLoad && !hasMore)) return;
+  const loadMoreStories = useCallback(async () => {
+    if (!hasMore || isLoading) return;
     setIsLoading(true);
-
-    const lastTimestamp = isInitialLoad ? null : lastPublishedAt;
     
-    // We fetch all genres from the server and filter on the client
-    const newStories = await getStories('all', lastTimestamp);
+    const newStories = await getStories(lastPublishedAt);
     
     if (newStories.length > 0) {
-      if (isInitialLoad) {
-        setAllFetchedStories(newStories);
-      } else {
-        setAllFetchedStories((prev) => [...prev, ...newStories]);
-      }
+      setAllStories((prev) => [...prev, ...newStories]);
       setLastPublishedAt(newStories[newStories.length - 1].publishedAt);
     }
 
-    if (newStories.length < STORIES_PER_PAGE) {
+    if (newStories.length === 0) {
       setHasMore(false);
     }
     setIsLoading(false);
-  }, [isLoading, hasMore, lastPublishedAt]);
+  }, [hasMore, isLoading, lastPublishedAt]);
   
-  // Effect for the initial load and subgenre changes
+  // Initial load effect
   useEffect(() => {
-    startTransition(() => {
-      setAllFetchedStories([]);
-      setLastPublishedAt(null);
-      setHasMore(true);
-      loadStories(true);
+    setIsLoading(true);
+    setAllStories([]);
+    setFilteredStories([]);
+    setLastPublishedAt(null);
+    setHasMore(true);
+    getStories(null).then((initialStories) => {
+        if (initialStories.length > 0) {
+            setAllStories(initialStories);
+            setLastPublishedAt(initialStories[initialStories.length - 1].publishedAt);
+        } else {
+            setHasMore(false);
+        }
+        setIsLoading(false);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubgenre]); 
+  }, []); 
 
-  const filteredStories = useMemo(() => {
+  // Effect for filtering when subgenre or allStories change
+  useEffect(() => {
     if (selectedSubgenre === 'all') {
-      return allFetchedStories;
+      setFilteredStories(allStories);
+    } else {
+      setFilteredStories(allStories.filter(story => story.subgenre === selectedSubgenre));
     }
-    return allFetchedStories.filter(story => story.subgenre === selectedSubgenre);
-  }, [allFetchedStories, selectedSubgenre]);
+  }, [allStories, selectedSubgenre]);
 
-  if (allFetchedStories.length === 0 && isLoading) {
+  if (allStories.length === 0 && isLoading) {
     return <StoryListSkeleton />;
   }
 
@@ -120,7 +116,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
 
       <div className="flex justify-center items-center col-span-full py-6">
         {hasMore ? (
-          <Button onClick={() => loadStories(false)} disabled={isLoading}>
+          <Button onClick={loadMoreStories} disabled={isLoading}>
             {isLoading ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</>
             ) : (

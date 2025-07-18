@@ -2,46 +2,32 @@
 'use server';
 
 import { getAdminDb } from '@/lib/firebase/admin';
-import type { Story, Subgenre } from '@/lib/types';
+import type { Story } from '@/lib/types';
 import { docToStory } from '@/lib/types';
 import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  getDocs,
   Query,
   DocumentData,
-  QueryDocumentSnapshot,
-} from 'firebase/firestore';
+} from 'firebase-admin/firestore';
 
 const STORIES_PER_PAGE = 12;
 
 export async function getStories(
-  // subgenre is no longer used in the query but kept for potential future use
-  subgenre: Subgenre | 'all', 
   lastPublishedAt: string | null
 ): Promise<Story[]> {
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
 
-    // This is the simplest possible query that will work without a custom index.
-    // It fetches all stories sorted by date. Filtering will happen on the client.
-    const constraints = [
-      orderBy('publishedAt', 'desc'),
-      limit(STORIES_PER_PAGE),
-    ];
+    let q: Query<DocumentData> = storiesRef
+      .orderBy('publishedAt', 'desc')
+      .limit(STORIES_PER_PAGE);
 
     if (lastPublishedAt) {
-      // Convert the ISO string back to a Date object for the query
-      constraints.push(startAfter(new Date(lastPublishedAt)));
+      // When using startAfter, you need to provide the value from the last document.
+      // Firestore Admin SDK can take a Date object directly.
+      q = q.startAfter(new Date(lastPublishedAt));
     }
     
-    const q: Query<DocumentData> = (storiesRef as any).query(...constraints);
-
     const documentSnapshots = await q.get();
     
     if (documentSnapshots.empty) {

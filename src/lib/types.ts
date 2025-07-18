@@ -1,12 +1,12 @@
 
-import { Timestamp, FieldValue, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
+import { Timestamp as ClientTimestamp, FieldValue, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { Timestamp as AdminTimestamp } from 'firebase-admin/firestore'; // For server-side
 
 export interface Purchase {
   packageId: string;
   coins: number;
   priceUSD: number;
-  purchasedAt: string; // Changed to string
+  purchasedAt: string;
 }
 
 export interface UserProfile {
@@ -14,15 +14,15 @@ export interface UserProfile {
   email: string | null;
   displayName?: string | null;
   coins: number;
-  unlockedStories: string[]; // Array of storyIds
-  readStories: string[]; // Array of storyIds
-  favoriteStories: string[]; // Array of storyIds
+  unlockedStories: string[];
+  readStories: string[];
+  favoriteStories: string[];
   purchaseHistory: Purchase[];
   preferences: {
     subgenres: Subgenre[];
   };
-  createdAt: string; // Changed to string
-  lastLogin: string; // Changed to string
+  createdAt: string;
+  lastLogin: string;
 }
 
 export interface Story {
@@ -39,7 +39,7 @@ export interface Story {
   previewText: string;
   subgenre: string;
   wordCount: number;
-  publishedAt: string; // Changed to string for serialization
+  publishedAt: string;
   coverImageUrl?: string;
   coverImagePrompt: string;
   author?: string;
@@ -47,14 +47,14 @@ export interface Story {
   status: 'published' | 'failed';
 }
 
-// Define the array of subgenres as a constant tuple
 export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'] as const;
-
-// Derive the Subgenre type from the constant array
 export type Subgenre = (typeof ALL_SUBGENRES)[number];
 
 function safeToISOString(timestamp: any): string {
     if (!timestamp) return new Date().toISOString();
+    if (timestamp instanceof Date) {
+        return timestamp.toISOString();
+    }
     if (timestamp && typeof timestamp.toDate === 'function') {
         return timestamp.toDate().toISOString();
     }
@@ -65,18 +65,12 @@ function safeToISOString(timestamp: any): string {
     return new Date().toISOString();
 }
 
-/**
- * Converts a Firestore document snapshot into a Story object, safely handling timestamps.
- * This is the single source of truth for story conversion.
- * @param doc The Firestore document snapshot.
- * @returns A Story object.
- */
-export function docToStory(doc: QueryDocumentSnapshot<DocumentData> | DocumentData): Story {
-    const data = typeof doc.data === 'function' ? doc.data() : doc;
-    const id = typeof (doc as any).id === 'string' ? (doc as any).id : '';
+export function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
+    const data = 'data' in doc ? doc.data() : doc;
+    const storyId = 'id' in doc ? doc.id : (data.storyId || '');
 
     return {
-      storyId: id,
+      storyId: storyId,
       title: data.title || 'Untitled',
       characterNames: data.characterNames || [],
       seriesId: data.seriesId || undefined,
