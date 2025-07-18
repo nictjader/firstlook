@@ -7,36 +7,16 @@
  */
 
 import { z } from 'zod';
-import { StorySeed } from '@/lib/story-seeds';
 import { v4 as uuidv4 } from 'uuid';
 import { Story } from '@/lib/types';
 import { ai } from '@/ai';
+import { 
+  StoryGenerationInputSchema, 
+  StoryGenerationOutputSchema,
+  StoryGenerationInput,
+  StoryGenerationOutput
+} from '@/lib/types';
 
-// Define the input schema for the story generation flow by mirroring the StorySeed interface.
-export const StoryGenerationInputSchema = z.object({
-  titleIdea: z.string(),
-  subgenre: z.string(),
-  mainCharacters: z.string(),
-  characterNames: z.array(z.string()),
-  plotSynopsis: z.string(),
-  keyTropes: z.array(z.string()),
-  desiredTone: z.string(),
-  approxWordCount: z.number(),
-  coverImagePrompt: z.string(),
-});
-export type StoryGenerationInput = z.infer<typeof StoryGenerationInputSchema>;
-
-
-// Define the output schema for the story generation flow.
-export const StoryGenerationOutputSchema = z.object({
-  storyId: z.string().describe('The unique ID for the generated story.'),
-  title: z.string().describe('The final title of the story.'),
-  success: z.boolean().describe('Whether the story generation was successful.'),
-  error: z.string().nullable().describe('Any error message if the generation failed.'),
-  // The full story data is now included in the output for the client to handle.
-  storyData: z.custom<Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>>().optional(),
-});
-export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
 
 // This Zod schema defines the structure we expect the AI to return for a story.
 const StorySchema = z.object({
@@ -179,7 +159,7 @@ const storyGenerationFlow = ai.defineFlow(
         coinCost: output.coinCost,
         content: output.content,
         previewText: output.previewText,
-        subgenre: output.subgenre,
+        subgenre: output.subgenre as Subgenre,
         wordCount: output.wordCount,
         author: output.author,
         tags: output.tags,

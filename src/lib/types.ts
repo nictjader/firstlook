@@ -1,6 +1,41 @@
 
 import { Timestamp as ClientTimestamp, FieldValue, DocumentData, QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { Timestamp as AdminTimestamp, QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
+import { z } from 'zod';
+import { type StorySeed } from './story-seeds';
+
+
+// --- Zod Schemas moved from story-generator.ts ---
+
+// Define the input schema for the story generation flow by mirroring the StorySeed interface.
+export const StoryGenerationInputSchema = z.object({
+  titleIdea: z.string(),
+  subgenre: z.string(),
+  mainCharacters: z.string(),
+  characterNames: z.array(z.string()),
+  plotSynopsis: z.string(),
+  keyTropes: z.array(z.string()),
+  desiredTone: z.string(),
+  approxWordCount: z.number(),
+  coverImagePrompt: z.string(),
+});
+
+// Define the output schema for the story generation flow.
+export const StoryGenerationOutputSchema = z.object({
+  storyId: z.string().describe('The unique ID for the generated story.'),
+  title: z.string().describe('The final title of the story.'),
+  success: z.boolean().describe('Whether the story generation was successful.'),
+  error: z.string().nullable().describe('Any error message if the generation failed.'),
+  // The full story data is now included in the output for the client to handle.
+  storyData: z.custom<Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>>().optional(),
+});
+
+
+// --- Type Definitions ---
+
+export type StoryGenerationInput = z.infer<typeof StoryGenerationInputSchema>;
+export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
+
 
 export interface Purchase {
   packageId: string;
@@ -37,7 +72,7 @@ export interface Story {
   coinCost: number;
   content: string;
   previewText: string;
-  subgenre: string;
+  subgenre: Subgenre;
   wordCount: number;
   publishedAt: string;
   coverImageUrl?: string;
@@ -109,8 +144,6 @@ export interface CoinPackage {
   description: string;
   stripePriceId?: string;
 }
-
-// --- Moved from adminActions.ts ---
 
 // The output from the pure AI generation part of the action.
 export interface AIStoryResult {

@@ -1,12 +1,12 @@
 
 'use server';
 
-import { generateStory, StoryGenerationInput } from '@/ai/flows/story-generator';
+import { generateStory } from '@/ai/flows/story-generator';
 import { storySeeds } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { Story, Subgenre, GenerationResult, CleanupResult } from '@/lib/types';
+import { Story, Subgenre, GenerationResult, CleanupResult, StoryGenerationInput } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { collection, getDocs, query, select, writeBatch } from 'firebase-admin/firestore';
