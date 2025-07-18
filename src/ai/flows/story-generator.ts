@@ -174,11 +174,13 @@ const storyGenerationFlow = ai.defineFlow(
         tags: output.tags,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt,
-        // Use the consistent ID if it's a series, otherwise undefined.
         seriesId: isSeriesStory ? potentialSeriesId : undefined,
         seriesTitle: isSeriesStory ? output.seriesTitle ?? undefined : undefined,
         partNumber: isSeriesStory ? output.partNumber ?? undefined : undefined,
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
+        // Add sorting keys
+        primarySortKey: isSeriesStory ? potentialSeriesId : storyId,
+        secondarySortKey: isSeriesStory ? (output.partNumber ?? 0) : 0,
       };
 
       return {

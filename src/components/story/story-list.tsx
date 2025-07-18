@@ -11,6 +11,10 @@ import { Separator } from '@/components/ui/separator';
 import { getStories } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
 
+interface StoryListProps {
+  initialSubgenre: Subgenre | 'all';
+}
+
 const StoryListSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -28,7 +32,8 @@ const StoryListSkeleton = () => (
 export default function StoryList({ initialSubgenre }: StoryListProps) {
   const [allStories, setAllStories] = useState<Story[]>([]);
   const [filteredStories, setFilteredStories] = useState<Story[]>([]);
-  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
+  const [lastPrimarySortKey, setLastPrimarySortKey] = useState<string | null>(null);
+  const [lastSecondarySortKey, setLastSecondarySortKey] = useState<number | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -39,30 +44,34 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
     if (!hasMore || isLoading) return;
     setIsLoading(true);
     
-    const newStories = await getStories(lastPublishedAt);
+    const newStories = await getStories(lastPrimarySortKey, lastSecondarySortKey);
     
     if (newStories.length > 0) {
       setAllStories((prev) => [...prev, ...newStories]);
-      setLastPublishedAt(newStories[newStories.length - 1].publishedAt);
-    }
-
-    if (newStories.length === 0) {
+      const lastStory = newStories[newStories.length - 1];
+      setLastPrimarySortKey(lastStory.primarySortKey);
+      setLastSecondarySortKey(lastStory.secondarySortKey);
+    } else {
       setHasMore(false);
     }
     setIsLoading(false);
-  }, [hasMore, isLoading, lastPublishedAt]);
+  }, [hasMore, isLoading, lastPrimarySortKey, lastSecondarySortKey]);
   
   // Initial load effect
   useEffect(() => {
     setIsLoading(true);
     setAllStories([]);
     setFilteredStories([]);
-    setLastPublishedAt(null);
+    setLastPrimarySortKey(null);
+    setLastSecondarySortKey(null);
     setHasMore(true);
-    getStories(null).then((initialStories) => {
+    
+    getStories(null, null).then((initialStories) => {
         if (initialStories.length > 0) {
             setAllStories(initialStories);
-            setLastPublishedAt(initialStories[initialStories.length - 1].publishedAt);
+            const lastStory = initialStories[initialStories.length - 1];
+            setLastPrimarySortKey(lastStory.primarySortKey);
+            setLastSecondarySortKey(lastStory.secondarySortKey);
         } else {
             setHasMore(false);
         }
@@ -117,7 +126,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
       <div className="flex justify-center items-center col-span-full py-6">
         {hasMore ? (
           <Button onClick={loadMoreStories} disabled={isLoading}>
-            {isLoading ? (
+            {isLoading && allStories.length > 0 ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</>
             ) : (
               'Load More'

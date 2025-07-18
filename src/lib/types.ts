@@ -45,6 +45,9 @@ export interface Story {
   author?: string;
   tags?: string[];
   status: 'published' | 'failed';
+  // Add new fields for sorting
+  primarySortKey: string;
+  secondarySortKey: number;
 }
 
 export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'] as const;
@@ -89,6 +92,9 @@ export function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
       author: data.author || 'Anonymous',
       tags: data.tags || [],
       status: data.status || 'published',
+      // Default sorting keys for older documents
+      primarySortKey: data.primarySortKey || storyId,
+      secondarySortKey: data.secondarySortKey || 0,
     };
 }
 

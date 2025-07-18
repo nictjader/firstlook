@@ -7,25 +7,26 @@ import { docToStory } from '@/lib/types';
 import {
   Query,
   DocumentData,
+  QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 
 const STORIES_PER_PAGE = 12;
 
 export async function getStories(
-  lastPublishedAt: string | null
+  lastPrimarySortKey: string | null,
+  lastSecondarySortKey: number | null,
 ): Promise<Story[]> {
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
 
     let q: Query<DocumentData> = storiesRef
-      .orderBy('publishedAt', 'desc')
+      .orderBy('primarySortKey', 'desc')
+      .orderBy('secondarySortKey', 'asc')
       .limit(STORIES_PER_PAGE);
 
-    if (lastPublishedAt) {
-      // When using startAfter, you need to provide the value from the last document.
-      // Firestore Admin SDK can take a Date object directly.
-      q = q.startAfter(new Date(lastPublishedAt));
+    if (lastPrimarySortKey && lastSecondarySortKey !== null) {
+      q = q.startAfter(lastPrimarySortKey, lastSecondarySortKey);
     }
     
     const documentSnapshots = await q.get();
@@ -34,7 +35,7 @@ export async function getStories(
       return [];
     }
 
-    const stories = documentSnapshots.docs.map(doc => docToStory(doc));
+    const stories = documentSnapshots.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
     
     return stories;
   } catch (error) {
