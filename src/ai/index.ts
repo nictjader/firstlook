@@ -1,5 +1,4 @@
 
-'use server';
 /**
  * @fileoverview This file provides a singleton instance of the Genkit AI object.
  * All server-side code that needs to interact with Genkit should import the `ai`
