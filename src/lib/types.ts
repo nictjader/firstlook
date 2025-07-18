@@ -39,7 +39,7 @@ export interface Story {
   previewText: string;
   subgenre: string;
   wordCount: number;
-  publishedAt: string; // Changed to string
+  publishedAt: string; // Changed to string for serialization
   coverImageUrl?: string;
   coverImagePrompt: string;
   author?: string; 

@@ -14,8 +14,8 @@ interface PurchaseHistoryCardProps {
 export default function PurchaseHistoryCard({ purchaseHistory }: PurchaseHistoryCardProps) {
   // Sort history to show most recent first
   const sortedHistory = [...(purchaseHistory || [])].sort((a, b) => {
-    const timeA = new Date(a.purchasedAt).getTime() ?? 0;
-    const timeB = new Date(b.purchasedAt).getTime() ?? 0;
+    const timeA = new Date(a.purchasedAt).getTime();
+    const timeB = new Date(b.purchasedAt).getTime();
     return timeB - timeA;
   });
 
@@ -44,7 +44,7 @@ export default function PurchaseHistoryCard({ purchaseHistory }: PurchaseHistory
               {sortedHistory.map((purchase, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">
-                    {new Date(purchase.purchasedAt).toLocaleDateString() ?? 'N/A'}
+                    {new Date(purchase.purchasedAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center">

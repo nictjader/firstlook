@@ -19,29 +19,27 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to convert Firestore Timestamps to JS Date objects for display
-function safeToDate(timestamp: any): Date | null {
-  if (!timestamp) return null;
+// Helper function to convert Firestore Timestamps to ISO strings for serialization
+function safeToISOString(timestamp: any): string {
+  if (!timestamp) return new Date().toISOString();
   if (timestamp instanceof Timestamp) {
-    return timestamp.toDate();
+    return timestamp.toDate().toISOString();
   }
   if (timestamp && typeof timestamp.toDate === 'function') {
-     return timestamp.toDate();
+     return timestamp.toDate().toISOString();
   }
   if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
-    return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
+    return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate().toISOString();
   }
   const date = new Date(timestamp);
   if (!isNaN(date.getTime())) {
-    return date;
+    return date.toISOString();
   }
-  return null;
+  return new Date().toISOString();
 }
 
 function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
     const data = doc;
-    const createdAtDate = safeToDate(data.createdAt);
-    const lastLoginDate = safeToDate(data.lastLogin);
 
     return {
       userId: userId,
@@ -51,16 +49,13 @@ function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
       unlockedStories: data.unlockedStories || [],
       readStories: data.readStories || [],
       favoriteStories: data.favoriteStories || [],
-      purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => {
-          const purchasedAtDate = safeToDate(p.purchasedAt);
-          return {
-            ...p,
-            purchasedAt: purchasedAtDate ? purchasedAtDate.toISOString() : new Date().toISOString(), 
-          }
-      }),
+      purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => ({
+          ...p,
+          purchasedAt: safeToISOString(p.purchasedAt),
+      })),
       preferences: data.preferences || { subgenres: [] },
-      createdAt: createdAtDate ? createdAtDate.toISOString() : new Date().toISOString(),
-      lastLogin: lastLoginDate ? lastLoginDate.toISOString() : new Date().toISOString(),
+      createdAt: safeToISOString(data.createdAt),
+      lastLogin: safeToISOString(data.lastLogin),
     };
 }
 

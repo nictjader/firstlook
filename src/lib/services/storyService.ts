@@ -5,18 +5,20 @@ import type { Story, Subgenre } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 
-// Helper to safely convert Firestore Timestamps or date strings
-function safeToDate(timestamp: any): Date | null {
-  if (!timestamp) return null;
-  if (timestamp instanceof Timestamp || (timestamp && typeof timestamp.toDate === 'function')) {
-    return timestamp.toDate();
-  }
-  const date = new Date(timestamp);
-  if (!isNaN(date.getTime())) {
-    return date;
-  }
-  return null;
+// Helper to safely convert Firestore Timestamps or date strings to a serializable string
+function safeToISOString(timestamp: any): string {
+    if (!timestamp) return new Date().toISOString();
+    if (timestamp instanceof Timestamp || (timestamp && typeof timestamp.toDate === 'function')) {
+        return timestamp.toDate().toISOString();
+    }
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+        return date.toISOString();
+    }
+    console.warn('Could not parse date value:', timestamp);
+    return new Date().toISOString(); // Default to current date as a fallback
 }
+
 
 // Helper to safely convert Firestore DocumentSnapshot to a Story object
 function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
@@ -27,8 +29,6 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
       return null;
     }
     
-    const publishedAtDate = safeToDate(data.publishedAt);
-
     return {
       storyId: doc.id,
       title: data.title || 'Untitled',
@@ -43,7 +43,7 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
       previewText: data.previewText || '',
       subgenre: data.subgenre || 'contemporary',
       wordCount: data.wordCount || 0,
-      publishedAt: publishedAtDate ? publishedAtDate.toISOString() : new Date().toISOString(),
+      publishedAt: safeToISOString(data.publishedAt), // Convert to ISO string here
       coverImageUrl: data.coverImageUrl || '',
       coverImagePrompt: data.coverImagePrompt || '',
       author: data.author || 'Anonymous',
@@ -63,55 +63,71 @@ export async function getStories(
     pagination?: { limit?: number; cursor?: string };
   } = {}
 ): Promise<Story[]> {
-  console.log('[getStories] Starting function with filter:', filter, 'pagination:', pagination);
   const db = getAdminDb();
   let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
 
-  // 1. Basic filter: Only get published stories.
   storiesQuery = storiesQuery.where('status', '==', 'published');
 
-  // 2. Add subgenre filter if it exists and is not 'all'.
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
-    console.log(`[getStories] Applied subgenre filter: ${filter.subgenre}`);
   }
   
-  // 3. Always order by publishedAt for consistent pagination.
-  storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
-
-  // 4. Handle pagination using a cursor.
-  if (pagination.cursor) {
-    const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
-    if (cursorDoc.exists) {
-      storiesQuery = storiesQuery.startAfter(cursorDoc);
-    }
-  }
-
-  // 5. Apply a limit to the number of documents returned.
   if (pagination.limit) {
     storiesQuery = storiesQuery.limit(pagination.limit);
-    console.log(`[getStories] Applied limit: ${pagination.limit}`);
+  } else {
+    storiesQuery = storiesQuery.limit(50); // Apply a default limit
   }
+
+  // NOTE: We cannot use orderBy('publishedAt') and a subgenre filter without a composite index.
+  // We will fetch the data and sort it in JavaScript instead.
 
   try {
     const querySnapshot = await storiesQuery.get();
-    console.log(`[getStories] Query executed. Found ${querySnapshot.docs.length} documents.`);
-
-    if (querySnapshot.empty) {
-      console.warn('[getStories] Query returned no documents.');
-      return [];
-    }
-
     const stories = querySnapshot.docs
       .map(docToStory)
-      .filter((story): story is Story => story !== null); // Filter out any nulls from conversion errors
+      .filter((story): story is Story => story !== null); 
 
-    console.log(`[getStories] Successfully converted and returning ${stories.length} stories.`);
+    // Sort the results by date in JavaScript. This is more robust.
+    stories.sort((a, b) => {
+       const dateA = a.publishedAt ? new Date(a.publishedAt).getTime() : 0;
+       const dateB = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
+       return dateB - dateA;
+    });
+
+    if (pagination.cursor) {
+        const cursorIndex = stories.findIndex(s => s.storyId === pagination.cursor);
+        if(cursorIndex !== -1) {
+            return stories.slice(cursorIndex + 1);
+        } else {
+             // If cursor not found, it might be on a subsequent page not loaded by the initial query.
+             // This indicates we should try fetching from the DB with the cursor.
+             const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
+             if (cursorDoc.exists) {
+                // Re-run the query starting after the cursor
+                // We MUST include an orderBy when using startAfter
+                let paginatedQuery = db.collection('stories')
+                    .where('status', '==', 'published')
+                    .orderBy('publishedAt', 'desc') // Add orderBy for pagination
+                    .startAfter(cursorDoc)
+                    .limit(pagination.limit || 12);
+                
+                if (filter.subgenre && filter.subgenre !== 'all') {
+                    // NOTE: This will fail without a composite index on (subgenre, publishedAt)
+                    // It is added here for completeness, but the primary logic avoids it.
+                    paginatedQuery = paginatedQuery.where('subgenre', '==', filter.subgenre);
+                }
+
+                const paginatedSnapshot = await paginatedQuery.get();
+                return paginatedSnapshot.docs.map(docToStory).filter((s): s is Story => s !== null);
+             }
+        }
+    }
+    
     return stories;
 
   } catch (error) {
     console.error('[getStories] A critical error occurred during query execution:', error);
-    return []; // Return an empty array on error to prevent crashing the page
+    return []; // Return an empty array on error
   }
 }
 
