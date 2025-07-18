@@ -35,9 +35,10 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
     if (isLoading || !hasMore) return;
 
     setIsLoading(true);
-    const cursor = stories[stories.length - 1]?.storyId;
+    const cursor = stories.length > 0 ? stories[stories.length - 1]?.storyId : undefined;
     if (!cursor) {
       setIsLoading(false);
+      setHasMore(false);
       return;
     }
 
@@ -51,6 +52,8 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
       }
     } catch (error) {
       console.error("Failed to load more stories:", error);
+      // Stop trying to load more if there's an error
+      setHasMore(false);
     } finally {
       setIsLoading(false);
     }
