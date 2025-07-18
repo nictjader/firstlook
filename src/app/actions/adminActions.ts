@@ -7,7 +7,8 @@ import { getDownloadURL, ref, uploadString } from 'firebase/storage';
 import { storage } from '@/lib/firebase/client'; // storage uses client SDK for upload
 import { getAdminDb } from '@/lib/firebase/admin';
 import { ai } from '@/ai';
-import { Story } from '@/lib/types';
+import { Story, Subgenre, docToStory, ALL_SUBGENRES } from '@/lib/types';
+import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 // The output from the pure AI generation part of the action.
 // The client will handle writing this to Firestore.
@@ -24,6 +25,14 @@ export interface GenerationResult {
   // This will be populated if the text generation part is successful
   aiStoryResult?: AIStoryResult;
 }
+
+export interface StoryCountBreakdown {
+  totalStories: number;
+  standaloneStories: number;
+  multiPartSeriesCount: number;
+  storiesPerGenre: Record<string, number>;
+}
+
 
 /**
  * Selects a random story seed from the predefined list.
@@ -113,19 +122,50 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
 }
 
 /**
- * Counts the total number of documents in the 'stories' collection.
- * @returns A promise that resolves to the number of stories in the database.
+ * Counts and categorizes all documents in the 'stories' collection.
+ * @returns A promise that resolves to a detailed breakdown of story counts.
  */
-export async function countStoriesInDB(): Promise<number> {
+export async function countStoriesInDB(): Promise<StoryCountBreakdown> {
   try {
     const db = getAdminDb();
     const storiesCollection = db.collection('stories');
-    // Use select() with no arguments to fetch only document IDs, which is more efficient.
-    const snapshot = await storiesCollection.select().get();
-    // The size property of the snapshot gives the number of documents.
-    return snapshot.size;
+    const snapshot = await storiesCollection.get();
+
+    if (snapshot.empty) {
+      return {
+        totalStories: 0,
+        standaloneStories: 0,
+        multiPartSeriesCount: 0,
+        storiesPerGenre: {},
+      };
+    }
+    
+    const stories = snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+
+    let standaloneStories = 0;
+    const seriesIds = new Set<string>();
+    const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({...acc, [genre]: 0}), {} as Record<string, number>);
+
+    stories.forEach(story => {
+      if (story.seriesId) {
+        seriesIds.add(story.seriesId);
+      } else {
+        standaloneStories++;
+      }
+      if (story.subgenre && storiesPerGenre.hasOwnProperty(story.subgenre)) {
+          storiesPerGenre[story.subgenre]++;
+      }
+    });
+
+    return {
+      totalStories: snapshot.size,
+      standaloneStories,
+      multiPartSeriesCount: seriesIds.size,
+      storiesPerGenre,
+    };
+
   } catch (error) {
     console.error("Error counting stories in DB:", error);
-    return 0;
+    throw new Error("Failed to count stories in the database.");
   }
 }

@@ -3,16 +3,19 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Users, Layers, Library } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, generateAndUploadCoverImageAction, countStoriesInDB } from '@/app/actions/adminActions';
+import { generateStoryAI, generateAndUploadCoverImageAction, countStoriesInDB, StoryCountBreakdown } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { capitalizeWords } from '@/lib/utils';
+import { ALL_SUBGENRES } from '@/lib/types';
 
 type Log = {
     id: number;
@@ -36,12 +39,12 @@ const StatusIcon = ({ status }: { status: Log['status'] }) => {
 };
 
 const GenerationLog = ({ logs }: { logs: Log[] }) => (
-  <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-    <div className="p-6">
-      <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center"><BookText className="mr-2 h-5 w-5" /> Generation Log</h3>
+  <Card>
+    <CardHeader>
+      <CardTitle className="flex items-center"><BookText className="mr-2 h-5 w-5" /> Generation Log</CardTitle>
       <p className="text-sm text-muted-foreground">A real-time log of the story generation process.</p>
-    </div>
-    <div className="p-6 pt-0">
+    </CardHeader>
+    <CardContent>
       <div className="space-y-3">
         {logs.map((log) => (
           <div key={log.id} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md">
@@ -65,8 +68,8 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
           </div>
         ))}
       </div>
-    </div>
-  </div>
+    </CardContent>
+  </Card>
 );
 
 function AdminDashboardContent() {
@@ -75,7 +78,7 @@ function AdminDashboardContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
   const [completed, setCompleted] = useState(0);
-  const [storyCount, setStoryCount] = useState<number | null>(null);
+  const [storyCount, setStoryCount] = useState<StoryCountBreakdown | null>(null);
   const [isCounting, setIsCounting] = useState(false);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
@@ -90,7 +93,7 @@ function AdminDashboardContent() {
       setStoryCount(count);
     } catch (error) {
       console.error("Failed to count stories:", error);
-      setStoryCount(0);
+      setStoryCount(null);
     } finally {
       setIsCounting(false);
     }
@@ -168,36 +171,65 @@ function AdminDashboardContent() {
           </Alert>
         )}
         
-        <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
-           <div className="p-6">
-            <h3 className="text-2xl font-semibold leading-none tracking-tight">Database Tools</h3>
-            <p className="text-sm text-muted-foreground">
-             Verify the contents of your database.
-            </p>
-          </div>
-           <div className="p-6 pt-0 space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center"><Database className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
+            <p className="text-sm text-muted-foreground">Verify the contents of your database.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
               <Button onClick={handleCountStories} disabled={isCounting || isGenerating}>
-                <Database className="mr-2 h-4 w-4" />
-                {isCounting ? 'Counting...' : 'Count Stories in Database'}
+                {isCounting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookText className="mr-2 h-4 w-4" />}
+                {isCounting ? 'Counting Stories...' : 'Analyze Story Database'}
               </Button>
               {storyCount !== null && (
                  <Alert variant="success">
                     <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Count Complete</AlertTitle>
+                    <AlertTitle>Database Analysis Complete</AlertTitle>
                     <AlertDescription>
-                      There are currently <strong>{storyCount}</strong> stories in the database.
+                      <div className="space-y-2 mt-2">
+                        <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-md">
+                          <div className="font-semibold flex items-center"><Book className="mr-2 h-4 w-4" />Total Stories</div>
+                          <div className="font-bold text-lg">{storyCount.totalStories}</div>
+                        </div>
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                           <Card>
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-base flex items-center"><Layers className="mr-2 h-4 w-4 text-primary"/>Story Types</CardTitle>
+                              </CardHeader>
+                              <CardContent>
+                                  <div className="flex justify-between text-sm"><span>Standalone Stories:</span> <strong>{storyCount.standaloneStories}</strong></div>
+                                  <div className="flex justify-between text-sm"><span>Multi-Part Series:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
+                              </CardContent>
+                           </Card>
+                           <Card>
+                                <CardHeader className="pb-2">
+                                  <CardTitle className="text-base flex items-center"><Library className="mr-2 h-4 w-4 text-primary"/>Genre Breakdown</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                  {Object.entries(storyCount.storiesPerGenre).map(([genre, count]) => (
+                                      <div key={genre} className="flex justify-between text-sm">
+                                        <span>{capitalizeWords(genre)}:</span>
+                                        <strong>{count}</strong>
+                                      </div>
+                                  ))}
+                                </CardContent>
+                           </Card>
+                        </div>
+                      </div>
                     </AlertDescription>
                 </Alert>
               )}
-           </div>
-           <Separator />
-           <div className="p-6">
-            <h3 className="text-2xl font-semibold leading-none tracking-tight">AI Story Generator</h3>
+           </CardContent>
+        </Card>
+        
+        <Card>
+           <CardHeader>
+            <CardTitle className="flex items-center"><Bot className="mr-2 h-5 w-5" /> AI Story Generator</CardTitle>
             <p className="text-sm text-muted-foreground">
               Generate multiple romance stories in parallel using different AI models.
             </p>
-          </div>
-          <div className="p-6 pt-0 space-y-4">
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div>
               <Label htmlFor="num-stories">Number of Stories to Generate</Label>
               <Input
@@ -210,14 +242,12 @@ function AdminDashboardContent() {
                 disabled={isGenerating}
               />
             </div>
-          </div>
-          <div className="flex items-center p-6 pt-0">
-            <Button onClick={handleGenerate} disabled={isGenerating || !user} className="w-full">
-              <Bot className="mr-2 h-4 w-4" /> 
-              {isGenerating ? 'Generating...' : `Generate ${numStories} ${numStories > 1 ? 'Stories' : 'Story'}`}
+             <Button onClick={handleGenerate} disabled={isGenerating || !user} className="w-full">
+              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
+              {isGenerating ? `Generating ${completed}/${numStories}...` : `Generate ${numStories} ${numStories > 1 ? 'Stories' : 'Story'}`}
             </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {logs.length > 0 && <GenerationLog logs={logs} />}
       </div>
