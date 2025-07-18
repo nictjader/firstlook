@@ -82,34 +82,34 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
   </Card>
 );
 
-/**
- * Correctly analyzes stories to count unique narratives and aggregate their genres.
- * Each standalone story is one narrative. Each series is one narrative.
- * The genre breakdown should add up to the total unique story count.
- * @param stories An array of all Story document objects.
- * @returns A detailed breakdown of unique story counts and genres.
- */
 function analyzeStories(stories: Story[]): StoryCountBreakdown {
   const storiesPerGenre: Record<string, number> = {};
   const processedSeries = new Set<string>();
   let standaloneStories = 0;
-
+  
+  // First pass: identify all unique narratives and their genres
+  const narrativeGenres: string[] = [];
+  
   stories.forEach(story => {
-    // Ensure genre exists before trying to access it
     const genre = story.subgenre;
-    if (!genre) return;
+    if (!genre) return; // Skip stories without a genre
 
     if (story.seriesId) {
-      // Process series only once
       if (!processedSeries.has(story.seriesId)) {
-        storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
+        // This is the first time we see this series. Count it.
+        narrativeGenres.push(genre);
         processedSeries.add(story.seriesId);
       }
     } else {
-      // Process standalone stories
+      // This is a standalone story. Count it.
       standaloneStories++;
-      storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
+      narrativeGenres.push(genre);
     }
+  });
+
+  // Second pass: aggregate genres
+  narrativeGenres.forEach(genre => {
+    storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
   });
 
   const multiPartSeriesCount = processedSeries.size;
@@ -318,5 +318,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
