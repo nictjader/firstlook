@@ -4,17 +4,66 @@
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import type { Story } from "@/lib/types";
-import { getStoriesByIdsAction } from "@/app/actions/userActions";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LucideIcon } from "lucide-react";
 import { BookOpen } from "lucide-react";
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
 
 interface StoryListCardProps {
   title: string;
   storyIds: string[];
   icon: LucideIcon;
   emptyMessage: string;
+}
+
+function docToStory(doc: any): Story {
+    const data = doc.data();
+    return {
+      storyId: doc.id,
+      title: data.title || 'Untitled',
+      characterNames: data.characterNames || [],
+      seriesId: data.seriesId || undefined,
+      seriesTitle: data.seriesTitle || undefined,
+      partNumber: data.partNumber || undefined,
+      totalPartsInSeries: data.totalPartsInSeries || undefined,
+      isPremium: data.isPremium || false,
+      coinCost: data.coinCost || 0,
+      content: data.content || '',
+      previewText: data.previewText || '',
+      subgenre: data.subgenre || 'contemporary',
+      wordCount: data.wordCount || 0,
+      publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
+      coverImageUrl: data.coverImageUrl || '',
+      coverImagePrompt: data.coverImagePrompt || '',
+      author: data.author || 'Anonymous',
+      tags: data.tags || [],
+      status: data.status || 'published',
+    };
+}
+
+
+async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
+  if (!storyIds || storyIds.length === 0) {
+    return [];
+  }
+  const stories: Story[] = [];
+
+  const MAX_IDS_PER_QUERY = 30; 
+  for (let i = 0; i < storyIds.length; i += MAX_IDS_PER_QUERY) {
+    const batchIds = storyIds.slice(i, i + MAX_IDS_PER_QUERY);
+    const storiesRef = collection(db, 'stories');
+    const q = query(storiesRef, where('__name__', 'in', batchIds));
+    const querySnapshot = await getDocs(q);
+    const batchStories = querySnapshot.docs.map(docToStory);
+    stories.push(...batchStories);
+  }
+  
+  const storyMap = new Map(stories.map(s => [s.storyId, s]));
+  const orderedStories = storyIds.map(id => storyMap.get(id)).filter((s): s is Story => !!s);
+  
+  return orderedStories;
 }
 
 export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessage }: StoryListCardProps) {
@@ -25,7 +74,7 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
     const fetchStoryDetails = async () => {
       if (storyIds.length > 0) {
         setIsLoading(true);
-        const fetchedStories = await getStoriesByIdsAction(storyIds);
+        const fetchedStories = await getStoriesByIds(storyIds);
         setStories(fetchedStories);
         setIsLoading(false);
       } else {

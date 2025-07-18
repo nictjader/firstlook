@@ -2,20 +2,14 @@
 import StoryList from '@/components/story/story-list';
 import SubgenreFilter from '@/components/story/subgenre-filter';
 import { Suspense } from 'react';
-import type { Subgenre, Story } from '@/lib/types';
-import { getStoriesWithSeriesGrouping } from '@/lib/services/storyService';
+import type { Subgenre } from '@/lib/types';
 
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
 
-export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
+export default function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
   const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
   
-  const initialStories = await getStoriesWithSeriesGrouping({ 
-    filter: { subgenre: selectedSubgenre },
-    pagination: { limit: 12, offset: 0 }
-  });
-
   return (
     <div className="space-y-6 sm:space-y-8">
        <div className="text-center">
@@ -29,7 +23,7 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
       <Suspense fallback={<div>Loading filter...</div>}>
         <SubgenreFilter />
       </Suspense>
-        <StoryList initialStories={initialStories} selectedSubgenre={selectedSubgenre} />
+        <StoryList selectedSubgenre={selectedSubgenre} />
     </div>
   );
 }

@@ -1,38 +1,9 @@
+
 'use server';
 
-import { getStoriesByIds, getStories, getStoriesWithSeriesGrouping } from '@/lib/services/storyService';
 import type { CoinPackage, Story, Subgenre } from '@/lib/types';
 import { db } from '@/lib/firebase/client';
 import { doc, updateDoc, arrayUnion, serverTimestamp, getDoc } from 'firebase/firestore';
-
-const STORIES_PER_PAGE = 12;
-
-// --- Story Actions ---
-
-export async function getStoriesByIdsAction(storyIds: string[]): Promise<Story[]> {
-  return getStoriesByIds(storyIds);
-}
-
-export async function getMoreStoriesAction(subgenre: Subgenre | 'all', cursor: string): Promise<Story[]> {
-  const stories = await getStories(
-    { 
-      filter: { subgenre: subgenre !== 'all' ? subgenre : undefined },
-      pagination: { limit: STORIES_PER_PAGE, cursor: cursor }
-    }
-  );
-  return stories;
-}
-
-// New action for series-aware pagination
-export async function getMoreStoriesWithGroupingAction(subgenre: Subgenre | 'all', offset: number): Promise<Story[]> {
-  const stories = await getStoriesWithSeriesGrouping(
-    { 
-      filter: { subgenre: subgenre !== 'all' ? subgenre : undefined },
-      pagination: { limit: STORIES_PER_PAGE, offset: offset }
-    }
-  );
-  return stories;
-}
 
 
 // --- Monetization Actions ---

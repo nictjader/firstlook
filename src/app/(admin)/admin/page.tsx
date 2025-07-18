@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText } from 'lu
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, generateAndUploadCoverImageAction, type GenerationResult, type AIStoryResult } from '@/app/actions/adminActions';
+import { generateStoryAI, generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
