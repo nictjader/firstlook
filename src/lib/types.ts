@@ -140,3 +140,9 @@ export interface StoryCountBreakdown {
   multiPartSeriesCount: number;
   storiesPerGenre: Record<string, number>;
 }
+
+export interface PurchaseResult {
+  success: boolean;
+  message: string;
+  error?: string;
+}

@@ -1,18 +1,12 @@
 
 'use server';
 
-import type { CoinPackage, Story, Subgenre } from '@/lib/types';
+import type { CoinPackage, PurchaseResult } from '@/lib/types';
 import { db } from '@/lib/firebase/client';
 import { doc, updateDoc, arrayUnion, serverTimestamp, getDoc } from 'firebase/firestore';
 
 
 // --- Monetization Actions ---
-
-interface PurchaseResult {
-  success: boolean;
-  message: string;
-  error?: string;
-}
 
 export async function processCoinPurchase(userId: string, pkg: CoinPackage): Promise<PurchaseResult> {
   if (!userId || !pkg) {
