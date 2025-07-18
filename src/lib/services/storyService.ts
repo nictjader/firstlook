@@ -53,7 +53,7 @@ export async function getStoriesBySeriesId(seriesId: string): Promise<Story[]> {
     return querySnapshot.docs.map(doc => docToStory(doc)).filter((s): s is Story => !!s);
 }
 
-// Main function to fetch stories, now with series grouping
+// Main function to fetch stories, now with simplified logic
 export async function getStories(
   { filter = {}, pagination = {} }: {
     filter?: { subgenre?: Subgenre | 'all' };
@@ -92,29 +92,11 @@ export async function getStories(
       return [];
     }
     
-    const initialStories = querySnapshot.docs
+    const stories = querySnapshot.docs
       .map(docToStory)
       .filter((story): story is Story => story !== null); 
     
-    // --- New logic to group series ---
-    const processedStories: Story[] = [];
-    const processedSeries = new Set<string>();
-
-    for (const story of initialStories) {
-      // If the story is part of a series and we haven't processed this series yet
-      if (story.seriesId && !processedSeries.has(story.seriesId)) {
-        const seriesParts = await getStoriesBySeriesId(story.seriesId);
-        processedStories.push(...seriesParts);
-        processedSeries.add(story.seriesId);
-      } 
-      // If it's a standalone story, just add it
-      else if (!story.seriesId) {
-        processedStories.push(story);
-      }
-      // If it's a series part but we already added the whole series, do nothing.
-    }
-    
-    return processedStories;
+    return stories;
 
   } catch (error) {
     console.error('[getStories] A critical error occurred during query execution:', error);
