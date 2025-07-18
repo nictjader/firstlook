@@ -8,7 +8,7 @@
 
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { Story } from '@/lib/types';
+import { Story, Subgenre } from '@/lib/types';
 import { ai } from '@/ai';
 import { 
   StoryGenerationInputSchema, 
