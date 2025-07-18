@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -8,6 +9,8 @@ import { BookX, PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { getMoreStoriesWithGroupingAction } from '@/app/actions/userActions';
 import { useInView } from 'react-intersection-observer';
+import { useRouter } from 'next/navigation';
+import { Separator } from '@/components/ui/separator';
 
 const STORIES_PER_PAGE = 12;
 
@@ -21,6 +24,7 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialStories.length === STORIES_PER_PAGE);
   const [currentOffset, setCurrentOffset] = useState(initialStories.length);
+  const router = useRouter();
   
   const { ref, inView } = useInView({
     threshold: 0,
@@ -66,29 +70,23 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
 
   if (stories.length === 0 && !isLoading) {
     return (
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm text-center col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 mt-8 shadow-none border-dashed">
-        <div className="p-6">
-          <div className="mx-auto bg-secondary rounded-full p-3 w-fit">
-            <BookX className="h-8 w-8 text-muted-foreground" />
-          </div>
-          <h3 className="text-2xl font-semibold leading-none tracking-tight">No Stories Found</h3>
-          <p className="text-sm text-muted-foreground">
-            It looks like there are no stories in this category yet.
-          </p>
+      <div className="w-full text-center py-12 md:py-24 col-span-full space-y-4">
+        <Separator/>
+        <div className="mx-auto bg-secondary rounded-full p-4 w-fit mt-8">
+            <BookX className="h-10 w-10 text-muted-foreground" />
         </div>
-        <div className="p-6 pt-0">
-          <p className="text-muted-foreground">
-            Please check back later or try a different subgenre.
-          </p>
+        <div className="space-y-2">
+            <h3 className="text-2xl font-semibold tracking-tight">No Stories Found</h3>
+            <p className="text-muted-foreground max-w-md mx-auto">
+                It looks like there are no stories in this category yet. Please check back later or try a different subgenre.
+            </p>
         </div>
-        <div className="flex items-center p-6 pt-0 justify-center">
-           <Link href="/admin">
-                <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Generate New Stories
-                </button>
-            </Link>
-        </div>
+        {selectedSubgenre !== 'all' && (
+            <Button variant="outline" onClick={() => router.push('/')}>
+                Clear Filter
+            </Button>
+        )}
+        <Separator/>
       </div>
     );
   }
