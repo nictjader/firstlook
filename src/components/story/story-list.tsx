@@ -3,6 +3,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
+import { docToStory } from '@/lib/types';
 import StoryCard from './story-card';
 import { useRouter } from 'next/navigation';
 import { BookX, Loader2 } from 'lucide-react';
@@ -25,31 +26,6 @@ import { db } from '@/lib/firebase/client';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const STORIES_PER_PAGE = 12;
-
-function docToStory(doc: QueryDocumentSnapshot<DocumentData>): Story {
-  const data = doc.data();
-  return {
-    storyId: doc.id,
-    title: data.title || 'Untitled',
-    characterNames: data.characterNames || [],
-    seriesId: data.seriesId || undefined,
-    seriesTitle: data.seriesTitle || undefined,
-    partNumber: data.partNumber || undefined,
-    totalPartsInSeries: data.totalPartsInSeries || undefined,
-    isPremium: data.isPremium || false,
-    coinCost: data.coinCost || 0,
-    content: data.content || '',
-    previewText: data.previewText || '',
-    subgenre: data.subgenre || 'contemporary',
-    wordCount: data.wordCount || 0,
-    publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
-    coverImageUrl: data.coverImageUrl || '',
-    coverImagePrompt: data.coverImagePrompt || '',
-    author: data.author || 'Anonymous',
-    tags: data.tags || [],
-    status: data.status || 'published',
-  };
-}
 
 interface StoryListProps {
   selectedSubgenre: Subgenre | 'all';
@@ -76,7 +52,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
   const [hasMore, setHasMore] = useState(true);
   const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
   const router = useRouter();
-  
+
   const { ref, inView } = useInView({
     threshold: 0,
     triggerOnce: false,
@@ -89,18 +65,17 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     try {
       let q: Query;
       const storiesRef = collection(db, 'stories');
-      const baseQuery = query(
-        storiesRef,
+      const commonClauses = [
         where('status', '==', 'published'),
         ...(selectedSubgenre !== 'all' ? [where('subgenre', '==', selectedSubgenre)] : []),
         orderBy('publishedAt', 'desc'),
         limit(STORIES_PER_PAGE)
-      );
+      ];
 
       if (initialLoad) {
-        q = baseQuery;
+        q = query(storiesRef, ...commonClauses);
       } else if (lastVisible) {
-        q = query(baseQuery, startAfter(lastVisible));
+        q = query(storiesRef, ...commonClauses, startAfter(lastVisible));
       } else {
         setHasMore(false);
         setIsLoading(false);
@@ -108,12 +83,12 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
       }
 
       const documentSnapshots = await getDocs(q);
-      const newStories = documentSnapshots.docs.map(docToStory);
+      const newStories = documentSnapshots.docs.map(doc => docToStory({ ...doc.data(), id: doc.id }));
       const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1] || null;
 
       setHasMore(newStories.length === STORIES_PER_PAGE);
       setLastVisible(newLastVisible);
-      
+
       setStories(prev => initialLoad ? newStories : [...prev, ...newStories]);
 
     } catch (error) {
@@ -124,7 +99,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isLoading, selectedSubgenre, lastVisible]);
-  
+
   useEffect(() => {
     setStories([]);
     setLastVisible(null);
@@ -173,7 +148,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
           <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
         ))}
       </div>
-      
+
       <div ref={ref} className="flex justify-center items-center col-span-full py-6">
         {isLoading && (
           <Button disabled>

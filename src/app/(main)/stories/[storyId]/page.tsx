@@ -8,37 +8,13 @@ import { useEffect, useState } from 'react';
 import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { Skeleton } from '@/components/ui/skeleton';
-
-function docToStory(doc: any): Story {
-    const data = doc.data();
-    return {
-      storyId: doc.id,
-      title: data.title || 'Untitled',
-      characterNames: data.characterNames || [],
-      seriesId: data.seriesId || undefined,
-      seriesTitle: data.seriesTitle || undefined,
-      partNumber: data.partNumber || undefined,
-      totalPartsInSeries: data.totalPartsInSeries || undefined,
-      isPremium: data.isPremium || false,
-      coinCost: data.coinCost || 0,
-      content: data.content || '',
-      previewText: data.previewText || '',
-      subgenre: data.subgenre || 'contemporary',
-      wordCount: data.wordCount || 0,
-      publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
-      coverImageUrl: data.coverImageUrl || '',
-      coverImagePrompt: data.coverImagePrompt || '',
-      author: data.author || 'Anonymous',
-      tags: data.tags || [],
-      status: data.status || 'published',
-    };
-}
+import { docToStory } from '@/lib/types';
 
 
 export default function StoryPage() {
     const params = useParams();
     const storyId = params.storyId as string;
-    
+
     const [story, setStory] = useState<Story | null>(null);
     const [seriesParts, setSeriesParts] = useState<Story[]>([]);
     const [loading, setLoading] = useState(true);
@@ -99,6 +75,6 @@ export default function StoryPage() {
             </div>
         );
     }
-    
+
     return <ReaderView story={story} seriesParts={seriesParts} />;
 }
