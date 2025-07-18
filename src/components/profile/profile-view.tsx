@@ -132,7 +132,7 @@ export default function ProfileView() {
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Select your favorite subgenres:</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {ALL_SUBGENRES.map(subgenre => (
+                {ALL_SUBGENRES.map((subgenre: Subgenre) => (
                   <Button
                     key={subgenre}
                     variant={selectedSubgenres.includes(subgenre) ? "default" : "outline"}
