@@ -14,7 +14,7 @@ import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
-import { type Story } from '@/lib/types';
+import { type Story, type GenerationResult, type CleanupResult, type StoryCountBreakdown } from '@/lib/types';
 import { getAllStories } from '@/app/actions/storyActions';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 
@@ -27,14 +27,6 @@ type Log = {
     storyId?: string;
     error?: string;
 };
-
-export interface StoryCountBreakdown {
-  totalUniqueStories: number;
-  standaloneStories: number;
-  multiPartSeriesCount: number;
-  storiesPerGenre: Record<string, number>;
-}
-
 
 const StatusIcon = ({ status }: { status: Log['status'] }) => {
   switch (status) {
@@ -84,32 +76,35 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 
 function analyzeStories(stories: Story[]): StoryCountBreakdown {
   const storiesPerGenre: Record<string, number> = {};
-  const seriesGenres = new Map<string, string>(); // seriesId -> genre
+  const processedSeries = new Set<string>();
   let standaloneStories = 0;
   
-  // Process all stories
+  // First pass: identify all unique narratives and their genres
+  const narrativeGenres: string[] = [];
+  
   stories.forEach(story => {
     const genre = story.subgenre;
     if (!genre) return; // Skip stories without a genre
 
     if (story.seriesId) {
-      // For series, just track the first occurrence to get the genre
-      if (!seriesGenres.has(story.seriesId)) {
-        seriesGenres.set(story.seriesId, genre);
+      if (!processedSeries.has(story.seriesId)) {
+        // This is the first time we see this series. Count it.
+        narrativeGenres.push(genre);
+        processedSeries.add(story.seriesId);
       }
     } else {
-      // Standalone story - count it and its genre
+      // This is a standalone story. Count it.
       standaloneStories++;
-      storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
+      narrativeGenres.push(genre);
     }
   });
 
-  // Now count each unique series once by its genre
-  seriesGenres.forEach((genre) => {
+  // Second pass: aggregate genres
+  narrativeGenres.forEach(genre => {
     storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
   });
 
-  const multiPartSeriesCount = seriesGenres.size;
+  const multiPartSeriesCount = processedSeries.size;
   const totalUniqueStories = standaloneStories + multiPartSeriesCount;
 
   return {
@@ -131,7 +126,7 @@ function AdminDashboardContent() {
   const [isCounting, setIsCounting] = useState(false);
   const [countError, setCountError] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
-  const [cleanupResult, setCleanupResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -167,7 +162,7 @@ function AdminDashboardContent() {
         await handleCountStories();
       }
     } catch (error: any) {
-        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.' });
+        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
     } finally {
         setIsCleaning(false);
     }
@@ -188,7 +183,7 @@ function AdminDashboardContent() {
       
       try {
         updateLog(logId, { status: 'generating', message: `Story ${index + 1}: Generating text...` });
-        const result = await generateStoryAI();
+        const result: GenerationResult = await generateStoryAI();
         
         if (!result.success || !result.aiStoryResult) {
           throw new Error(result.error || "AI Generation failed.");

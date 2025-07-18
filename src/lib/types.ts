@@ -109,3 +109,34 @@ export interface CoinPackage {
   description: string;
   stripePriceId?: string;
 }
+
+// --- Moved from adminActions.ts ---
+
+// The output from the pure AI generation part of the action.
+export interface AIStoryResult {
+  storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>;
+  storyId: string;
+}
+
+export interface GenerationResult {
+  success: boolean;
+  error: string | null;
+  title: string;
+  storyId: string;
+  // This will be populated if the text generation part is successful
+  aiStoryResult?: AIStoryResult;
+}
+
+export interface CleanupResult {
+    success: boolean;
+    message: string;
+    checked: number;
+    updated: number;
+}
+
+export interface StoryCountBreakdown {
+  totalUniqueStories: number;
+  standaloneStories: number;
+  multiPartSeriesCount: number;
+  storiesPerGenre: Record<string, number>;
+}

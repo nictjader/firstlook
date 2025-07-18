@@ -6,26 +6,10 @@ import { storySeeds } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { Story, Subgenre } from '@/lib/types';
+import { Story, Subgenre, GenerationResult, CleanupResult } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-import { collection, getDocs, query, select, type QueryDocumentSnapshot, writeBatch } from 'firebase-admin/firestore';
-
-
-// The output from the pure AI generation part of the action.
-export interface AIStoryResult {
-  storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>;
-  storyId: string;
-}
-
-export interface GenerationResult {
-  success: boolean;
-  error: string | null;
-  title: string;
-  storyId: string;
-  // This will be populated if the text generation part is successful
-  aiStoryResult?: AIStoryResult;
-}
+import { collection, getDocs, query, select, writeBatch } from 'firebase-admin/firestore';
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -148,13 +132,6 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         console.error(`Failed to generate or upload cover image for ${storyId}. Using placeholder.`, error);
         return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
     }
-}
-
-interface CleanupResult {
-    success: boolean;
-    message: string;
-    checked: number;
-    updated: number;
 }
 
 /**
