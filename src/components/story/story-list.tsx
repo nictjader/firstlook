@@ -29,7 +29,7 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   useEffect(() => {
     setStories(initialStories);
     setHasMore(initialStories.length === STORIES_PER_PAGE);
-  }, [initialStories, selectedSubgenre]);
+  }, [initialStories]);
 
   const loadMoreStories = async () => {
     if (isLoading || !hasMore) return;
@@ -66,7 +66,7 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   }, [inView, loadMoreStories]);
 
 
-  if (initialStories.length === 0) {
+  if (stories.length === 0) {
     return (
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm text-center col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 mt-8 shadow-none border-dashed">
         <div className="p-6">
@@ -118,4 +118,3 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
     </>
   );
 }
-
