@@ -1,13 +1,13 @@
 
-import { Timestamp } from 'firebase/firestore'; // For client-side
+import { Timestamp, FieldValue } from 'firebase/firestore'; // For client-side
 import { Timestamp as AdminTimestamp } from 'firebase-admin/firestore'; // For server-side
 
 export interface Purchase {
   packageId: string;
   coins: number;
   priceUSD: number;
-  // This can be a client-side or server-side timestamp
-  purchasedAt: Date | Timestamp | AdminTimestamp | null;
+  // This can be a client-side or server-side timestamp, or the special FieldValue type
+  purchasedAt: Date | Timestamp | AdminTimestamp | FieldValue | null;
 }
 
 export interface UserProfile {
