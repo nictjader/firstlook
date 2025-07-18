@@ -136,3 +136,5 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
     }
 }
+
+    

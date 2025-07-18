@@ -74,29 +74,28 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 
 /**
  * Counts and categorizes all documents in the 'stories' collection directly on the client.
+ * This function is designed to be robust and provide clear feedback.
  * @returns A promise that resolves to a detailed breakdown of story counts.
  */
 async function countStoriesOnClient(): Promise<StoryCountBreakdown> {
-  try {
     const storiesCollection = collection(db, 'stories');
-    const q = query(storiesCollection, select('seriesId', 'subgenre'));
-    const snapshot = await getDocs(q);
+    // Using a simple getDocs without select to maximize compatibility and reduce failure points.
+    const snapshot = await getDocs(storiesCollection);
 
-    const emptyBreakdown: StoryCountBreakdown = {
+    const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({ ...acc, [genre]: 0 }), {} as Record<string, number>);
+
+    if (snapshot.empty) {
+      console.warn("Client-side query for 'stories' collection returned empty. This might indicate a permissions issue or no data.");
+      return {
         totalStories: 0,
         standaloneStories: 0,
         multiPartSeriesCount: 0,
-        storiesPerGenre: ALL_SUBGENRES.reduce((acc, genre) => ({...acc, [genre]: 0}), {} as Record<string, number>),
-    };
-
-    if (snapshot.empty) {
-      console.warn("Client-side query for 'stories' collection returned empty.");
-      return emptyBreakdown;
+        storiesPerGenre,
+      };
     }
     
     const seriesIds = new Set<string>();
     let multiPartStoryDocCount = 0;
-    const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({...acc, [genre]: 0}), {} as Record<string, number>);
 
     snapshot.docs.forEach(doc => {
       const data = doc.data();
@@ -112,16 +111,11 @@ async function countStoriesOnClient(): Promise<StoryCountBreakdown> {
     const totalStories = snapshot.size;
 
     return {
-      totalStories: totalStories,
+      totalStories,
       standaloneStories: totalStories - multiPartStoryDocCount,
       multiPartSeriesCount: seriesIds.size,
       storiesPerGenre,
     };
-
-  } catch (error) {
-    console.error("Error counting stories on client:", error);
-    throw new Error("Failed to count stories in the database.");
-  }
 }
 
 
@@ -133,6 +127,7 @@ function AdminDashboardContent() {
   const [completed, setCompleted] = useState(0);
   const [storyCount, setStoryCount] = useState<StoryCountBreakdown | null>(null);
   const [isCounting, setIsCounting] = useState(false);
+  const [countError, setCountError] = useState<string | null>(null);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -141,18 +136,13 @@ function AdminDashboardContent() {
   const handleCountStories = async () => {
     setIsCounting(true);
     setStoryCount(null);
+    setCountError(null);
     try {
-      const count = await countStoriesOnClient();
-      setStoryCount(count);
-    } catch (error) {
+      const counts = await countStoriesOnClient();
+      setStoryCount(counts);
+    } catch (error: any) {
       console.error("Failed to count stories:", error);
-      // Ensure there's a fallback state on error
-      setStoryCount({
-        totalStories: 0,
-        standaloneStories: 0,
-        multiPartSeriesCount: 0,
-        storiesPerGenre: {},
-      });
+      setCountError(error.message || "An unknown error occurred while analyzing the database.");
     } finally {
       setIsCounting(false);
     }
@@ -172,7 +162,6 @@ function AdminDashboardContent() {
       setLogs(prev => [...prev, { id: logId, status: 'pending', message: `Story ${index + 1}: Queued...` }]);
       
       try {
-        // Step 1: AI Text Generation
         updateLog(logId, { status: 'generating', message: `Story ${index + 1}: Generating text...` });
         const result = await generateStoryAI();
         
@@ -181,20 +170,16 @@ function AdminDashboardContent() {
         }
         updateLog(logId, { status: 'saving', message: `Story ${index + 1}: Saving story "${result.title}"...`, title: result.title, storyId: result.storyId });
 
-        // Step 2: Save Story to Firestore (Client-side)
         const storyDocRef = doc(db, 'stories', result.aiStoryResult.storyId);
         await setDoc(storyDocRef, {
             ...result.aiStoryResult.storyData,
             publishedAt: serverTimestamp(),
-            // Start with a placeholder image
             coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Generating...'
         });
         updateLog(logId, { status: 'imaging', message: `Story ${index + 1}: Generating cover image...` });
 
-        // Step 3: Generate and Upload Cover Image
         const coverImageUrl = await generateAndUploadCoverImageAction(result.storyId, result.aiStoryResult.storyData.coverImagePrompt);
         
-        // Step 4: Update Story with Cover Image URL (Client-side)
         await updateDoc(storyDocRef, { coverImageUrl });
         updateLog(logId, { status: 'success', message: `Story ${index + 1}: Complete!` });
 
@@ -238,9 +223,18 @@ function AdminDashboardContent() {
           <CardContent className="space-y-4">
               <Button onClick={handleCountStories} disabled={isCounting || isGenerating}>
                 {isCounting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookText className="mr-2 h-4 w-4" />}
-                {isCounting ? 'Counting Stories...' : 'Analyze Story Database'}
+                {isCounting ? 'Analyzing...' : 'Analyze Story Database'}
               </Button>
-              {storyCount !== null && (
+              
+              {countError && (
+                 <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Analysis Failed</AlertTitle>
+                    <AlertDescription>{countError}</AlertDescription>
+                </Alert>
+              )}
+
+              {storyCount !== null && !countError && (
                  <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
@@ -314,3 +308,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
