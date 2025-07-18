@@ -58,28 +58,22 @@ function groupAndSortStories(stories: Story[]): Story[] {
   const seriesStoriesMap = new Map<string, Story[]>();
 
   // 1. Separate standalone stories from series parts
-  for (const story of stories) {
+  stories.forEach(story => {
     if (story.seriesId && story.totalPartsInSeries && story.totalPartsInSeries > 1) {
       if (!seriesStoriesMap.has(story.seriesId)) {
         seriesStoriesMap.set(story.seriesId, []);
       }
-      // Ensure we don't add duplicate stories to a series
-      if (!seriesStoriesMap.get(story.seriesId)!.some(s => s.storyId === story.storyId)) {
-        seriesStoriesMap.get(story.seriesId)!.push(story);
-      }
+      seriesStoriesMap.get(story.seriesId)!.push(story);
     } else {
       standaloneStories.push(story);
     }
-  }
+  });
 
-  // 2. Create final series groups, handling incomplete ones
+  // 2. Create final series groups
   const seriesGroups: Story[][] = [];
   for (const storiesInSeries of seriesStoriesMap.values()) {
-    if (storiesInSeries.length > 0) {
-      // Sort the parts of the series correctly
-      storiesInSeries.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
-      seriesGroups.push(storiesInSeries);
-    }
+    storiesInSeries.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
+    seriesGroups.push(storiesInSeries);
   }
   
   // 3. Combine and sort everything based on the publication date of the first part or the standalone story
@@ -189,16 +183,19 @@ export async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
   const db = getAdminDb();
   const stories: Story[] = [];
 
+  // Firestore 'in' queries are limited to 30 values in a single query.
   const MAX_IDS_PER_QUERY = 30; 
   for (let i = 0; i < storyIds.length; i += MAX_IDS_PER_QUERY) {
     const batchIds = storyIds.slice(i, i + MAX_IDS_PER_QUERY);
     const storiesRef = db.collection('stories');
+    // Use 'in' operator to fetch multiple documents by ID
     const q = storiesRef.where('__name__', 'in', batchIds);
     const querySnapshot = await q.get();
     const batchStories = querySnapshot.docs.map(docToStory).filter((s): s is Story => !!s);
     stories.push(...batchStories);
   }
   
+  // Re-order the fetched stories to match the original order of storyIds
   const storyMap = new Map(stories.map(s => [s.storyId, s]));
   const orderedStories = storyIds.map(id => storyMap.get(id)).filter((s): s is Story => !!s);
   
