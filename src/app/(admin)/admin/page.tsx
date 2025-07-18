@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, type StoryCountBreakdown } from '@/app/actions/adminActions';
+import { generateStoryAI } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { doc, setDoc, updateDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
@@ -15,8 +15,10 @@ import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
-import { ALL_SUBGENRES, type Story } from '@/lib/types';
+import { type Story } from '@/lib/types';
 import { getAllStories } from '@/app/actions/storyActions';
+import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
+
 
 type Log = {
     id: number;
@@ -26,6 +28,14 @@ type Log = {
     storyId?: string;
     error?: string;
 };
+
+export interface StoryCountBreakdown {
+  totalStories: number;
+  standaloneStories: number;
+  multiPartSeriesCount: number;
+  storiesPerGenre: Record<string, number>;
+}
+
 
 const StatusIcon = ({ status }: { status: Log['status'] }) => {
   switch (status) {
@@ -79,7 +89,7 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
  * @returns A detailed breakdown of story counts.
  */
 function analyzeStories(stories: Story[]): StoryCountBreakdown {
-    const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({ ...acc, [genre]: 0 }), {} as Record<string, number>);
+    const storiesPerGenre: Record<string, number> = {};
     const seriesIds = new Set<string>();
     let multiPartStoryDocCount = 0;
 
@@ -90,9 +100,9 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
         multiPartStoryDocCount++;
       }
       
-      // Tally stories for each genre
-      if (story.subgenre && storiesPerGenre.hasOwnProperty(story.subgenre)) {
-          storiesPerGenre[story.subgenre]++;
+      // Tally stories for each genre dynamically
+      if (story.subgenre) {
+          storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
       }
     });
 
@@ -173,6 +183,7 @@ function AdminDashboardContent() {
         const storyDocRef = doc(db, 'stories', result.aiStoryResult.storyId);
         await setDoc(storyDocRef, {
             ...result.aiStoryResult.storyData,
+            storyId: result.aiStoryResult.storyId,
             publishedAt: serverTimestamp(),
             coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Generating...'
         });
@@ -308,5 +319,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
