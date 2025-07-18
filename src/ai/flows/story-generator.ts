@@ -191,7 +191,7 @@ const storyGenerationFlow = ai.defineFlow(
       console.error('Error in generateStory:', e);
       const failedStory: Partial<Story> = {
         title: seed.titleIdea,
-        publishedAt: Timestamp.now(),
+        publishedAt: Timestamp.now().toDate().toISOString(),
         status: 'failed',
         content: `Failed to generate story. Error: ${e.message}`,
         coverImagePrompt: seed.coverImagePrompt,
