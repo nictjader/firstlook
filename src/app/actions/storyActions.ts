@@ -13,21 +13,18 @@ import {
 const STORIES_PER_PAGE = 12;
 
 export async function getStories(
-  lastPrimarySortKey: string | null,
-  lastSecondarySortKey: number | null
+  lastPublishedAt: string | null
 ): Promise<Story[]> {
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
 
     let q: Query<DocumentData> = storiesRef
-      .orderBy('primarySortKey', 'desc')
-      .orderBy('secondarySortKey', 'asc')
+      .orderBy('publishedAt', 'desc') // Sort by date only, which Firestore can handle with a default index
       .limit(STORIES_PER_PAGE);
 
-    if (lastPrimarySortKey && lastSecondarySortKey !== null) {
-      // Correctly use startAfter with both sorting fields
-      q = q.startAfter(lastPrimarySortKey, lastSecondarySortKey);
+    if (lastPublishedAt) {
+      q = q.startAfter(new Date(lastPublishedAt));
     }
     
     const documentSnapshots = await q.get();
@@ -41,7 +38,6 @@ export async function getStories(
     return stories;
   } catch (error) {
     console.error('Error fetching stories:', error);
-    // In case of an error, return an empty array to prevent crashing the client.
     return [];
   }
 }

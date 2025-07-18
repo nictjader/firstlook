@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -31,9 +31,7 @@ const StoryListSkeleton = () => (
 
 export default function StoryList({ initialSubgenre }: StoryListProps) {
   const [allStories, setAllStories] = useState<Story[]>([]);
-  const [filteredStories, setFilteredStories] = useState<Story[]>([]);
-  const [lastPrimarySortKey, setLastPrimarySortKey] = useState<string | null>(null);
-  const [lastSecondarySortKey, setLastSecondarySortKey] = useState<number | null>(null);
+  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -44,34 +42,30 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
     if (!hasMore || isLoading) return;
     setIsLoading(true);
     
-    const newStories = await getStories(lastPrimarySortKey, lastSecondarySortKey);
+    const newStories = await getStories(lastPublishedAt);
     
     if (newStories.length > 0) {
       setAllStories((prev) => [...prev, ...newStories]);
       const lastStory = newStories[newStories.length - 1];
-      setLastPrimarySortKey(lastStory.primarySortKey);
-      setLastSecondarySortKey(lastStory.secondarySortKey);
+      setLastPublishedAt(lastStory.publishedAt);
     } else {
       setHasMore(false);
     }
     setIsLoading(false);
-  }, [hasMore, isLoading, lastPrimarySortKey, lastSecondarySortKey]);
+  }, [hasMore, isLoading, lastPublishedAt]);
   
   // Initial load effect
   useEffect(() => {
     setIsLoading(true);
     setAllStories([]);
-    setFilteredStories([]);
-    setLastPrimarySortKey(null);
-    setLastSecondarySortKey(null);
+    setLastPublishedAt(null);
     setHasMore(true);
     
-    getStories(null, null).then((initialStories) => {
+    getStories(null).then((initialStories) => {
         if (initialStories.length > 0) {
             setAllStories(initialStories);
             const lastStory = initialStories[initialStories.length - 1];
-            setLastPrimarySortKey(lastStory.primarySortKey);
-            setLastSecondarySortKey(lastStory.secondarySortKey);
+            setLastPublishedAt(lastStory.publishedAt);
         } else {
             setHasMore(false);
         }
@@ -79,13 +73,11 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
     });
   }, []); 
 
-  // Effect for filtering when subgenre or allStories change
-  useEffect(() => {
+  const filteredStories = useMemo(() => {
     if (selectedSubgenre === 'all') {
-      setFilteredStories(allStories);
-    } else {
-      setFilteredStories(allStories.filter(story => story.subgenre === selectedSubgenre));
+      return allStories;
     }
+    return allStories.filter(story => story.subgenre === selectedSubgenre);
   }, [allStories, selectedSubgenre]);
 
   if (allStories.length === 0 && isLoading) {
