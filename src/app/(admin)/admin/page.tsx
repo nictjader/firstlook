@@ -85,45 +85,41 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 /**
  * Correctly analyzes stories to count unique narratives and aggregate their genres.
  * Each standalone story is one narrative. Each series is one narrative.
+ * The genre breakdown should add up to the total unique story count.
  * @param stories An array of all Story document objects.
  * @returns A detailed breakdown of unique story counts and genres.
  */
 function analyzeStories(stories: Story[]): StoryCountBreakdown {
-    const storiesPerGenre: Record<string, number> = {};
-    const processedSeries = new Set<string>();
-    let standaloneStories = 0;
+  const storiesPerGenre: Record<string, number> = {};
+  const processedSeries = new Set<string>();
+  let standaloneStories = 0;
 
-    stories.forEach(story => {
-        // Handle standalone stories
-        if (!story.seriesId) {
-            standaloneStories++;
-            if (story.subgenre) {
-                storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
-            }
-        } 
-        // Handle series, counting each series only once
-        else {
-            if (story.seriesId && !processedSeries.has(story.seriesId)) {
-                // We count this series as one unique narrative.
-                // We use its genre for the breakdown.
-                if (story.subgenre) {
-                    storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
-                }
-                // Mark this series as processed so we don't count its other parts.
-                processedSeries.add(story.seriesId);
-            }
-        }
-    });
+  stories.forEach(story => {
+    // Handle standalone stories
+    if (!story.seriesId) {
+      standaloneStories++;
+      if (story.subgenre) {
+        storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
+      }
+    } 
+    // Handle series, counting each series only once for the genre breakdown
+    else if (story.seriesId && !processedSeries.has(story.seriesId)) {
+      if (story.subgenre) {
+        storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
+      }
+      processedSeries.add(story.seriesId);
+    }
+  });
 
-    const multiPartSeriesCount = processedSeries.size;
-    const totalUniqueStories = standaloneStories + multiPartSeriesCount;
+  const multiPartSeriesCount = processedSeries.size;
+  const totalUniqueStories = standaloneStories + multiPartSeriesCount;
 
-    return {
-      totalUniqueStories,
-      standaloneStories,
-      multiPartSeriesCount,
-      storiesPerGenre,
-    };
+  return {
+    totalUniqueStories,
+    standaloneStories,
+    multiPartSeriesCount,
+    storiesPerGenre,
+  };
 }
 
 
@@ -262,7 +258,7 @@ function AdminDashboardContent() {
                            <div className="p-3 bg-green-500/10 rounded-md space-y-2">
                               <h4 className="font-semibold flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary"/>Story Types</h4>
                               <div className="flex justify-between text-sm"><span>Standalone Stories:</span> <strong>{storyCount.standaloneStories}</strong></div>
-                              <div className="flex justify-between text-sm"><span>Unique Series:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
+                              <div className="flex justify-between text-sm"><span>Multi-Part Stories:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
                            </div>
                            <div className="p-3 bg-green-500/10 rounded-md">
                                 <h4 className="font-semibold flex items-center mb-2"><Library className="mr-2 h-4 w-4 text-primary"/>Genre Breakdown</h4>
