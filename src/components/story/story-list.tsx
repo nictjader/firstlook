@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import { BookX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { getStoriesBySubgenre } from '@/app/actions/storyActions';
+import { getAllStories } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface StoryListProps {
@@ -66,7 +66,7 @@ function groupAndSortStories(stories: Story[]): Story[] {
 
 
 export default function StoryList({ selectedSubgenre }: StoryListProps) {
-  const [stories, setStories] = useState<Story[]>([]);
+  const [allStories, setAllStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
 
@@ -74,29 +74,32 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     const fetchStories = async () => {
       setIsLoading(true);
       try {
-        const fetchedStories = await getStoriesBySubgenre(selectedSubgenre);
-        setStories(fetchedStories);
+        const fetchedStories = await getAllStories();
+        setAllStories(fetchedStories);
       } catch (error) {
         console.error("Failed to fetch stories:", error);
-        // Set stories to empty array on failure to prevent crash
-        setStories([]); 
+        setAllStories([]); 
       } finally {
         setIsLoading(false);
       }
     };
 
     fetchStories();
-  }, [selectedSubgenre]); 
+  }, []); 
 
-  const displayedStories = useMemo(() => {
-    return groupAndSortStories(stories);
-  }, [stories]);
+  const filteredAndSortedStories = useMemo(() => {
+    const filtered = selectedSubgenre === 'all'
+      ? allStories
+      : allStories.filter(story => story.subgenre === selectedSubgenre);
+    
+    return groupAndSortStories(filtered);
+  }, [allStories, selectedSubgenre]);
 
   if (isLoading) {
     return <StoryListSkeleton />;
   }
 
-  if (displayedStories.length === 0) {
+  if (filteredAndSortedStories.length === 0) {
     return (
       <div className="w-full text-center py-12 md:py-24 col-span-full space-y-4">
         <Separator/>
@@ -121,7 +124,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-      {displayedStories.map((story, index) => (
+      {filteredAndSortedStories.map((story, index) => (
         <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
       ))}
     </div>
