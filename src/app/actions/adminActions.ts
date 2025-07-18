@@ -120,11 +120,12 @@ export async function countStoriesInDB(): Promise<number> {
   try {
     const db = getAdminDb();
     const storiesCollection = db.collection('stories');
-    const snapshot = await storiesCollection.count().get();
-    return snapshot.data().count;
+    // Use select() with no arguments to fetch only document IDs, which is more efficient.
+    const snapshot = await storiesCollection.select().get();
+    // The size property of the snapshot gives the number of documents.
+    return snapshot.size;
   } catch (error) {
     console.error("Error counting stories in DB:", error);
-    // Return 0 or throw an error, depending on how you want to handle it.
     return 0;
   }
 }
