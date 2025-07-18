@@ -1,38 +1,25 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useTransition } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
-import { docToStory } from '@/lib/types';
 import StoryCard from './story-card';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { BookX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useInView } from 'react-intersection-observer';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  startAfter,
-  getDocs,
-  Query,
-  DocumentData,
-  QueryDocumentSnapshot,
-} from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { getStories } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
 
 const STORIES_PER_PAGE = 12;
 
 interface StoryListProps {
-  selectedSubgenre: Subgenre | 'all';
+  initialSubgenre: Subgenre | 'all';
 }
 
 const StoryListSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:col-span-4 gap-4 sm:gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="flex flex-col space-y-3">
                 <Skeleton className="h-[300px] w-full rounded-xl" />
@@ -45,74 +32,58 @@ const StoryListSkeleton = () => (
     </div>
 );
 
-
-export default function StoryList({ selectedSubgenre }: StoryListProps) {
+export default function StoryList({ initialSubgenre }: StoryListProps) {
   const [stories, setStories] = useState<Story[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [lastStory, setLastStory] = useState<Story | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [lastVisible, setLastVisible] = useState<QueryDocumentSnapshot | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
   const router = useRouter();
+
+  const loadMoreStories = useCallback(async () => {
+    if (!hasMore || isLoading) return;
+    setIsLoading(true);
+    startTransition(async () => {
+      const newStories = await getStories(initialSubgenre, lastStory);
+      if (newStories.length > 0) {
+        setStories((prev) => [...prev, ...newStories]);
+        setLastStory(newStories[newStories.length - 1]);
+      }
+      if (newStories.length < STORIES_PER_PAGE) {
+        setHasMore(false);
+      }
+      setIsLoading(false);
+    });
+  }, [hasMore, isLoading, initialSubgenre, lastStory]);
+
+  useEffect(() => {
+    const fetchInitial = async () => {
+        setIsLoading(true);
+        setStories([]);
+        setLastStory(null);
+        setHasMore(true);
+        const initialStories = await getStories(initialSubgenre, null);
+        setStories(initialStories);
+        setLastStory(initialStories[initialStories.length - 1] || null);
+        if (initialStories.length < STORIES_PER_PAGE) {
+            setHasMore(false);
+        }
+        setIsLoading(false);
+    };
+    fetchInitial();
+  }, [initialSubgenre]);
 
   const { ref, inView } = useInView({
     threshold: 0,
     triggerOnce: false,
+    rootMargin: '200px',
   });
-
-  const loadStories = useCallback(async (initialLoad = false) => {
-    if (isLoading && !initialLoad) return;
-    setIsLoading(true);
-
-    try {
-      let q: Query;
-      const storiesRef = collection(db, 'stories');
-      const commonClauses = [
-        where('status', '==', 'published'),
-        ...(selectedSubgenre !== 'all' ? [where('subgenre', '==', selectedSubgenre)] : []),
-        orderBy('publishedAt', 'desc'),
-        limit(STORIES_PER_PAGE)
-      ];
-
-      if (initialLoad) {
-        q = query(storiesRef, ...commonClauses);
-      } else if (lastVisible) {
-        q = query(storiesRef, ...commonClauses, startAfter(lastVisible));
-      } else {
-        setHasMore(false);
-        setIsLoading(false);
-        return;
-      }
-
-      const documentSnapshots = await getDocs(q);
-      const newStories = documentSnapshots.docs.map(doc => docToStory({ ...doc.data(), id: doc.id }));
-      const newLastVisible = documentSnapshots.docs[documentSnapshots.docs.length - 1] || null;
-
-      setHasMore(newStories.length === STORIES_PER_PAGE);
-      setLastVisible(newLastVisible);
-
-      setStories(prev => initialLoad ? newStories : [...prev, ...newStories]);
-
-    } catch (error) {
-      console.error("[StoryList] Failed to load stories:", error);
-      setHasMore(false);
-    } finally {
-      setIsLoading(false);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading, selectedSubgenre, lastVisible]);
-
-  useEffect(() => {
-    setStories([]);
-    setLastVisible(null);
-    setHasMore(true);
-    loadStories(true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSubgenre]);
 
   useEffect(() => {
     if (inView && !isLoading && hasMore) {
-      loadStories(false);
+        loadMoreStories();
     }
-  }, [inView, isLoading, hasMore, loadStories]);
+  }, [inView, isLoading, hasMore, loadMoreStories]);
 
   if (stories.length === 0 && isLoading) {
     return <StoryListSkeleton />;
@@ -131,7 +102,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
                 It looks like there are no stories in this category yet. Please check back later or try a different subgenre.
             </p>
         </div>
-        {selectedSubgenre !== 'all' && (
+        {initialSubgenre !== 'all' && (
             <Button variant="outline" onClick={() => router.push('/')}>
                 Clear Filter
             </Button>
@@ -143,7 +114,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
 
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:col-span-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {stories.map((story, index) => (
           <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
         ))}

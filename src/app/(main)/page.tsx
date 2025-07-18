@@ -23,7 +23,7 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
       <Suspense fallback={<div>Loading filter...</div>}>
         <SubgenreFilter />
       </Suspense>
-        <StoryList selectedSubgenre={selectedSubgenre} />
+      <StoryList initialSubgenre={selectedSubgenre} />
     </div>
   );
 }
