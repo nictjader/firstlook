@@ -95,20 +95,20 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
   let standaloneStories = 0;
 
   stories.forEach(story => {
+    // Ensure genre exists before trying to access it
+    const genre = story.subgenre;
+    if (!genre) return;
+
     if (story.seriesId) {
       // Process series only once
       if (!processedSeries.has(story.seriesId)) {
-        if (story.subgenre) {
-          storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
-        }
+        storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
         processedSeries.add(story.seriesId);
       }
     } else {
       // Process standalone stories
       standaloneStories++;
-      if (story.subgenre) {
-        storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
-      }
+      storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     }
   });
 
@@ -318,6 +318,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
-    
