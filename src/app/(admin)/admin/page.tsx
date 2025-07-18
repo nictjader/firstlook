@@ -7,9 +7,9 @@ import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, generateAndUploadCoverImageAction, countStoriesInDB, StoryCountBreakdown } from '@/app/actions/adminActions';
+import { generateStoryAI, generateAndUploadCoverImageAction, type StoryCountBreakdown } from '@/app/actions/adminActions';
 import Link from 'next/link';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, collection, getDocs, query, select } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
@@ -72,6 +72,59 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
   </Card>
 );
 
+/**
+ * Counts and categorizes all documents in the 'stories' collection directly on the client.
+ * @returns A promise that resolves to a detailed breakdown of story counts.
+ */
+async function countStoriesOnClient(): Promise<StoryCountBreakdown> {
+  try {
+    const storiesCollection = collection(db, 'stories');
+    const q = query(storiesCollection, select('seriesId', 'subgenre'));
+    const snapshot = await getDocs(q);
+
+    const emptyBreakdown: StoryCountBreakdown = {
+        totalStories: 0,
+        standaloneStories: 0,
+        multiPartSeriesCount: 0,
+        storiesPerGenre: {},
+    };
+
+    if (snapshot.empty) {
+      console.warn("Client-side query for 'stories' collection returned empty.");
+      return emptyBreakdown;
+    }
+    
+    const seriesIds = new Set<string>();
+    let multiPartStoryDocCount = 0;
+    const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({...acc, [genre]: 0}), {} as Record<string, number>);
+
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.seriesId) {
+        seriesIds.add(data.seriesId);
+        multiPartStoryDocCount++;
+      }
+      if (data.subgenre && storiesPerGenre.hasOwnProperty(data.subgenre)) {
+          storiesPerGenre[data.subgenre]++;
+      }
+    });
+    
+    const totalStories = snapshot.size;
+
+    return {
+      totalStories: totalStories,
+      standaloneStories: totalStories - multiPartStoryDocCount,
+      multiPartSeriesCount: seriesIds.size,
+      storiesPerGenre,
+    };
+
+  } catch (error) {
+    console.error("Error counting stories on client:", error);
+    throw new Error("Failed to count stories in the database.");
+  }
+}
+
+
 function AdminDashboardContent() {
   const { user } = useAuth();
   const [numStories, setNumStories] = useState(1);
@@ -89,7 +142,7 @@ function AdminDashboardContent() {
     setIsCounting(true);
     setStoryCount(null);
     try {
-      const count = await countStoriesInDB();
+      const count = await countStoriesOnClient();
       setStoryCount(count);
     } catch (error) {
       console.error("Failed to count stories:", error);
@@ -211,12 +264,16 @@ function AdminDashboardContent() {
                                   <CardTitle className="text-base flex items-center"><Library className="mr-2 h-4 w-4 text-primary"/>Genre Breakdown</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  {Object.entries(storyCount.storiesPerGenre).map(([genre, count]) => (
-                                      <div key={genre} className="flex justify-between text-sm">
-                                        <span>{capitalizeWords(genre)}:</span>
-                                        <strong>{count}</strong>
-                                      </div>
-                                  ))}
+                                  {Object.entries(storyCount.storiesPerGenre).length > 0 ? (
+                                    Object.entries(storyCount.storiesPerGenre).map(([genre, count]) => (
+                                        <div key={genre} className="flex justify-between text-sm">
+                                          <span>{capitalizeWords(genre)}:</span>
+                                          <strong>{count}</strong>
+                                        </div>
+                                    ))
+                                  ) : (
+                                    <p className="text-sm text-muted-foreground">No genre data available.</p>
+                                  )}
                                 </CardContent>
                            </Card>
                         </div>
