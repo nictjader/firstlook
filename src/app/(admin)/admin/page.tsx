@@ -93,7 +93,12 @@ function AdminDashboardContent() {
       setStoryCount(count);
     } catch (error) {
       console.error("Failed to count stories:", error);
-      setStoryCount(null);
+      setStoryCount({
+        totalStories: 0,
+        standaloneStories: 0,
+        multiPartSeriesCount: 0,
+        storiesPerGenre: {},
+      });
     } finally {
       setIsCounting(false);
     }
