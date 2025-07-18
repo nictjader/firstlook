@@ -33,7 +33,7 @@ const StoryListSkeleton = () => (
 
 export default function StoryList({ initialSubgenre }: StoryListProps) {
   const [allFetchedStories, setAllFetchedStories] = useState<Story[]>([]);
-  const [lastStory, setLastStory] = useState<Story | null>(null);
+  const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -45,10 +45,10 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
     if (isLoading || (!isInitialLoad && !hasMore)) return;
     setIsLoading(true);
 
-    const lastStoryToFetchFrom = isInitialLoad ? null : lastStory;
+    const lastTimestamp = isInitialLoad ? null : lastPublishedAt;
     
     // We fetch all genres from the server and filter on the client
-    const newStories = await getStories('all', lastStoryToFetchFrom);
+    const newStories = await getStories('all', lastTimestamp);
     
     if (newStories.length > 0) {
       if (isInitialLoad) {
@@ -56,24 +56,25 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
       } else {
         setAllFetchedStories((prev) => [...prev, ...newStories]);
       }
-      setLastStory(newStories[newStories.length - 1]);
+      setLastPublishedAt(newStories[newStories.length - 1].publishedAt);
     }
 
     if (newStories.length < STORIES_PER_PAGE) {
       setHasMore(false);
     }
     setIsLoading(false);
-  }, [isLoading, hasMore, lastStory]);
+  }, [isLoading, hasMore, lastPublishedAt]);
   
-  // Effect for the initial load
+  // Effect for the initial load and subgenre changes
   useEffect(() => {
     startTransition(() => {
       setAllFetchedStories([]);
-      setLastStory(null);
+      setLastPublishedAt(null);
       setHasMore(true);
       loadStories(true);
     });
-  }, [selectedSubgenre]); // Re-run when subgenre changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSubgenre]); 
 
   const filteredStories = useMemo(() => {
     if (selectedSubgenre === 'all') {
@@ -118,7 +119,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
       </div>
 
       <div className="flex justify-center items-center col-span-full py-6">
-        {hasMore && (
+        {hasMore ? (
           <Button onClick={() => loadStories(false)} disabled={isLoading}>
             {isLoading ? (
               <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</>
@@ -126,9 +127,8 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
               'Load More'
             )}
           </Button>
-        )}
-        {!hasMore && filteredStories.length > 0 && (
-          <p className="text-muted-foreground">You've reached the end!</p>
+        ) : (
+          filteredStories.length > 0 && <p className="text-muted-foreground">You've reached the end!</p>
         )}
       </div>
     </>

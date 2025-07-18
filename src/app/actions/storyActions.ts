@@ -22,7 +22,7 @@ const STORIES_PER_PAGE = 12;
 export async function getStories(
   // subgenre is no longer used in the query but kept for potential future use
   subgenre: Subgenre | 'all', 
-  lastStory: Story | null
+  lastPublishedAt: string | null
 ): Promise<Story[]> {
   try {
     const db = getAdminDb();
@@ -35,8 +35,9 @@ export async function getStories(
       limit(STORIES_PER_PAGE),
     ];
 
-    if (lastStory && lastStory.publishedAt) {
-      constraints.push(startAfter(new Date(lastStory.publishedAt)));
+    if (lastPublishedAt) {
+      // Convert the ISO string back to a Date object for the query
+      constraints.push(startAfter(new Date(lastPublishedAt)));
     }
     
     const q: Query<DocumentData> = (storiesRef as any).query(...constraints);
