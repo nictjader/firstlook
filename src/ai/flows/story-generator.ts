@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview This file defines the AI flow for generating romance stories.
@@ -42,7 +43,7 @@ const StorySchema = z.object({
     .string()
     .nullable()
     .describe(
-      'If this story is part of a series, provide a UUID for the series. Otherwise, null.'
+      'If this story is part of a series, this MUST be the provided series ID: {{seriesId}}. Otherwise, this must be null.'
     ),
   seriesTitle: z
     .string()
@@ -83,7 +84,6 @@ const StorySchema = z.object({
       'The subgenre of the story, consistent with the provided seed (e.g., "contemporary", "historical", "paranormal").'
     ),
   wordCount: z.number().describe('The total word count of the generated story content.'),
-  // coverImageUrl is handled in a separate step, so we don't ask the AI for it.
   author: z.string().describe('A plausible-sounding, fictional author name for the story.'),
   tags: z
     .array(z.string())
@@ -103,6 +103,7 @@ const storyGenerationFlow = ai.defineFlow(
     const db = getAdminDb();
     // Generate a consistent ID to be used for both the document and the cover image.
     const storyId = uuidv4();
+    const potentialSeriesId = uuidv4(); // Pre-generate a potential series ID.
     const storyDocRef = db.collection('stories').doc(storyId);
 
     try {
@@ -124,7 +125,9 @@ const storyGenerationFlow = ai.defineFlow(
         2.  **Completeness:** The story must have a clear beginning, middle, and a satisfying romantic conclusion (either a "happily ever after" or a "happy for now").
         3.  **Formatting:** The story content MUST be in HTML format. Use paragraphs (<p>), section breaks (<h2>, <h3>), and other appropriate tags to make it readable.
         4.  **Word Count:** Adhere to the approximate word count specified in the seed.
-        5.  **Series:** Most stories should be standalone. Occasionally (about 10% of the time), create a two-part series. If you create a series, ensure both parts have a logical connection and that the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields are correctly populated. 'seriesId' should be a v4 UUID. For standalone stories, these fields must be null.
+        5.  **Series:** Most stories should be standalone. Occasionally (about 10% of the time), create a two-part series. 
+            - If you create a series, you MUST use the provided seriesId: "${potentialSeriesId}". The seriesId field must be populated with this exact value.
+            - For standalone stories, the seriesId, seriesTitle, partNumber, and totalPartsInSeries fields must be null.
         6.  **Monetization:**
             - For standalone stories, make approximately 80% premium (coinCost between 50-100) and 20% free (coinCost: 0).
             - If you create a two-part series, the first part (partNumber: 1) MUST have a coinCost of 0. The second part (partNumber: 2) MUST have a coinCost between 50 and 100.
@@ -151,8 +154,7 @@ const storyGenerationFlow = ai.defineFlow(
         throw new Error('AI failed to generate a story.');
       }
       
-      // Explicitly handle series-related fields to ensure they're never undefined
-      const isSeriesStory = output.seriesId !== null && output.seriesId !== undefined;
+      const isSeriesStory = output.seriesId === potentialSeriesId && output.seriesId !== null;
       
       const newStory: Omit<Story, 'storyId' | 'publishedAt'> = {
         title: output.title,
@@ -166,9 +168,8 @@ const storyGenerationFlow = ai.defineFlow(
         author: output.author,
         tags: output.tags,
         status: 'published',
-        coverImagePrompt: seed.coverImagePrompt, // Use the prompt from the seed for consistency
-        // Explicitly set series fields to null if not a series story
-        seriesId: isSeriesStory ? output.seriesId : null,
+        coverImagePrompt: seed.coverImagePrompt,
+        seriesId: isSeriesStory ? potentialSeriesId : null,
         seriesTitle: isSeriesStory ? output.seriesTitle : null,
         partNumber: isSeriesStory ? output.partNumber : null,
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries : null,
