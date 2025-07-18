@@ -83,10 +83,10 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 );
 
 /**
- * Processes an array of stories to provide a detailed breakdown based on unique narratives.
- * Each standalone story is counted as one. Each series is counted as one.
+ * Correctly analyzes stories to count unique narratives and aggregate their genres.
+ * Each standalone story is one narrative. Each series is one narrative.
  * @param stories An array of all Story document objects.
- * @returns A detailed breakdown of unique story counts.
+ * @returns A detailed breakdown of unique story counts and genres.
  */
 function analyzeStories(stories: Story[]): StoryCountBreakdown {
     const storiesPerGenre: Record<string, number> = {};
@@ -94,18 +94,23 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
     let standaloneStories = 0;
 
     stories.forEach(story => {
-        // Count genre for unique narratives (standalone or first part of a series)
-        if (story.seriesId) {
-            if (!processedSeries.has(story.seriesId)) {
-                if (story.subgenre) {
-                    storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
-                }
-                processedSeries.add(story.seriesId);
-            }
-        } else {
+        // Handle standalone stories
+        if (!story.seriesId) {
             standaloneStories++;
             if (story.subgenre) {
                 storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
+            }
+        } 
+        // Handle series, counting each series only once
+        else {
+            if (story.seriesId && !processedSeries.has(story.seriesId)) {
+                // We count this series as one unique narrative.
+                // We use its genre for the breakdown.
+                if (story.subgenre) {
+                    storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
+                }
+                // Mark this series as processed so we don't count its other parts.
+                processedSeries.add(story.seriesId);
             }
         }
     });
@@ -316,3 +321,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
