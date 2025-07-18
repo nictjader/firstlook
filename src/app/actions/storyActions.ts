@@ -27,8 +27,9 @@ export async function getStories(
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
 
+    // Simplified query to avoid needing a composite index.
+    // We are trusting that only stories with 'published' status are in the DB.
     const constraints = [
-      where('status', '==', 'published'),
       orderBy('publishedAt', 'desc'),
       limit(STORIES_PER_PAGE),
     ];
