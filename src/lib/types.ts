@@ -7,7 +7,7 @@ export interface Purchase {
   coins: number;
   priceUSD: number;
   // This can be a client-side or server-side timestamp, or the special FieldValue type
-  purchasedAt: Date | Timestamp | AdminTimestamp | FieldValue | null;
+  purchasedAt: any;
 }
 
 export interface UserProfile {
@@ -22,8 +22,8 @@ export interface UserProfile {
   preferences: {
     subgenres: Subgenre[];
   };
-  createdAt?: Date | null;
-  lastLogin?: Date | null;
+  createdAt?: any;
+  lastLogin?: any;
 }
 
 export interface Story {
@@ -40,7 +40,7 @@ export interface Story {
   previewText: string;
   subgenre: string;
   wordCount: number;
-  // This can be any format from the DB, but we convert to Date in the service
+  // This can be any format from the DB, so we pass it raw
   publishedAt: any; 
   coverImageUrl?: string;
   coverImagePrompt: string;

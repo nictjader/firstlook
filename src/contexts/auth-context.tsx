@@ -7,8 +7,6 @@ import { onAuthStateChanged } from 'firebase/auth';
 import type { UserProfile, Purchase } from '@/lib/types';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, type DocumentData, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
-import type { Timestamp as AdminTimestamp } from 'firebase-admin/firestore';
-
 
 interface AuthContextType {
   user: User | null;
@@ -21,27 +19,21 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to safely convert Firestore Timestamps from client or admin SDKs.
+// Helper function to convert Firestore Timestamps to JS Date objects for display
 function safeToDate(timestamp: any): Date | null {
   if (!timestamp) return null;
-  // Handle client-side Timestamp
   if (timestamp instanceof Timestamp) {
     return timestamp.toDate();
   }
-  // Handle server-side Timestamp (which might be serialized)
   if (timestamp && typeof timestamp.toDate === 'function') {
      return timestamp.toDate();
   }
-   // Handle serialized objects with seconds/nanoseconds
   if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
     return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
   }
-  // Fallback for serialized date strings
-  if (typeof timestamp === 'string' || typeof timestamp === 'number') {
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
-      return date;
-    }
+  const date = new Date(timestamp);
+  if (!isNaN(date.getTime())) {
+    return date;
   }
   return null;
 }
@@ -58,11 +50,11 @@ function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
       favoriteStories: data.favoriteStories || [],
       purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => ({
           ...p,
-          purchasedAt: safeToDate(p.purchasedAt)
+          purchasedAt: p.purchasedAt, // Pass raw timestamp
       })),
       preferences: data.preferences || { subgenres: [] },
-      createdAt: safeToDate(data.createdAt),
-      lastLogin: safeToDate(data.lastLogin),
+      createdAt: data.createdAt, // Pass raw timestamp
+      lastLogin: data.lastLogin, // Pass raw timestamp
     };
 }
 
@@ -98,7 +90,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     await setDoc(userDocRef, newUserProfileData);
     
-    // We need to fetch the document again to get the server-generated timestamps
     const userDocSnap = await getDoc(userDocRef);
     if (!userDocSnap.exists()) {
         throw new Error("Failed to create and fetch user profile.");
@@ -113,7 +104,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(user);
         let profile = await fetchUserProfile(user.uid);
         if (profile) {
-          // Update last login timestamp without waiting
           const userDocRef = doc(db, "users", user.uid);
           updateDoc(userDocRef, { lastLogin: serverTimestamp() });
         } else {
@@ -154,7 +144,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await updateDoc(userDocRef, {
               favoriteStories: isFavorited ? arrayRemove(storyId) : arrayUnion(storyId)
           });
-          // Refresh local state immediately for better UX
           setUserProfile(prevProfile => {
               if (!prevProfile) return null;
               const newFavorites = isFavorited

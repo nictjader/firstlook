@@ -6,16 +6,32 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Gem, ShoppingCart } from "lucide-react";
 import { Badge } from "../ui/badge";
+import { Timestamp } from "firebase/firestore";
 
 interface PurchaseHistoryCardProps {
   purchaseHistory: Purchase[];
 }
 
+function toDate(timestamp: any): Date | null {
+    if (!timestamp) return null;
+    if (timestamp instanceof Timestamp) {
+        return timestamp.toDate();
+    }
+    if (timestamp.seconds && typeof timestamp.nanoseconds === 'number') {
+        return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
+    }
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+        return date;
+    }
+    return null;
+}
+
 export default function PurchaseHistoryCard({ purchaseHistory }: PurchaseHistoryCardProps) {
   // Sort history to show most recent first
   const sortedHistory = [...(purchaseHistory || [])].sort((a, b) => {
-    const timeA = a.purchasedAt ? new Date(a.purchasedAt as any).getTime() : 0;
-    const timeB = b.purchasedAt ? new Date(b.purchasedAt as any).getTime() : 0;
+    const timeA = toDate(a.purchasedAt)?.getTime() ?? 0;
+    const timeB = toDate(b.purchasedAt)?.getTime() ?? 0;
     return timeB - timeA;
   });
 
@@ -44,7 +60,7 @@ export default function PurchaseHistoryCard({ purchaseHistory }: PurchaseHistory
               {sortedHistory.map((purchase, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">
-                    {purchase.purchasedAt ? new Date(purchase.purchasedAt as any).toLocaleDateString() : 'N/A'}
+                    {toDate(purchase.purchasedAt)?.toLocaleDateString() ?? 'N/A'}
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center">

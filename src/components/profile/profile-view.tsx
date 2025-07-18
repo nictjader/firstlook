@@ -19,7 +19,23 @@ import { Separator } from '../ui/separator';
 import { capitalizeWords } from '@/lib/utils';
 import StoryListCard from './story-list-card';
 import PurchaseHistoryCard from './purchase-history-card';
+import { Timestamp } from 'firebase/firestore';
 
+
+function toDate(timestamp: any): Date | null {
+    if (!timestamp) return null;
+    if (timestamp instanceof Timestamp) {
+        return timestamp.toDate();
+    }
+    if (timestamp.seconds && typeof timestamp.nanoseconds === 'number') {
+        return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate();
+    }
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+        return date;
+    }
+    return null;
+}
 
 export default function ProfileView() {
   const { user, userProfile, loading, updateUserProfile, refreshUserProfile } = useAuth();
@@ -31,8 +47,6 @@ export default function ProfileView() {
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    // Only update the local state if the profile's subgenres change.
-    // This prevents unnecessary re-renders if other parts of the profile update.
     if (userProfile?.preferences.subgenres) {
       setSelectedSubgenres(userProfile.preferences.subgenres as Subgenre[]);
     }
@@ -80,8 +94,8 @@ export default function ProfileView() {
     return <p>Redirecting to login...</p>;
   }
 
-  const lastLoginDate = userProfile.lastLogin ? new Date(userProfile.lastLogin).toLocaleString() : 'N/A';
-  const memberSinceDate = userProfile.createdAt ? new Date(userProfile.createdAt).toLocaleDateString() : 'N/A';
+  const lastLoginDate = toDate(userProfile.lastLogin)?.toLocaleString() ?? 'N/A';
+  const memberSinceDate = toDate(userProfile.createdAt)?.toLocaleDateString() ?? 'N/A';
 
 
   return (

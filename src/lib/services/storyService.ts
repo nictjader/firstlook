@@ -3,7 +3,7 @@
 
 import type { Story, Subgenre } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { Timestamp, DocumentSnapshot } from 'firebase-admin/firestore';
+import { Timestamp } from 'firebase-admin/firestore';
 
 // Helper to safely convert Firestore Timestamps
 function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story {
@@ -11,21 +11,6 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story {
   if (!data) {
     throw new Error(`No data found for document with ID ${doc.id}`);
   }
-
-  // Handle potential date format issues
-  let publishedAtDate: Date | null = null;
-  if (data.publishedAt) {
-      if (data.publishedAt instanceof Timestamp) {
-          publishedAtDate = data.publishedAt.toDate();
-      } else if (typeof data.publishedAt === 'string' || typeof data.publishedAt === 'number') {
-          // Attempt to parse from string or number
-          const parsedDate = new Date(data.publishedAt);
-          if (!isNaN(parsedDate.getTime())) {
-              publishedAtDate = parsedDate;
-          }
-      }
-  }
-
 
   return {
     storyId: doc.id,
@@ -41,7 +26,7 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story {
     previewText: data.previewText || '',
     subgenre: data.subgenre || 'contemporary',
     wordCount: data.wordCount || 0,
-    publishedAt: publishedAtDate,
+    publishedAt: data.publishedAt, // Pass raw timestamp data
     coverImageUrl: data.coverImageUrl || '',
     coverImagePrompt: data.coverImagePrompt || '',
     author: data.author || 'Anonymous',
