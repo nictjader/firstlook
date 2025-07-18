@@ -4,11 +4,10 @@
 import { useState, useEffect, useCallback, useTransition, useMemo } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BookX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { useInView } from 'react-intersection-observer';
 import { getStories } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -36,60 +35,52 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
   const [allFetchedStories, setAllFetchedStories] = useState<Story[]>([]);
   const [lastStory, setLastStory] = useState<Story | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const selectedSubgenre = (searchParams.get('subgenre') as Subgenre) || 'all';
 
-  const loadMoreStories = useCallback(async () => {
-    if (!hasMore || isLoading) return;
+  const loadStories = useCallback(async (isInitialLoad = false) => {
+    if (isLoading || (!isInitialLoad && !hasMore)) return;
     setIsLoading(true);
-    // The subgenre is passed to getStories but it's not used in the query
-    const newStories = await getStories(initialSubgenre, lastStory);
+
+    const lastStoryToFetchFrom = isInitialLoad ? null : lastStory;
+    
+    // We fetch all genres from the server and filter on the client
+    const newStories = await getStories('all', lastStoryToFetchFrom);
+    
     if (newStories.length > 0) {
-      setAllFetchedStories((prev) => [...prev, ...newStories]);
+      if (isInitialLoad) {
+        setAllFetchedStories(newStories);
+      } else {
+        setAllFetchedStories((prev) => [...prev, ...newStories]);
+      }
       setLastStory(newStories[newStories.length - 1]);
     }
+
     if (newStories.length < STORIES_PER_PAGE) {
       setHasMore(false);
     }
     setIsLoading(false);
-  }, [hasMore, isLoading, initialSubgenre, lastStory]);
+  }, [isLoading, hasMore, lastStory]);
   
-  // This useEffect will run only once on mount to fetch initial stories
+  // Effect for the initial load
   useEffect(() => {
-    const fetchInitial = async () => {
-        setIsLoading(true);
-        const initialStories = await getStories('all', null);
-        setAllFetchedStories(initialStories);
-        setLastStory(initialStories[initialStories.length - 1] || null);
-        if (initialStories.length < STORIES_PER_PAGE) {
-            setHasMore(false);
-        }
-        setIsLoading(false);
-    };
-    fetchInitial();
-  }, []);
+    startTransition(() => {
+      setAllFetchedStories([]);
+      setLastStory(null);
+      setHasMore(true);
+      loadStories(true);
+    });
+  }, [selectedSubgenre]); // Re-run when subgenre changes
 
   const filteredStories = useMemo(() => {
-    if (initialSubgenre === 'all') {
+    if (selectedSubgenre === 'all') {
       return allFetchedStories;
     }
-    return allFetchedStories.filter(story => story.subgenre === initialSubgenre);
-  }, [allFetchedStories, initialSubgenre]);
-
-  const { ref, inView } = useInView({
-    threshold: 0,
-    triggerOnce: false,
-    rootMargin: '400px', // Load more when 400px away from the bottom
-  });
-
-  useEffect(() => {
-    if (inView && !isLoading && hasMore) {
-        startTransition(() => {
-            loadMoreStories();
-        });
-    }
-  }, [inView, isLoading, hasMore, loadMoreStories]);
+    return allFetchedStories.filter(story => story.subgenre === selectedSubgenre);
+  }, [allFetchedStories, selectedSubgenre]);
 
   if (allFetchedStories.length === 0 && isLoading) {
     return <StoryListSkeleton />;
@@ -108,7 +99,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
                 It looks like there are no stories in this category yet. Please check back later or try a different subgenre.
             </p>
         </div>
-        {initialSubgenre !== 'all' && (
+        {selectedSubgenre !== 'all' && (
             <Button variant="outline" onClick={() => router.push('/')}>
                 Clear Filter
             </Button>
@@ -126,11 +117,14 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
         ))}
       </div>
 
-      <div ref={ref} className="flex justify-center items-center col-span-full py-6">
-        {isLoading && (
-          <Button disabled>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Loading More...
+      <div className="flex justify-center items-center col-span-full py-6">
+        {hasMore && (
+          <Button onClick={() => loadStories(false)} disabled={isLoading}>
+            {isLoading ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading...</>
+            ) : (
+              'Load More'
+            )}
           </Button>
         )}
         {!hasMore && filteredStories.length > 0 && (
