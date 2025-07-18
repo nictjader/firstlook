@@ -8,7 +8,6 @@ import { storage } from '@/lib/firebase/client'; // storage uses client SDK for 
 import { getAdminDb } from '@/lib/firebase/admin';
 import { ai } from '@/ai';
 import { Story, Subgenre, docToStory, ALL_SUBGENRES } from '@/lib/types';
-import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 // The output from the pure AI generation part of the action.
 // The client will handle writing this to Firestore.
@@ -122,14 +121,16 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
 }
 
 /**
- * Counts and categorizes all documents in the 'stories' collection.
+ * Counts and categorizes all documents in the 'stories' collection efficiently.
  * @returns A promise that resolves to a detailed breakdown of story counts.
  */
 export async function countStoriesInDB(): Promise<StoryCountBreakdown> {
   try {
     const db = getAdminDb();
     const storiesCollection = db.collection('stories');
-    const snapshot = await storiesCollection.get();
+    
+    // Fetch only the fields needed for counting and categorization to be efficient.
+    const snapshot = await storiesCollection.select('seriesId', 'subgenre').get();
 
     if (snapshot.empty) {
       return {
@@ -140,26 +141,33 @@ export async function countStoriesInDB(): Promise<StoryCountBreakdown> {
       };
     }
     
-    const stories = snapshot.docs.map(doc => docToStory(doc));
-
     let standaloneStories = 0;
     const seriesIds = new Set<string>();
     const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({...acc, [genre]: 0}), {} as Record<string, number>);
 
-    stories.forEach(story => {
-      if (story.seriesId) {
-        seriesIds.add(story.seriesId);
+    snapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.seriesId) {
+        seriesIds.add(data.seriesId);
       } else {
         standaloneStories++;
       }
-      if (story.subgenre && storiesPerGenre.hasOwnProperty(story.subgenre)) {
-          storiesPerGenre[story.subgenre]++;
+      if (data.subgenre && storiesPerGenre.hasOwnProperty(data.subgenre)) {
+          storiesPerGenre[data.subgenre]++;
       }
     });
+    
+    // To get the number of multi-part stories, we need to count how many stories are in those series
+    let multiPartStoryDocCount = 0;
+    if (seriesIds.size > 0) {
+        const seriesQuery = db.collection('stories').where('seriesId', 'in', Array.from(seriesIds));
+        const seriesSnapshot = await seriesQuery.select().get();
+        multiPartStoryDocCount = seriesSnapshot.size;
+    }
 
     return {
       totalStories: snapshot.size,
-      standaloneStories,
+      standaloneStories: snapshot.size - multiPartStoryDocCount,
       multiPartSeriesCount: seriesIds.size,
       storiesPerGenre,
     };
