@@ -1,80 +1,47 @@
 
-"use client";
-
 import ReaderView from '@/components/story/reader-view';
-import { notFound, useParams } from 'next/navigation';
-import type { Story } from '@/lib/types';
-import { useEffect, useState } from 'react';
-import { doc, getDoc, collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
+import { notFound } from 'next/navigation';
+import { getStoryById, getSeriesParts } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
-import { docToStory } from '@/lib/types';
+import type { Metadata } from 'next';
 
+// This function generates metadata for the page based on the story details.
+export async function generateMetadata({ params }: { params: { storyId: string } }): Promise<Metadata> {
+  const story = await getStoryById(params.storyId);
 
-export default function StoryPage() {
-    const params = useParams();
-    const storyId = params.storyId as string;
+  if (!story) {
+    return {
+      title: 'Story Not Found',
+    };
+  }
 
-    const [story, setStory] = useState<Story | null>(null);
-    const [seriesParts, setSeriesParts] = useState<Story[]>([]);
-    const [loading, setLoading] = useState(true);
+  return {
+    title: `${story.title} - Siren`,
+    description: story.previewText,
+    openGraph: {
+      title: story.title,
+      description: story.previewText,
+      images: [
+        {
+          url: story.coverImageUrl || 'https://placehold.co/1200x630.png',
+          width: 1200,
+          height: 630,
+          alt: `Cover for ${story.title}`,
+        },
+      ],
+    },
+  };
+}
 
-    useEffect(() => {
-        if (!storyId) return;
-
-        const fetchStory = async () => {
-            setLoading(true);
-            const storyDocRef = doc(db, 'stories', storyId);
-            const storyDoc = await getDoc(storyDocRef);
-
-            if (!storyDoc.exists()) {
-                notFound();
-                return;
-            }
-
-            const storyData = docToStory(storyDoc);
-            setStory(storyData);
-
-            if (storyData.seriesId) {
-                const storiesRef = collection(db, 'stories');
-                const q = query(storiesRef, where('seriesId', '==', storyData.seriesId), orderBy('partNumber', 'asc'));
-                const querySnapshot = await getDocs(q);
-                const parts = querySnapshot.docs.map(docToStory);
-                setSeriesParts(parts);
-            }
-            setLoading(false);
-        };
-
-        fetchStory();
-    }, [storyId]);
-
-    if (loading) {
-       return (
-            <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 p-4">
-                <Skeleton className="h-8 w-1/4" />
-                <Skeleton className="h-64 w-full" />
-                <Skeleton className="h-12 w-3/4" />
-                <Skeleton className="h-6 w-1/2" />
-                <Skeleton className="h-24 w-full" />
-            </div>
-       )
-    }
+// This is now a Server Component that fetches data before rendering.
+export default async function StoryPage({ params }: { params: { storyId: string } }) {
+    const story = await getStoryById(params.storyId);
 
     if (!story) {
-        // This case will be handled by notFound() in useEffect, but as a fallback:
-        return (
-             <div className="flex justify-center items-center min-h-[50vh]">
-                <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full max-w-lg text-center">
-                    <div className="flex flex-col space-y-1.5 p-6">
-                        <h3 className="font-semibold leading-none tracking-tight text-2xl">Story Not Found</h3>
-                    </div>
-                    <div className="p-6 pt-0">
-                        <p className="text-lg text-destructive">The requested story does not exist.</p>
-                    </div>
-                </div>
-            </div>
-        );
+        notFound();
     }
+
+    const seriesParts = story.seriesId ? await getSeriesParts(story.seriesId) : [];
 
     return <ReaderView story={story} seriesParts={seriesParts} />;
 }
