@@ -88,9 +88,30 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
   }, []); 
 
   const filteredAndSortedStories = useMemo(() => {
-    const filtered = selectedSubgenre === 'all'
-      ? allStories
-      : allStories.filter(story => story.subgenre === selectedSubgenre);
+    if (selectedSubgenre === 'all') {
+      return groupAndSortStories(allStories);
+    }
+
+    // Find all series IDs that have at least one part matching the subgenre
+    const matchingSeriesIds = new Set<string>();
+    allStories.forEach(story => {
+      if (story.seriesId && story.subgenre === selectedSubgenre) {
+        matchingSeriesIds.add(story.seriesId);
+      }
+    });
+
+    // Filter stories: include all parts of matching series, and standalone stories that match
+    const filtered = allStories.filter(story => {
+      // Include if it's part of a matched series
+      if (story.seriesId && matchingSeriesIds.has(story.seriesId)) {
+        return true;
+      }
+      // Include if it's a standalone story that matches the subgenre
+      if (!story.seriesId && story.subgenre === selectedSubgenre) {
+        return true;
+      }
+      return false;
+    });
     
     return groupAndSortStories(filtered);
   }, [allStories, selectedSubgenre]);
