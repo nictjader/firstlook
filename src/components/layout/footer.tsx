@@ -7,8 +7,10 @@ export default function Footer() {
   const [year, setYear] = useState<number | null>(null);
 
   useEffect(() => {
+    // This code will only run on the client, after the component has mounted.
+    // This avoids a hydration mismatch between server and client rendering.
     setYear(new Date().getFullYear());
-  }, []);
+  }, []); // Empty dependency array means this runs once on mount
 
   return (
     <footer className="border-t border-border/40 py-8 mt-auto">
