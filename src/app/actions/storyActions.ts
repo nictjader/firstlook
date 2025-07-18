@@ -13,6 +13,7 @@ import {
   doc,
   orderBy,
   where,
+  limit,
 } from 'firebase-admin/firestore';
 
 
@@ -26,7 +27,8 @@ export async function getAllStories(): Promise<Story[]> {
     const storiesRef = db.collection('stories');
     
     // Simple query that doesn't require a composite index.
-    const q = storiesRef.orderBy('publishedAt', 'desc');
+    // Explicitly limit to 500 to ensure all stories are fetched.
+    const q = storiesRef.orderBy('publishedAt', 'desc').limit(500);
 
     const documentSnapshots = await q.get();
     
