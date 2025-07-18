@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useTransition } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
 import { useRouter, useSearchParams } from 'next/navigation';

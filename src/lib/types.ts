@@ -94,7 +94,7 @@ export function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
       status: data.status || 'published',
       // Default sorting keys for older documents
       primarySortKey: data.primarySortKey || storyId,
-      secondarySortKey: data.secondarySortKey || 0,
+      secondarySortKey: data.secondarySortKey === undefined ? 0 : data.secondarySortKey,
     };
 }
 

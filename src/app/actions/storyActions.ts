@@ -14,7 +14,7 @@ const STORIES_PER_PAGE = 12;
 
 export async function getStories(
   lastPrimarySortKey: string | null,
-  lastSecondarySortKey: number | null,
+  lastSecondarySortKey: number | null
 ): Promise<Story[]> {
   try {
     const db = getAdminDb();
@@ -26,6 +26,7 @@ export async function getStories(
       .limit(STORIES_PER_PAGE);
 
     if (lastPrimarySortKey && lastSecondarySortKey !== null) {
+      // Correctly use startAfter with both sorting fields
       q = q.startAfter(lastPrimarySortKey, lastSecondarySortKey);
     }
     
