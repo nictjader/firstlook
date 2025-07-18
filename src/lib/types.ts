@@ -6,8 +6,7 @@ export interface Purchase {
   packageId: string;
   coins: number;
   priceUSD: number;
-  // This can be a client-side or server-side timestamp, or the special FieldValue type
-  purchasedAt: any;
+  purchasedAt: string; // Changed to string
 }
 
 export interface UserProfile {
@@ -18,12 +17,12 @@ export interface UserProfile {
   unlockedStories: string[]; // Array of storyIds
   readStories: string[]; // Array of storyIds
   favoriteStories: string[]; // Array of storyIds
-  purchaseHistory: Purchase[]; // Array of purchase records
+  purchaseHistory: Purchase[];
   preferences: {
     subgenres: Subgenre[];
   };
-  createdAt?: any;
-  lastLogin?: any;
+  createdAt: string; // Changed to string
+  lastLogin: string; // Changed to string
 }
 
 export interface Story {
@@ -40,8 +39,7 @@ export interface Story {
   previewText: string;
   subgenre: string;
   wordCount: number;
-  // This can be any format from the DB, so we pass it raw
-  publishedAt: any; 
+  publishedAt: string; // Changed to string
   coverImageUrl?: string;
   coverImagePrompt: string;
   author?: string; 
@@ -57,9 +55,9 @@ export interface CoinPackage {
   stripePriceId?: string;
 }
 
-export type Subgenre = 'contemporary' | 'paranormal' | 'historical' | 'billionaire' | 'second-chance';
-
 export const ALL_SUBGENRES: Subgenre[] = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'];
+
+export type Subgenre = (typeof ALL_SUBGENRES)[number];
 
 export function isValidSubgenre(value: string): value is Subgenre {
   return (ALL_SUBGENRES as string[]).includes(value);

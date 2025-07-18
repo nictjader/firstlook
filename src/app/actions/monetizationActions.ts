@@ -32,7 +32,7 @@ export async function processCoinPurchase(userId: string, pkg: CoinPackage): Pro
   const currentCoins = userDoc.data().coins || 0;
   const newCoinBalance = currentCoins + pkg.coins;
 
-  const purchaseRecord: Purchase = {
+  const purchaseRecord = {
     packageId: pkg.id,
     coins: pkg.coins,
     priceUSD: pkg.priceUSD,

@@ -40,6 +40,9 @@ function safeToDate(timestamp: any): Date | null {
 
 function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
     const data = doc;
+    const createdAtDate = safeToDate(data.createdAt);
+    const lastLoginDate = safeToDate(data.lastLogin);
+
     return {
       userId: userId,
       email: data.email,
@@ -48,13 +51,16 @@ function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
       unlockedStories: data.unlockedStories || [],
       readStories: data.readStories || [],
       favoriteStories: data.favoriteStories || [],
-      purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => ({
-          ...p,
-          purchasedAt: p.purchasedAt, // Pass raw timestamp
-      })),
+      purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => {
+          const purchasedAtDate = safeToDate(p.purchasedAt);
+          return {
+            ...p,
+            purchasedAt: purchasedAtDate ? purchasedAtDate.toISOString() : new Date().toISOString(), 
+          }
+      }),
       preferences: data.preferences || { subgenres: [] },
-      createdAt: data.createdAt, // Pass raw timestamp
-      lastLogin: data.lastLogin, // Pass raw timestamp
+      createdAt: createdAtDate ? createdAtDate.toISOString() : new Date().toISOString(),
+      lastLogin: lastLoginDate ? lastLoginDate.toISOString() : new Date().toISOString(),
     };
 }
 

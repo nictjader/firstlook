@@ -13,16 +13,18 @@ export const revalidate = 300;
 export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
   const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
   
+  console.log(`[HomePage] Fetching stories for subgenre: ${selectedSubgenre}`);
+  
   let initialStories: Story[] = [];
   try {
     initialStories = await getStories({
       filter: { subgenre: selectedSubgenre !== 'all' ? selectedSubgenre : undefined },
       pagination: { limit: STORIES_PER_PAGE }
     });
+     console.log(`[HomePage] Successfully fetched ${initialStories.length} stories.`);
   } catch (error) {
-    console.error("Failed to fetch stories:", error);
-    // In case of an error (like PERMISSION_DENIED),
-    // we'll proceed with an empty array. The StoryList component
+    console.error("[HomePage] Failed to fetch stories:", error);
+    // In case of an error, we'll proceed with an empty array. The StoryList component
     // will then render a helpful message.
   }
 
