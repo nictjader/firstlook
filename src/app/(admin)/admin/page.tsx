@@ -29,10 +29,8 @@ type Log = {
 };
 
 export interface StoryCountBreakdown {
-  totalDocs: number;
   totalUniqueStories: number;
   standaloneStories: number;
-  storiesInSeries: number;
   multiPartSeriesCount: number;
   storiesPerGenre: Record<string, number>;
 }
@@ -85,39 +83,39 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 );
 
 /**
- * Processes an array of stories to provide a detailed breakdown.
- * @param stories An array of Story objects.
- * @returns A detailed breakdown of story counts.
+ * Processes an array of stories to provide a detailed breakdown based on unique narratives.
+ * @param stories An array of all Story document objects.
+ * @returns A detailed breakdown of unique story counts.
  */
 function analyzeStories(stories: Story[]): StoryCountBreakdown {
     const storiesPerGenre: Record<string, number> = {};
-    const seriesIds = new Set<string>();
-    let storiesInSeries = 0;
+    const processedSeries = new Set<string>();
+    let standaloneStories = 0;
 
     stories.forEach(story => {
-      // Tally stories for each genre dynamically, only if subgenre exists
-      if (story.subgenre) {
-          storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
-      }
-      
-      // Count documents that are part of any series
-      if (story.seriesId) {
-        seriesIds.add(story.seriesId);
-        storiesInSeries++;
-      }
+        if (story.seriesId) {
+            // This is part of a series. Only count it if we haven't processed this series yet.
+            if (!processedSeries.has(story.seriesId)) {
+                if (story.subgenre) {
+                    storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
+                }
+                processedSeries.add(story.seriesId);
+            }
+        } else {
+            // This is a standalone story.
+            standaloneStories++;
+            if (story.subgenre) {
+                storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
+            }
+        }
     });
 
-    const totalDocs = stories.length;
-    const multiPartSeriesCount = seriesIds.size;
-    const standaloneStories = totalDocs - storiesInSeries;
+    const multiPartSeriesCount = processedSeries.size;
     const totalUniqueStories = standaloneStories + multiPartSeriesCount;
 
-
     return {
-      totalDocs,
       totalUniqueStories,
       standaloneStories,
-      storiesInSeries,
       multiPartSeriesCount,
       storiesPerGenre,
     };
@@ -259,8 +257,7 @@ function AdminDashboardContent() {
                            <div className="p-3 bg-green-500/10 rounded-md space-y-2">
                               <h4 className="font-semibold flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary"/>Story Types</h4>
                               <div className="flex justify-between text-sm"><span>Standalone Stories:</span> <strong>{storyCount.standaloneStories}</strong></div>
-                              <div className="flex justify-between text-sm"><span>Stories in a Series:</span> <strong>{storyCount.storiesInSeries}</strong></div>
-                              <div className="flex justify-between text-sm font-medium"><span>Number of Unique Series:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
+                              <div className="flex justify-between text-sm"><span>Unique Series:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
                            </div>
                            <div className="p-3 bg-green-500/10 rounded-md">
                                 <h4 className="font-semibold flex items-center mb-2"><Library className="mr-2 h-4 w-4 text-primary"/>Genre Breakdown</h4>
@@ -275,9 +272,6 @@ function AdminDashboardContent() {
                                   <p className="text-sm text-muted-foreground">No genre data available.</p>
                                 )}
                            </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground text-center pt-2">
-                          Total documents in database: {storyCount.totalDocs}
                         </div>
                       </div>
                     </AlertDescription>
