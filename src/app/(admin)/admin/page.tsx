@@ -9,13 +9,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateStoryAI, generateAndUploadCoverImageAction, type StoryCountBreakdown } from '@/app/actions/adminActions';
 import Link from 'next/link';
-import { doc, setDoc, updateDoc, serverTimestamp, collection, getDocs, query, select } from 'firebase/firestore';
+import { doc, setDoc, updateDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
 import { Separator } from '@/components/ui/separator';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
-import { ALL_SUBGENRES } from '@/lib/types';
+import { ALL_SUBGENRES, type Story } from '@/lib/types';
+import { getAllStories } from '@/app/actions/storyActions';
 
 type Log = {
     id: number;
@@ -73,42 +74,26 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 );
 
 /**
- * Counts and categorizes all documents in the 'stories' collection directly on the client.
- * This function is designed to be robust and provide clear feedback.
- * @returns A promise that resolves to a detailed breakdown of story counts.
+ * Processes an array of stories to provide a detailed breakdown.
+ * @param stories An array of Story objects.
+ * @returns A detailed breakdown of story counts.
  */
-async function countStoriesOnClient(): Promise<StoryCountBreakdown> {
-    const storiesCollection = collection(db, 'stories');
-    // Using a simple getDocs without select to maximize compatibility and reduce failure points.
-    const snapshot = await getDocs(storiesCollection);
-
+function analyzeStories(stories: Story[]): StoryCountBreakdown {
     const storiesPerGenre = ALL_SUBGENRES.reduce((acc, genre) => ({ ...acc, [genre]: 0 }), {} as Record<string, number>);
-
-    if (snapshot.empty) {
-      console.warn("Client-side query for 'stories' collection returned empty. This might indicate a permissions issue or no data.");
-      return {
-        totalStories: 0,
-        standaloneStories: 0,
-        multiPartSeriesCount: 0,
-        storiesPerGenre,
-      };
-    }
-    
     const seriesIds = new Set<string>();
     let multiPartStoryDocCount = 0;
 
-    snapshot.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.seriesId) {
-        seriesIds.add(data.seriesId);
+    stories.forEach(story => {
+      if (story.seriesId) {
+        seriesIds.add(story.seriesId);
         multiPartStoryDocCount++;
       }
-      if (data.subgenre && storiesPerGenre.hasOwnProperty(data.subgenre)) {
-          storiesPerGenre[data.subgenre]++;
+      if (story.subgenre && storiesPerGenre.hasOwnProperty(story.subgenre)) {
+          storiesPerGenre[story.subgenre]++;
       }
     });
-    
-    const totalStories = snapshot.size;
+
+    const totalStories = stories.length;
 
     return {
       totalStories,
@@ -138,7 +123,13 @@ function AdminDashboardContent() {
     setStoryCount(null);
     setCountError(null);
     try {
-      const counts = await countStoriesOnClient();
+      // Use the known-working server action to fetch all stories
+      const stories = await getAllStories();
+      if (!stories) {
+        throw new Error("The story fetch returned null or undefined.");
+      }
+      // Process the results on the client
+      const counts = analyzeStories(stories);
       setStoryCount(counts);
     } catch (error: any) {
       console.error("Failed to count stories:", error);
@@ -308,5 +299,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
