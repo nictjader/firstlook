@@ -1,4 +1,3 @@
-
 'use server';
 
 import type { Story, Subgenre } from '@/lib/types';
@@ -52,7 +51,71 @@ export async function getStoriesBySeriesId(seriesId: string): Promise<Story[]> {
     return querySnapshot.docs.map(docToStory).filter((s): s is Story => !!s);
 }
 
-// Main function to fetch stories, now with series grouping logic
+// Helper function to group stories by series and sort them
+function groupAndSortStories(stories: Story[]): Story[] {
+  // Separate standalone stories from series stories
+  const standaloneStories: Story[] = [];
+  const seriesStoriesMap = new Map<string, Story[]>();
+  
+  for (const story of stories) {
+    if (story.seriesId) {
+      if (!seriesStoriesMap.has(story.seriesId)) {
+        seriesStoriesMap.set(story.seriesId, []);
+      }
+      seriesStoriesMap.get(story.seriesId)!.push(story);
+    } else {
+      standaloneStories.push(story);
+    }
+  }
+  
+  // Sort series stories by part number within each series
+  for (const seriesStories of seriesStoriesMap.values()) {
+    seriesStories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
+  }
+  
+  // Create series groups with metadata for sorting
+  const seriesGroups = Array.from(seriesStoriesMap.values()).map(storiesInSeries => {
+    // Use the earliest publishedAt date from the series as the group's sort key
+    const earliestDate = storiesInSeries.reduce((earliest, story) => {
+      return story.publishedAt < earliest ? story.publishedAt : earliest;
+    }, storiesInSeries[0].publishedAt);
+    
+    return {
+      stories: storiesInSeries,
+      sortDate: earliestDate,
+    };
+  });
+  
+  // Sort series groups by their earliest publication date
+  seriesGroups.sort((a, b) => new Date(b.sortDate).getTime() - new Date(a.sortDate).getTime());
+  
+  // Sort standalone stories by publication date
+  standaloneStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  
+  // Interleave series groups and standalone stories based on publication dates
+  const result: Story[] = [];
+  let seriesIndex = 0;
+  let standaloneIndex = 0;
+  
+  while (seriesIndex < seriesGroups.length || standaloneIndex < standaloneStories.length) {
+    const nextSeriesGroup = seriesGroups[seriesIndex];
+    const nextStandalone = standaloneStories[standaloneIndex];
+    
+    if (nextSeriesGroup && (!nextStandalone || new Date(nextSeriesGroup.sortDate) >= new Date(nextStandalone.publishedAt))) {
+      result.push(...nextSeriesGroup.stories);
+      seriesIndex++;
+    } else if (nextStandalone) {
+      result.push(nextStandalone);
+      standaloneIndex++;
+    } else {
+      break; // Should not happen if logic is correct
+    }
+  }
+  
+  return result;
+}
+
+// Main function to fetch stories with series grouping logic
 export async function getStories(
   { filter = {}, pagination = {} }: {
     filter?: { subgenre?: Subgenre | 'all' };
@@ -69,21 +132,23 @@ export async function getStories(
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
   
-  // storiesQuery = storiesQuery.orderBy('publishedAt', 'desc'); // TEMPORARILY REMOVED
+  // For series grouping to work properly, we need to fetch more stories initially
+  const fetchLimit = pagination.limit ? pagination.limit * 3 : 36;
+  
+  storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
 
   if (pagination.cursor) {
     try {
-        const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
-        if (cursorDoc.exists) {
-            storiesQuery = storiesQuery.startAfter(cursorDoc);
-        }
+      const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
+      if (cursorDoc.exists) {
+        storiesQuery = storiesQuery.startAfter(cursorDoc);
+      }
     } catch(e) {
-        console.error(`Error fetching cursor document:`, e);
+      console.error(`Error fetching cursor document:`, e);
     }
   }
 
-  const limit = pagination.limit || 12;
-  storiesQuery = storiesQuery.limit(limit);
+  storiesQuery = storiesQuery.limit(fetchLimit);
 
   try {
     const querySnapshot = await storiesQuery.get();
@@ -96,13 +161,61 @@ export async function getStories(
       .map(docToStory)
       .filter((story): story is Story => story !== null);
 
-    return stories;
+    const groupedStories = groupAndSortStories(stories);
+    
+    const finalLimit = pagination.limit || 12;
+    return groupedStories.slice(0, finalLimit);
 
   } catch (error) {
     console.error('[getStories] A critical error occurred during query execution:', error);
     return [];
   }
 }
+
+// Enhanced function for series-aware pagination
+export async function getStoriesWithSeriesGrouping(
+  { filter = {}, pagination = {} }: {
+    filter?: { subgenre?: Subgenre | 'all' };
+    pagination?: { limit?: number; offset?: number };
+  } = {}
+): Promise<Story[]> {
+  const db = getAdminDb();
+  let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
+
+  storiesQuery = storiesQuery.where('status', '==', 'published');
+  
+  if (filter.subgenre && filter.subgenre !== 'all') {
+    storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
+  }
+  
+  // Fetch all stories up to a reasonable limit for in-memory processing
+  // This is a trade-off for correct series grouping
+  const allStoriesQuery = storiesQuery.limit(1000);
+
+  try {
+    const querySnapshot = await allStoriesQuery.get();
+    
+    if (querySnapshot.empty) {
+      return [];
+    }
+    
+    const allStories = querySnapshot.docs
+      .map(docToStory)
+      .filter((story): story is Story => story !== null);
+
+    const groupedStories = groupAndSortStories(allStories);
+    
+    const offset = pagination.offset || 0;
+    const limit = pagination.limit || 12;
+    
+    return groupedStories.slice(offset, offset + limit);
+
+  } catch (error) {
+    console.error('[getStoriesWithSeriesGrouping] A critical error occurred:', error);
+    return [];
+  }
+}
+
 
 // Function to get a single story
 export async function getStoryById(id: string): Promise<Story | undefined> {

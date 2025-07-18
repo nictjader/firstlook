@@ -1,7 +1,6 @@
-
 'use server';
 
-import { getStoriesByIds, getStories } from '@/lib/services/storyService';
+import { getStoriesByIds, getStories, getStoriesWithSeriesGrouping } from '@/lib/services/storyService';
 import type { CoinPackage, Story, Subgenre } from '@/lib/types';
 import { db } from '@/lib/firebase/client';
 import { doc, updateDoc, arrayUnion, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -15,11 +14,21 @@ export async function getStoriesByIdsAction(storyIds: string[]): Promise<Story[]
 }
 
 export async function getMoreStoriesAction(subgenre: Subgenre | 'all', cursor: string): Promise<Story[]> {
-  // This now uses the main getStories function, ensuring consistent logic for series grouping.
   const stories = await getStories(
     { 
       filter: { subgenre: subgenre !== 'all' ? subgenre : undefined },
       pagination: { limit: STORIES_PER_PAGE, cursor: cursor }
+    }
+  );
+  return stories;
+}
+
+// New action for series-aware pagination
+export async function getMoreStoriesWithGroupingAction(subgenre: Subgenre | 'all', offset: number): Promise<Story[]> {
+  const stories = await getStoriesWithSeriesGrouping(
+    { 
+      filter: { subgenre: subgenre !== 'all' ? subgenre : undefined },
+      pagination: { limit: STORIES_PER_PAGE, offset: offset }
     }
   );
   return stories;

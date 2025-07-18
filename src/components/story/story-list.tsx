@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -7,7 +6,7 @@ import StoryCard from './story-card';
 import Link from 'next/link';
 import { BookX, PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getMoreStoriesAction } from '@/app/actions/userActions';
+import { getMoreStoriesWithGroupingAction } from '@/app/actions/userActions';
 import { useInView } from 'react-intersection-observer';
 
 const STORIES_PER_PAGE = 12;
@@ -21,6 +20,8 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialStories.length === STORIES_PER_PAGE);
+  const [currentOffset, setCurrentOffset] = useState(initialStories.length);
+  
   const { ref, inView } = useInView({
     threshold: 0,
     triggerOnce: false,
@@ -29,6 +30,7 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   useEffect(() => {
     setStories(initialStories);
     setHasMore(initialStories.length === STORIES_PER_PAGE);
+    setCurrentOffset(initialStories.length);
   }, [initialStories]);
 
   const loadMoreStories = async () => {
@@ -37,17 +39,12 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
     }
 
     setIsLoading(true);
-    const cursor = stories.length > 0 ? stories[stories.length - 1]?.storyId : undefined;
-    if (!cursor) {
-      setIsLoading(false);
-      setHasMore(false);
-      return;
-    }
 
     try {
-      const newStories = await getMoreStoriesAction(selectedSubgenre, cursor);
+      const newStories = await getMoreStoriesWithGroupingAction(selectedSubgenre, currentOffset);
       if (newStories.length > 0) {
         setStories(prev => [...prev, ...newStories]);
+        setCurrentOffset(prev => prev + newStories.length);
         setHasMore(newStories.length === STORIES_PER_PAGE);
       } else {
         setHasMore(false);
