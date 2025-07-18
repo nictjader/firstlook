@@ -111,3 +111,20 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
     }
 }
+
+/**
+ * Counts the total number of documents in the 'stories' collection.
+ * @returns A promise that resolves to the number of stories in the database.
+ */
+export async function countStoriesInDB(): Promise<number> {
+  try {
+    const db = getAdminDb();
+    const storiesCollection = db.collection('stories');
+    const snapshot = await storiesCollection.count().get();
+    return snapshot.data().count;
+  } catch (error) {
+    console.error("Error counting stories in DB:", error);
+    // Return 0 or throw an error, depending on how you want to handle it.
+    return 0;
+  }
+}

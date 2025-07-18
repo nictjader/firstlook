@@ -3,15 +3,16 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
+import { generateStoryAI, generateAndUploadCoverImageAction, countStoriesInDB } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
+import { Separator } from '@/components/ui/separator';
 
 type Log = {
     id: number;
@@ -74,9 +75,25 @@ function AdminDashboardContent() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
   const [completed, setCompleted] = useState(0);
+  const [storyCount, setStoryCount] = useState<number | null>(null);
+  const [isCounting, setIsCounting] = useState(false);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
+  };
+
+  const handleCountStories = async () => {
+    setIsCounting(true);
+    setStoryCount(null);
+    try {
+      const count = await countStoriesInDB();
+      setStoryCount(count);
+    } catch (error) {
+      console.error("Failed to count stories:", error);
+      setStoryCount(0);
+    } finally {
+      setIsCounting(false);
+    }
   };
 
   const handleGenerate = async () => {
@@ -150,9 +167,31 @@ function AdminDashboardContent() {
             </AlertDescription>
           </Alert>
         )}
-
+        
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
-          <div className="p-6">
+           <div className="p-6">
+            <h3 className="text-2xl font-semibold leading-none tracking-tight">Database Tools</h3>
+            <p className="text-sm text-muted-foreground">
+             Verify the contents of your database.
+            </p>
+          </div>
+           <div className="p-6 pt-0 space-y-4">
+              <Button onClick={handleCountStories} disabled={isCounting || isGenerating}>
+                <Database className="mr-2 h-4 w-4" />
+                {isCounting ? 'Counting...' : 'Count Stories in Database'}
+              </Button>
+              {storyCount !== null && (
+                 <Alert variant="success">
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>Count Complete</AlertTitle>
+                    <AlertDescription>
+                      There are currently <strong>{storyCount}</strong> stories in the database.
+                    </AlertDescription>
+                </Alert>
+              )}
+           </div>
+           <Separator />
+           <div className="p-6">
             <h3 className="text-2xl font-semibold leading-none tracking-tight">AI Story Generator</h3>
             <p className="text-sm text-muted-foreground">
               Generate multiple romance stories in parallel using different AI models.
