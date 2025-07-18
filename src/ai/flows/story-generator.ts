@@ -43,7 +43,7 @@ const StorySchema = z.object({
     .string()
     .nullable()
     .describe(
-      'If this story is part of a series, this MUST be the provided series ID: {{seriesId}}. Otherwise, this must be null.'
+      'If this story is part of a series, this MUST be the provided series ID. Otherwise, this must be null.'
     ),
   seriesTitle: z
     .string()
@@ -101,9 +101,11 @@ const storyGenerationFlow = ai.defineFlow(
   },
   async (seed) => {
     const db = getAdminDb();
-    // Generate a consistent ID to be used for both the document and the cover image.
+    // Each story, even a part of a series, gets its own unique storyId.
     const storyId = uuidv4();
-    const potentialSeriesId = uuidv4(); // Pre-generate a potential series ID.
+    // A potential seriesId is created beforehand. If the AI decides to make a series,
+    // it will use this ID, ensuring all parts are linked.
+    const potentialSeriesId = uuidv4(); 
     const storyDocRef = db.collection('stories').doc(storyId);
 
     try {
@@ -121,18 +123,16 @@ const storyGenerationFlow = ai.defineFlow(
         - **Approximate Word Count:** ${seed.approxWordCount}
 
         **Important Instructions:**
-        1.  **Originality:** The story must be original and compelling.
-        2.  **Completeness:** The story must have a clear beginning, middle, and a satisfying romantic conclusion (either a "happily ever after" or a "happy for now").
-        3.  **Formatting:** The story content MUST be in HTML format. Use paragraphs (<p>), section breaks (<h2>, <h3>), and other appropriate tags to make it readable.
-        4.  **Word Count:** Adhere to the approximate word count specified in the seed.
-        5.  **Series:** Most stories should be standalone. Occasionally (about 10% of the time), create a two-part series. 
-            - If you create a series, you MUST use the provided seriesId: "${potentialSeriesId}". The seriesId field must be populated with this exact value.
-            - For standalone stories, the seriesId, seriesTitle, partNumber, and totalPartsInSeries fields must be null.
-        6.  **Monetization:**
-            - For standalone stories, make approximately 80% premium (coinCost between 50-100) and 20% free (coinCost: 0).
-            - If you create a two-part series, the first part (partNumber: 1) MUST have a coinCost of 0. The second part (partNumber: 2) MUST have a coinCost between 50 and 100.
-        7.  **Tone and Tropes:** The story's tone and content must align with the 'desiredTone' and 'keyTropes' from the seed.
-        8.  **Output Format:** You MUST return the output in the specified JSON format. Do not deviate from the schema.
+        1.  **Originality & Completeness:** The story must be original and have a satisfying romantic conclusion.
+        2.  **Formatting:** The story content MUST be in HTML format (using <p>, <h2>, etc.).
+        3.  **Series Logic:**
+            - Most stories should be standalone.
+            - **If and only if** you create a multi-part series (e.g., a two-part story), you MUST use this exact pre-defined ID for the 'seriesId' field for ALL parts of the series: \`${potentialSeriesId}\`.
+            - For standalone stories, the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields MUST all be null.
+        4.  **Monetization Logic:**
+            - A standalone story can be free (coinCost: 0) or premium (coinCost: 50-100).
+            - For a series, Part 1 MUST be free (coinCost: 0). Subsequent parts MUST be premium (coinCost: 50-100).
+        5.  **Output Format:** You MUST return the output in the specified JSON format. Do not deviate from the schema.
 
         Now, write the story.
     `;
@@ -169,6 +169,7 @@ const storyGenerationFlow = ai.defineFlow(
         tags: output.tags,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt,
+        // Use the consistent ID if it's a series, otherwise null.
         seriesId: isSeriesStory ? potentialSeriesId : null,
         seriesTitle: isSeriesStory ? output.seriesTitle : null,
         partNumber: isSeriesStory ? output.partNumber : null,
