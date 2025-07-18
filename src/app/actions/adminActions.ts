@@ -140,7 +140,7 @@ export async function countStoriesInDB(): Promise<StoryCountBreakdown> {
       };
     }
     
-    const stories = snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+    const stories = snapshot.docs.map(doc => docToStory(doc));
 
     let standaloneStories = 0;
     const seriesIds = new Set<string>();

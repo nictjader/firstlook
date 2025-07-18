@@ -1,6 +1,6 @@
 
-import { Timestamp as ClientTimestamp, FieldValue, DocumentData, QueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
-import { Timestamp as AdminTimestamp } from 'firebase-admin/firestore'; // For server-side
+import { Timestamp as ClientTimestamp, FieldValue, DocumentData, QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
+import { Timestamp as AdminTimestamp, QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 
 export interface Purchase {
   packageId: string;
@@ -68,9 +68,13 @@ function safeToISOString(timestamp: any): string {
     return new Date().toISOString();
 }
 
-export function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
-    const data = 'data' in doc ? doc.data() : doc;
-    const storyId = 'id' in doc ? doc.id : (data.storyId || '');
+export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocumentSnapshot | DocumentData): Story {
+    const data = doc.data();
+    if (!data) {
+      throw new Error("Document data is missing.");
+    }
+    
+    const storyId = doc.id;
 
     return {
       storyId: storyId,
