@@ -270,7 +270,7 @@ function AdminDashboardContent() {
                  <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
-                    <AlertDescription asChild>
+                    <AlertDescription>
                       <div className="mt-2 space-y-4">
                         <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-md text-base">
                           <div className="font-semibold flex items-center"><Book className="mr-2 h-5 w-5" />Total Unique Stories</div>
