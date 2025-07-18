@@ -169,11 +169,11 @@ const storyGenerationFlow = ai.defineFlow(
         tags: output.tags,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt,
-        // Use the consistent ID if it's a series, otherwise null.
-        seriesId: isSeriesStory ? potentialSeriesId : null,
-        seriesTitle: isSeriesStory ? output.seriesTitle : null,
-        partNumber: isSeriesStory ? output.partNumber : null,
-        totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries : null,
+        // Use the consistent ID if it's a series, otherwise undefined.
+        seriesId: isSeriesStory ? potentialSeriesId : undefined,
+        seriesTitle: isSeriesStory ? output.seriesTitle ?? undefined : undefined,
+        partNumber: isSeriesStory ? output.partNumber ?? undefined : undefined,
+        totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
       };
 
       await storyDocRef.set({
