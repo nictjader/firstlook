@@ -18,11 +18,6 @@ interface StoryListProps {
 }
 
 export default function StoryList({ initialStories, selectedSubgenre }: StoryListProps) {
-  console.log("[DEBUG] StoryList component mounting");
-  console.log("[DEBUG] initialStories prop:", initialStories);
-  console.log("[DEBUG] selectedSubgenre prop:", selectedSubgenre);
-  console.log("[DEBUG] initialStories length:", initialStories?.length || 0);
-  
   const [stories, setStories] = useState<Story[]>(initialStories);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(initialStories.length === STORIES_PER_PAGE);
@@ -32,8 +27,6 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   });
 
   useEffect(() => {
-    console.log("[DEBUG] StoryList useEffect triggered");
-    console.log("[DEBUG] New initialStories:", initialStories);
     setStories(initialStories);
     setHasMore(initialStories.length === STORIES_PER_PAGE);
   }, [initialStories]);
@@ -74,11 +67,7 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inView]);
 
-  console.log("[DEBUG] StoryList render - stories.length:", stories.length);
-  console.log("[DEBUG] StoryList render - isLoading:", isLoading);
-
   if (stories.length === 0 && !isLoading) {
-    console.log("[DEBUG] Showing 'No Stories Found' message");
     return (
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm text-center col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 mt-8 shadow-none border-dashed">
         <div className="p-6">
@@ -89,14 +78,6 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
           <p className="text-sm text-muted-foreground">
             It looks like there are no stories in this category yet.
           </p>
-          <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              <strong>Debug Info:</strong><br />
-              Initial stories received: {initialStories.length}<br />
-              Current stories state: {stories.length}<br />
-              Selected subgenre: {selectedSubgenre}
-            </p>
-          </div>
         </div>
         <div className="p-6 pt-0">
           <p className="text-muted-foreground">
@@ -115,17 +96,12 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
     );
   }
 
-  console.log("[DEBUG] Rendering stories grid with", stories.length, "stories");
-
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {stories.map((story, index) => {
-          console.log(`[DEBUG] Rendering story ${index + 1}:`, story.storyId, story.title);
-          return (
-            <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
-          );
-        })}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:col-span-4 gap-4 sm:gap-6">
+        {stories.map((story, index) => (
+          <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
+        ))}
       </div>
       
       <div ref={ref} className="flex justify-center items-center col-span-full py-6">

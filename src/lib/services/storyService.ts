@@ -57,8 +57,8 @@ export async function getStories(
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
   
-  // ALWAYS order by a consistent field for pagination to work reliably.
-  storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
+  // Temporarily removed to avoid needing a composite index for now
+  // storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
 
   // Handle pagination using a cursor
   if (pagination.cursor) {
