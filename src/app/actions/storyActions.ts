@@ -4,16 +4,7 @@
 import { getAdminDb } from '@/lib/firebase/admin';
 import type { Story } from '@/lib/types';
 import { docToStory } from '@/lib/types';
-import {
-  collection,
-  getDocs,
-  getDoc,
-  doc,
-  orderBy,
-  where,
-  limit,
-  QueryDocumentSnapshot,
-} from 'firebase-admin/firestore';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 
 /**
@@ -29,7 +20,7 @@ export async function getAllStories(): Promise<Story[]> {
     // Explicitly limit to 500 to ensure all stories are fetched.
     const q = storiesRef.orderBy('publishedAt', 'desc').limit(500);
 
-    const documentSnapshots = await getDocs(q);
+    const documentSnapshots = await q.get();
     
     if (documentSnapshots.empty) {
       return [];
@@ -53,10 +44,10 @@ export async function getAllStories(): Promise<Story[]> {
 export async function getStoryById(storyId: string): Promise<Story | null> {
     try {
         const db = getAdminDb();
-        const storyDocRef = doc(db, 'stories', storyId);
-        const storyDoc = await getDoc(storyDocRef);
+        const storyDocRef = db.collection('stories').doc(storyId);
+        const storyDoc = await storyDocRef.get();
 
-        if (!storyDoc.exists()) {
+        if (!storyDoc.exists) {
             return null;
         }
 
@@ -76,9 +67,9 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
     if (!seriesId) return [];
     try {
         const db = getAdminDb();
-        const storiesRef = collection(db, 'stories');
-        const q = query(storiesRef, where('seriesId', '==', seriesId), orderBy('partNumber', 'asc'));
-        const querySnapshot = await getDocs(q);
+        const storiesRef = db.collection('stories');
+        const q = storiesRef.where('seriesId', '==', seriesId).orderBy('partNumber', 'asc');
+        const querySnapshot = await q.get();
         return querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
     } catch (error) {
         console.error(`Error fetching series parts for seriesId ${seriesId}:`, error);

@@ -9,7 +9,7 @@ import { ai } from '@/ai';
 import { Story, Subgenre, GenerationResult, CleanupResult, StoryGenerationInput } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-import { collection, getDocs, query, select, writeBatch } from 'firebase-admin/firestore';
+
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -18,9 +18,8 @@ import { collection, getDocs, query, select, writeBatch } from 'firebase-admin/f
 async function selectUnusedSeed(): Promise<StoryGenerationInput | null> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
-    // Fetch only the 'title' field to be efficient
-    const q = query(storiesRef, select('title'));
-    const snapshot = await getDocs(q);
+    const q = storiesRef.select('title');
+    const snapshot = await q.get();
     const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Part ')[0]));
 
     const unusedSeeds = storySeeds.filter(seed => !existingTitles.has(seed.titleIdea));
@@ -142,7 +141,7 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
     try {
         const db = getAdminDb();
         const storiesRef = db.collection('stories');
-        const snapshot = await getDocs(storiesRef);
+        const snapshot = await storiesRef.get();
 
         if (snapshot.empty) {
             return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
@@ -151,7 +150,7 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
         // Create a map of seed titles to their correct subgenres for quick lookup
         const seedGenreMap = new Map(storySeeds.map(seed => [seed.titleIdea, seed.subgenre]));
         
-        const batch = writeBatch(db);
+        const batch = db.batch();
         let updatedCount = 0;
 
         snapshot.docs.forEach(doc => {
