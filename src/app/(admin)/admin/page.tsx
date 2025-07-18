@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, generateAndUploadCoverImageAction, type StoryCountBreakdown } from '@/app/actions/adminActions';
+import { generateStoryAI, type StoryCountBreakdown } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { doc, setDoc, updateDoc, serverTimestamp, collection } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
@@ -84,10 +84,13 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
     let multiPartStoryDocCount = 0;
 
     stories.forEach(story => {
+      // Count documents that are part of any series
       if (story.seriesId) {
         seriesIds.add(story.seriesId);
         multiPartStoryDocCount++;
       }
+      
+      // Tally stories for each genre
       if (story.subgenre && storiesPerGenre.hasOwnProperty(story.subgenre)) {
           storiesPerGenre[story.subgenre]++;
       }
@@ -95,10 +98,16 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
 
     const totalStories = stories.length;
 
+    // The number of unique series is the size of the set of seriesIds
+    const multiPartSeriesCount = seriesIds.size;
+    
+    // Standalone stories are the total minus stories that are part of a series
+    const standaloneStories = totalStories - multiPartStoryDocCount;
+
     return {
       totalStories,
-      standaloneStories: totalStories - multiPartStoryDocCount,
-      multiPartSeriesCount: seriesIds.size,
+      standaloneStories,
+      multiPartSeriesCount,
       storiesPerGenre,
     };
 }
@@ -299,3 +308,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
