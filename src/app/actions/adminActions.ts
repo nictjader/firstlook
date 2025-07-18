@@ -7,7 +7,6 @@ import { getDownloadURL, ref, uploadString } from 'firebase/storage';
 import { storage } from '@/lib/firebase/client'; // storage uses client SDK for upload
 import { getAdminDb } from '@/lib/firebase/admin';
 import { ai } from '@/ai';
-import { getAllStoryTitles } from '@/lib/services/storyService';
 
 export interface GenerationResult {
   logMessage: string;
@@ -18,17 +17,13 @@ export interface GenerationResult {
 }
 
 /**
- * Selects a random story seed from the predefined list that hasn't been used yet.
- * @param usedTitles A set of already used story titles.
- * @returns A randomly selected StorySeed or null if all seeds have been used.
+ * Selects a random story seed from the predefined list.
+ * This simplified function ensures a seed is always available for generation.
+ * @returns A randomly selected StorySeed.
  */
-function selectRandomUnusedSeed(usedTitles: Set<string>): StoryGenerationInput | null {
-  const availableSeeds = storySeeds.filter(seed => !usedTitles.has(seed.titleIdea.toLowerCase()));
-  if (availableSeeds.length === 0) {
-    return null; // No more unique seeds available
-  }
-  const randomIndex = Math.floor(Math.random() * availableSeeds.length);
-  return availableSeeds[randomIndex];
+function selectRandomSeed(): StoryGenerationInput {
+  const randomIndex = Math.floor(Math.random() * storySeeds.length);
+  return storySeeds[randomIndex];
 }
 
 
@@ -37,16 +32,16 @@ function selectRandomUnusedSeed(usedTitles: Set<string>): StoryGenerationInput |
  * @returns A promise that resolves to a GenerationResult object.
  */
 export async function generateSingleStory(): Promise<GenerationResult> {
-  const usedTitles = await getAllStoryTitles();
-
-  const seed = selectRandomUnusedSeed(usedTitles);
+  // Simplified seed selection to ensure generation can always be attempted.
+  const seed = selectRandomSeed();
   if (!seed) {
-    const errorMsg = 'No unused story seeds available.';
+    // This case should realistically never be hit if storySeeds is not empty.
+    const errorMsg = 'No story seeds are available in the system.';
     console.error(errorMsg);
     return {
       logMessage: `Failed: ${errorMsg}`,
       success: false,
-      error: 'All available story seeds have been used.',
+      error: 'Story seeds are missing.',
       title: '',
       storyId: '',
     };
