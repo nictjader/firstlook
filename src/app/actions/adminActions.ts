@@ -27,14 +27,6 @@ export interface GenerationResult {
   aiStoryResult?: AIStoryResult;
 }
 
-export interface StoryCountBreakdown {
-  totalStories: number;
-  standaloneStories: number;
-  multiPartSeriesCount: number;
-  storiesPerGenre: Record<string, number>;
-}
-
-
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
  * @returns A randomly selected StorySeed or null if all seeds are used.

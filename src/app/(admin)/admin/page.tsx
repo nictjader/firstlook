@@ -87,24 +87,24 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
   const seriesGenres = new Map<string, string>(); // seriesId -> genre
   let standaloneStories = 0;
   
-  // Process all stories to find their genres and count standalones
+  // Process all stories
   stories.forEach(story => {
     const genre = story.subgenre;
     if (!genre) return; // Skip stories without a genre
 
     if (story.seriesId) {
-      // For series, just track the genre of the first part encountered
+      // For series, just track the first occurrence to get the genre
       if (!seriesGenres.has(story.seriesId)) {
         seriesGenres.set(story.seriesId, genre);
       }
     } else {
-      // This is a standalone story - count it and its genre
+      // Standalone story - count it and its genre
       standaloneStories++;
       storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     }
   });
 
-  // Now, add the unique series counts to the genre breakdown
+  // Now count each unique series once by its genre
   seriesGenres.forEach((genre) => {
     storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
   });
