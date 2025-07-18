@@ -9,6 +9,8 @@ import { ai } from '@/ai';
 import { Story, Subgenre, ALL_SUBGENRES } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { collection, getDocs, query, select, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
+
 
 // The output from the pure AI generation part of the action.
 // The client will handle writing this to Firestore.

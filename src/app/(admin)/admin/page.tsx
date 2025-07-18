@@ -86,7 +86,7 @@ async function countStoriesOnClient(): Promise<StoryCountBreakdown> {
         totalStories: 0,
         standaloneStories: 0,
         multiPartSeriesCount: 0,
-        storiesPerGenre: {},
+        storiesPerGenre: ALL_SUBGENRES.reduce((acc, genre) => ({...acc, [genre]: 0}), {} as Record<string, number>),
     };
 
     if (snapshot.empty) {
@@ -146,6 +146,7 @@ function AdminDashboardContent() {
       setStoryCount(count);
     } catch (error) {
       console.error("Failed to count stories:", error);
+      // Ensure there's a fallback state on error
       setStoryCount({
         totalStories: 0,
         standaloneStories: 0,
@@ -240,42 +241,35 @@ function AdminDashboardContent() {
                 {isCounting ? 'Counting Stories...' : 'Analyze Story Database'}
               </Button>
               {storyCount !== null && (
-                 <Alert variant="success">
+                 <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
-                    <AlertDescription>
-                      <div className="space-y-2 mt-2">
-                        <div className="flex items-center justify-between p-2 bg-green-500/10 rounded-md">
-                          <div className="font-semibold flex items-center"><Book className="mr-2 h-4 w-4" />Total Stories</div>
-                          <div className="font-bold text-lg">{storyCount.totalStories}</div>
+                    <AlertDescription asChild>
+                      <div className="mt-2 space-y-4">
+                        <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-md text-base">
+                          <div className="font-semibold flex items-center"><Book className="mr-2 h-5 w-5" />Total Stories in Database</div>
+                          <div className="font-bold text-xl">{storyCount.totalStories}</div>
                         </div>
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                           <Card>
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-base flex items-center"><Layers className="mr-2 h-4 w-4 text-primary"/>Story Types</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                  <div className="flex justify-between text-sm"><span>Standalone Stories:</span> <strong>{storyCount.standaloneStories}</strong></div>
-                                  <div className="flex justify-between text-sm"><span>Multi-Part Series:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
-                              </CardContent>
-                           </Card>
-                           <Card>
-                                <CardHeader className="pb-2">
-                                  <CardTitle className="text-base flex items-center"><Library className="mr-2 h-4 w-4 text-primary"/>Genre Breakdown</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                  {Object.entries(storyCount.storiesPerGenre).length > 0 ? (
-                                    Object.entries(storyCount.storiesPerGenre).map(([genre, count]) => (
-                                        <div key={genre} className="flex justify-between text-sm">
-                                          <span>{capitalizeWords(genre)}:</span>
-                                          <strong>{count}</strong>
-                                        </div>
-                                    ))
-                                  ) : (
-                                    <p className="text-sm text-muted-foreground">No genre data available.</p>
-                                  )}
-                                </CardContent>
-                           </Card>
+                         
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           <div className="p-3 bg-green-500/10 rounded-md">
+                              <h4 className="font-semibold flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary"/>Story Types</h4>
+                              <div className="flex justify-between text-sm"><span>Standalone Stories:</span> <strong>{storyCount.standaloneStories}</strong></div>
+                              <div className="flex justify-between text-sm"><span>Multi-Part Series:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
+                           </div>
+                           <div className="p-3 bg-green-500/10 rounded-md">
+                                <h4 className="font-semibold flex items-center mb-2"><Library className="mr-2 h-4 w-4 text-primary"/>Genre Breakdown</h4>
+                                {Object.entries(storyCount.storiesPerGenre).length > 0 ? (
+                                  Object.entries(storyCount.storiesPerGenre).map(([genre, count]) => (
+                                      <div key={genre} className="flex justify-between text-sm">
+                                        <span>{capitalizeWords(genre)}:</span>
+                                        <strong>{count}</strong>
+                                      </div>
+                                  ))
+                                ) : (
+                                  <p className="text-sm text-muted-foreground">No genre data available.</p>
+                                )}
+                           </div>
                         </div>
                       </div>
                     </AlertDescription>
