@@ -24,8 +24,9 @@ export async function getStoriesBySubgenre(
     }
     
     // Sort all matching documents by publication date.
-    // This simple query + order by on the same field does not require a custom index if the subgenre is a string.
-    // If we were ordering by a different field, it would.
+    // This query (filter on one field, sort on another) requires a composite index in Firestore.
+    // If the index doesn't exist, this query will fail.
+    // The most robust solution is to sort by publishedAt on the server and then sort/group on the client.
     q = q.orderBy('publishedAt', 'desc');
 
     const documentSnapshots = await q.get();
@@ -39,8 +40,9 @@ export async function getStoriesBySubgenre(
     return stories;
   } catch (error) {
     console.error(`Error fetching stories for subgenre "${subgenre}":`, error);
-    // Re-throw the error or return an empty array to indicate failure.
     // In a production app, you might want more sophisticated error handling.
+    // Returning an empty array to prevent the page from crashing.
     return [];
   }
 }
+

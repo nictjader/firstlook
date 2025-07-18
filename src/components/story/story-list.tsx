@@ -5,7 +5,7 @@ import { useState, useEffect, useMemo } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
 import { useRouter } from 'next/navigation';
-import { BookX, Loader2 } from 'lucide-react';
+import { BookX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { getStoriesBySubgenre } from '@/app/actions/storyActions';
@@ -31,35 +31,37 @@ const StoryListSkeleton = () => (
 
 function groupAndSortStories(stories: Story[]): Story[] {
   const storyMap = new Map<string, Story[]>();
+  const standaloneStories: Story[] = [];
 
-  // Group stories by their primary sort key (seriesId or storyId)
+  // Separate standalone stories and group series parts
   stories.forEach(story => {
-    const key = story.primarySortKey;
-    if (!storyMap.has(key)) {
-      storyMap.set(key, []);
+    if (story.seriesId) {
+      if (!storyMap.has(story.seriesId)) {
+        storyMap.set(story.seriesId, []);
+      }
+      storyMap.get(story.seriesId)!.push(story);
+    } else {
+      standaloneStories.push(story);
     }
-    storyMap.get(key)!.push(story);
   });
 
-  // Sort each group internally by part number (secondarySortKey)
+  // Sort each series by part number
   storyMap.forEach(group => {
-    group.sort((a, b) => a.secondarySortKey - b.secondarySortKey);
+    group.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
   });
 
-  // Flatten the map back into an array, keeping the original fetch order
-  // which is based on publishedAt.
-  const result: Story[] = [];
-  const processedKeys = new Set<string>();
+  // Combine standalone stories and sorted series into a single array
+  const combined: (Story | Story[])[] = [...standaloneStories, ...Array.from(storyMap.values())];
 
-  stories.forEach(story => {
-    const key = story.primarySortKey;
-    if (!processedKeys.has(key)) {
-      result.push(...(storyMap.get(key) || []));
-      processedKeys.add(key);
-    }
+  // Sort the combined list by the publication date of the story or the first part of the series
+  combined.sort((a, b) => {
+    const dateA = new Date(Array.isArray(a) ? a[0].publishedAt : a.publishedAt).getTime();
+    const dateB = new Date(Array.isArray(b) ? b[0].publishedAt : b.publishedAt).getTime();
+    return dateB - dateA; // Sort descending (newest first)
   });
-
-  return result;
+  
+  // Flatten the array
+  return combined.flat();
 }
 
 
