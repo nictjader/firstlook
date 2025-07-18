@@ -5,15 +5,14 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import type { Story } from '@/lib/types';
 import { docToStory } from '@/lib/types';
 import {
-  Query,
-  QueryDocumentSnapshot,
   collection,
-  getDoc,
   getDocs,
+  getDoc,
   doc,
   orderBy,
   where,
   limit,
+  QueryDocumentSnapshot,
 } from 'firebase-admin/firestore';
 
 
@@ -30,7 +29,7 @@ export async function getAllStories(): Promise<Story[]> {
     // Explicitly limit to 500 to ensure all stories are fetched.
     const q = storiesRef.orderBy('publishedAt', 'desc').limit(500);
 
-    const documentSnapshots = await q.get();
+    const documentSnapshots = await getDocs(q);
     
     if (documentSnapshots.empty) {
       return [];

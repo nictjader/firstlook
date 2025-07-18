@@ -20,13 +20,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Helper function to convert Firestore Timestamps to ISO strings for serialization
+// This should only handle client-side Timestamp objects now.
 function safeToISOString(timestamp: any): string {
   if (!timestamp) return new Date().toISOString();
-  // Handle Firestore Timestamps from both client and admin SDKs
-  if (timestamp && typeof timestamp.toDate === 'function') {
+  if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
   }
-  // Handle serialized Timestamps
+  // Handle serialized Timestamps that might come from server actions
   if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
     return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate().toISOString();
   }
@@ -36,6 +36,7 @@ function safeToISOString(timestamp: any): string {
     return date.toISOString();
   }
   // Fallback for unexpected types
+  console.warn("Unsupported timestamp format:", timestamp);
   return new Date().toISOString();
 }
 

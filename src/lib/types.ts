@@ -2,12 +2,9 @@
 import { Timestamp as ClientTimestamp, FieldValue, DocumentData, QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { Timestamp as AdminTimestamp, QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 import { z } from 'zod';
-import { type StorySeed } from './story-seeds';
 
+// --- Zod Schemas for Story Generation ---
 
-// --- Zod Schemas moved from story-generator.ts ---
-
-// Define the input schema for the story generation flow by mirroring the StorySeed interface.
 export const StoryGenerationInputSchema = z.object({
   titleIdea: z.string(),
   subgenre: z.string(),
@@ -20,13 +17,11 @@ export const StoryGenerationInputSchema = z.object({
   coverImagePrompt: z.string(),
 });
 
-// Define the output schema for the story generation flow.
 export const StoryGenerationOutputSchema = z.object({
   storyId: z.string().describe('The unique ID for the generated story.'),
   title: z.string().describe('The final title of the story.'),
   success: z.boolean().describe('Whether the story generation was successful.'),
   error: z.string().nullable().describe('Any error message if the generation failed.'),
-  // The full story data is now included in the output for the client to handle.
   storyData: z.custom<Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>>().optional(),
 });
 
@@ -35,7 +30,6 @@ export const StoryGenerationOutputSchema = z.object({
 
 export type StoryGenerationInput = z.infer<typeof StoryGenerationInputSchema>;
 export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
-
 
 export interface Purchase {
   packageId: string;
@@ -80,7 +74,6 @@ export interface Story {
   author?: string;
   tags?: string[];
   status: 'published' | 'failed';
-  // Add new fields for sorting
   primarySortKey: string;
   secondarySortKey: number;
 }
@@ -88,19 +81,26 @@ export interface Story {
 export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance', 'sci-fi'] as const;
 export type Subgenre = (typeof ALL_SUBGENRES)[number];
 
+// This helper function robustly handles Timestamps from both client and server,
+// as well as already-serialized date strings.
 function safeToISOString(timestamp: any): string {
-    if (!timestamp) return new Date().toISOString();
-    if (timestamp instanceof Date) {
-        return timestamp.toISOString();
-    }
-    if (timestamp && typeof timestamp.toDate === 'function') {
-        return timestamp.toDate().toISOString();
-    }
+  if (!timestamp) return new Date().toISOString();
+  if (timestamp instanceof Date) {
+      return timestamp.toISOString();
+  }
+  // Check for Firestore Timestamp-like objects (both client and admin SDKs)
+  if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate().toISOString();
+  }
+  // Handle cases where it might already be a string
+  if (typeof timestamp === 'string') {
     const date = new Date(timestamp);
     if (!isNaN(date.getTime())) {
-        return date.toISOString();
+      return date.toISOString();
     }
-    return new Date().toISOString();
+  }
+  // Final fallback
+  return new Date().toISOString();
 }
 
 export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocumentSnapshot | DocumentData): Story {
@@ -131,7 +131,6 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       author: data.author || 'Anonymous',
       tags: data.tags || [],
       status: data.status || 'published',
-      // Default sorting keys for older documents
       primarySortKey: data.primarySortKey || storyId,
       secondarySortKey: data.secondarySortKey === undefined ? 0 : data.secondarySortKey,
     };
@@ -145,7 +144,6 @@ export interface CoinPackage {
   stripePriceId?: string;
 }
 
-// The output from the pure AI generation part of the action.
 export interface AIStoryResult {
   storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>;
   storyId: string;
@@ -156,7 +154,6 @@ export interface GenerationResult {
   error: string | null;
   title: string;
   storyId: string;
-  // This will be populated if the text generation part is successful
   aiStoryResult?: AIStoryResult;
 }
 
