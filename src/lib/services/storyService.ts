@@ -3,7 +3,7 @@
 
 import type { Story, Subgenre } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { Timestamp } from 'firebase-admin/firestore';
+import { Timestamp, DocumentSnapshot } from 'firebase-admin/firestore';
 
 // Helper to safely convert Firestore Timestamps
 function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story {
@@ -52,27 +52,35 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story {
 
 // Main function to fetch stories
 export async function getStories(
-  filter: { subgenre?: Subgenre | 'all' } = {}
+  filter: { subgenre?: Subgenre | 'all' } = {},
+  pagination: { limit?: number; cursor?: string } = {}
 ): Promise<Story[]> {
   const db = getAdminDb();
   let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
+
+  // Add a status filter to only fetch published stories
+  storiesQuery = storiesQuery.where('status', '==', 'published');
 
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
   
-  // Add a status filter to only fetch published stories
-  storiesQuery = storiesQuery.where('status', '==', 'published');
+  // Apply ordering before using a cursor
+  storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
+
+  if (pagination.cursor) {
+    const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
+    if (cursorDoc.exists) {
+      storiesQuery = storiesQuery.startAfter(cursorDoc);
+    }
+  }
+
+  if (pagination.limit) {
+    storiesQuery = storiesQuery.limit(pagination.limit);
+  }
 
   const querySnapshot = await storiesQuery.get();
   const stories = querySnapshot.docs.map(docToStory);
-
-  // Sort by date descending in code, as Firestore can't sort string dates reliably.
-  stories.sort((a, b) => {
-    const timeA = a.publishedAt?.getTime() || 0;
-    const timeB = b.publishedAt?.getTime() || 0;
-    return timeB - timeA;
-  });
 
   return stories;
 }

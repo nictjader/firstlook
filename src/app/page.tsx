@@ -4,6 +4,8 @@ import SubgenreFilter from '@/components/story/subgenre-filter';
 import { Suspense } from 'react';
 import type { Subgenre, Story } from '@/lib/types';
 
+const STORIES_PER_PAGE = 12;
+
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
 
@@ -12,7 +14,10 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
   
   let initialStories: Story[] = [];
   try {
-    initialStories = await getStories({ subgenre: selectedSubgenre });
+    initialStories = await getStories(
+      { subgenre: selectedSubgenre },
+      { limit: STORIES_PER_PAGE }
+    );
   } catch (error) {
     console.error("Failed to fetch stories:", error);
     // In case of an error (like PERMISSION_DENIED),
@@ -33,7 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
       <Suspense fallback={<div>Loading filter...</div>}>
         <SubgenreFilter />
       </Suspense>
-        <StoryList stories={initialStories} />
+        <StoryList initialStories={initialStories} selectedSubgenre={selectedSubgenre} />
     </div>
   );
 }
