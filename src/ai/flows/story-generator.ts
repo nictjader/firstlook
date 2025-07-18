@@ -125,7 +125,7 @@ const storyGenerationFlow = ai.defineFlow(
         2.  **Completeness:** The story must have a clear beginning, middle, and a satisfying romantic conclusion (either a "happily ever after" or a "happy for now").
         3.  **Formatting:** The story content MUST be in HTML format. Use paragraphs (<p>), section breaks (<h2>, <h3>), and other appropriate tags to make it readable.
         4.  **Word Count:** Adhere to the approximate word count specified in the seed.
-        5.  **Series:** Most stories should be standalone. Occasionally (about 10% of the time), create a two-part series. If you create a series, ensure both parts have a logical connection and that the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields are correctly populated. 'seriesId' should be a v4 UUID.
+        5.  **Series:** Most stories should be standalone. Occasionally (about 10% of the time), create a two-part series. If you create a series, ensure both parts have a logical connection and that the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields are correctly populated. 'seriesId' should be a v4 UUID. For standalone stories, these fields must be null.
         6.  **Monetization:**
             - For standalone stories, make approximately 80% premium (coinCost between 50-100) and 20% free (coinCost: 0).
             - If you create a two-part series, the first part (partNumber: 1) MUST have a coinCost of 0. The second part (partNumber: 2) MUST have a coinCost between 50 and 100.
@@ -165,10 +165,10 @@ const storyGenerationFlow = ai.defineFlow(
         tags: output.tags,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt, // Use the prompt from the seed for consistency
-        seriesId: output.seriesId ?? undefined,
-        seriesTitle: output.seriesTitle ?? undefined,
-        partNumber: output.partNumber ?? undefined,
-        totalPartsInSeries: output.totalPartsInSeries ?? undefined,
+        seriesId: output.seriesId ?? null,
+        seriesTitle: output.seriesTitle ?? null,
+        partNumber: output.partNumber ?? null,
+        totalPartsInSeries: output.totalPartsInSeries ?? null,
       };
 
       await storyDocRef.set({
