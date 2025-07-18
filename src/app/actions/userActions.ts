@@ -15,6 +15,7 @@ export async function getStoriesByIdsAction(storyIds: string[]): Promise<Story[]
 }
 
 export async function getMoreStoriesAction(subgenre: Subgenre | 'all', cursor: string): Promise<Story[]> {
+  // This now uses the main getStories function, ensuring consistent logic for series grouping.
   const stories = await getStories(
     { 
       filter: { subgenre: subgenre !== 'all' ? subgenre : undefined },

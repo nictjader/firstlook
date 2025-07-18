@@ -3,7 +3,6 @@
 
 import type { Story, Subgenre } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { Timestamp } from 'firebase-admin/firestore';
 
 // Helper to safely convert Firestore DocumentSnapshot to a Story object
 function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
@@ -50,10 +49,10 @@ export async function getStoriesBySeriesId(seriesId: string): Promise<Story[]> {
     if (querySnapshot.empty) {
         return [];
     }
-    return querySnapshot.docs.map(doc => docToStory(doc)).filter((s): s is Story => !!s);
+    return querySnapshot.docs.map(docToStory).filter((s): s is Story => !!s);
 }
 
-// Main function to fetch stories, now with simplified logic
+// Main function to fetch stories, now with series grouping logic
 export async function getStories(
   { filter = {}, pagination = {} }: {
     filter?: { subgenre?: Subgenre | 'all' };
@@ -63,8 +62,11 @@ export async function getStories(
   const db = getAdminDb();
   let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
 
+  // Base filters
   storiesQuery = storiesQuery.where('status', '==', 'published');
-  
+  // This is the key change: We only fetch standalone stories or the FIRST part of a series in the main query.
+  storiesQuery = storiesQuery.where('partNumber', 'in', [null, 1]);
+
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
@@ -92,19 +94,56 @@ export async function getStories(
       return [];
     }
     
-    const stories = querySnapshot.docs
+    const mainStories = querySnapshot.docs
       .map(docToStory)
-      .filter((story): story is Story => story !== null); 
+      .filter((story): story is Story => story !== null);
+
+    // Identify series and collect their IDs
+    const seriesIdsToFetch = mainStories
+      .filter(story => story.seriesId && story.partNumber === 1)
+      .map(story => story.seriesId as string);
+
+    if (seriesIdsToFetch.length > 0) {
+      // Fetch all parts for the identified series
+      const seriesPartsQuery = db.collection('stories')
+        .where('seriesId', 'in', seriesIdsToFetch)
+        .where('partNumber', '>', 1) // Fetch parts other than the first one
+        .orderBy('seriesId')
+        .orderBy('partNumber', 'asc');
+      
+      const seriesPartsSnapshot = await seriesPartsQuery.get();
+      const seriesParts = seriesPartsSnapshot.docs
+        .map(docToStory)
+        .filter((story): story is Story => story !== null);
+
+      // Create a map for easy lookup
+      const seriesPartsMap = new Map<string, Story[]>();
+      seriesParts.forEach(part => {
+        if (part.seriesId) {
+          if (!seriesPartsMap.has(part.seriesId)) {
+            seriesPartsMap.set(part.seriesId, []);
+          }
+          seriesPartsMap.get(part.seriesId)!.push(part);
+        }
+      });
+
+      // Merge the series parts into the main list
+      const finalStories: Story[] = [];
+      mainStories.forEach(story => {
+        finalStories.push(story);
+        if (story.seriesId && seriesPartsMap.has(story.seriesId)) {
+          finalStories.push(...seriesPartsMap.get(story.seriesId)!);
+        }
+      });
+
+      return finalStories;
+    }
     
-    return stories;
+    return mainStories;
 
   } catch (error) {
     console.error('[getStories] A critical error occurred during query execution:', error);
-    // This can happen if a composite index is missing. 
-    // The error in the Firebase console will have a link to create it.
-    const simplifiedQuery = db.collection('stories').where('status', '==', 'published').limit(limit);
-    const snapshot = await simplifiedQuery.get();
-    return snapshot.docs.map(doc => docToStory(doc)).filter((s): s is Story => !!s);
+    return [];
   }
 }
 
