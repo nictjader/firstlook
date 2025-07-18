@@ -10,10 +10,12 @@
  * `storySeeds` array. Ensure each seed is unique and high-quality.
  */
 
+import type { Subgenre } from './types';
+
 // We define the StorySeed type directly to remove dependencies on deleted files.
 export interface StorySeed {
   titleIdea: string;
-  subgenre: string;
+  subgenre: Subgenre; // Now strictly typed
   mainCharacters: string;
   characterNames: string[];
   plotSynopsis: string;
@@ -123,7 +125,7 @@ export const storySeeds: StorySeed[] = [
   // Seed 9: Billionaire / Second Chance
   {
     titleIdea: 'The Unfinished Skyscraper',
-    subgenre: 'billionaire',
+    subgenre: 'second-chance',
     characterNames: ['Chloe', 'David'],
     mainCharacters: 'A talented architect who was fired from her dream project years ago, and the billionaire developer, her former mentor and ex-fiancé, who must hire her back to save his now-failing skyscraper.',
     plotSynopsis: 'Years after a bitter falling out, David is forced to swallow his pride and re-hire Chloe, the only person with the vision to fix the catastrophic design flaws in his company\'s flagship skyscraper. Working together in high-stakes, close-quarters forces them to confront the misunderstandings that tore them apart. Amidst the blueprints and boardrooms, they rediscover the passion that first brought them together, getting a second chance at love and finishing the project that nearly ruined them both.',
@@ -2425,5 +2427,3 @@ export const storySeeds: StorySeed[] = [
     coverImagePrompt: 'A female chef in her whites and a handsome farmer in a plaid shirt are arguing over a crate of beautiful, colorful vegetables in a rustic farm setting. They are both trying not to smile. A warm, vibrant digital painting. IMPORTANT: Do not include any text, letters, or words in the image.'
   }
 ];
-
-    

@@ -6,14 +6,13 @@ import { storySeeds } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { Story, Subgenre, ALL_SUBGENRES } from '@/lib/types';
+import { Story, Subgenre } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-import { collection, getDocs, query, select, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { collection, getDocs, query, select, type QueryDocumentSnapshot, writeBatch } from 'firebase-admin/firestore';
 
 
 // The output from the pure AI generation part of the action.
-// The client will handle writing this to Firestore.
 export interface AIStoryResult {
   storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>;
   storyId: string;
@@ -37,21 +36,43 @@ export interface StoryCountBreakdown {
 
 
 /**
- * Selects a random story seed from the predefined list.
- * @returns A randomly selected StorySeed.
+ * Selects a random story seed from the predefined list, ensuring it hasn't been used.
+ * @returns A randomly selected StorySeed or null if all seeds are used.
  */
-function selectRandomSeed(): StoryGenerationInput {
-  const randomIndex = Math.floor(Math.random() * storySeeds.length);
-  return storySeeds[randomIndex];
+async function selectUnusedSeed(): Promise<StoryGenerationInput | null> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    // Fetch only the 'title' field to be efficient
+    const q = query(storiesRef, select('title'));
+    const snapshot = await getDocs(q);
+    const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Part ')[0]));
+
+    const unusedSeeds = storySeeds.filter(seed => !existingTitles.has(seed.titleIdea));
+
+    if (unusedSeeds.length === 0) {
+        return null; // All seeds have been used
+    }
+
+    const randomIndex = Math.floor(Math.random() * unusedSeeds.length);
+    return unusedSeeds[randomIndex];
 }
 
 /**
- * Generates story text and metadata using an AI flow.
+ * Generates story text and metadata using an AI flow from an unused seed.
  * It does NOT write to the database. It returns the generated data to the client.
  * @returns A promise that resolves to a GenerationResult object containing the AI-generated story data.
  */
 export async function generateStoryAI(): Promise<GenerationResult> {
-  const seed = selectRandomSeed();
+  const seed = await selectUnusedSeed();
+
+  if (!seed) {
+    return {
+      success: false,
+      error: "All available story seeds have been used. No new stories can be generated.",
+      title: "N/A",
+      storyId: '',
+    };
+  }
 
   try {
     const storyResult = await generateStory(seed);
@@ -132,9 +153,69 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         return downloadURL;
 
     } catch (error) {
-        console.error(`Failed to generate or upload cover image for story ${storyId}. Using placeholder.`, error);
+        console.error(`Failed to generate or upload cover image for ${storyId}. Using placeholder.`, error);
         return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
     }
 }
 
-    
+interface CleanupResult {
+    success: boolean;
+    message: string;
+    checked: number;
+    updated: number;
+}
+
+/**
+ * A one-time action to standardize the genres of existing stories in Firestore.
+ * It matches stories to their seeds by title and updates the `subgenre` field.
+ */
+export async function standardizeGenresAction(): Promise<CleanupResult> {
+    try {
+        const db = getAdminDb();
+        const storiesRef = db.collection('stories');
+        const snapshot = await getDocs(storiesRef);
+
+        if (snapshot.empty) {
+            return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
+        }
+
+        // Create a map of seed titles to their correct subgenres for quick lookup
+        const seedGenreMap = new Map(storySeeds.map(seed => [seed.titleIdea, seed.subgenre]));
+        
+        const batch = writeBatch(db);
+        let updatedCount = 0;
+
+        snapshot.docs.forEach(doc => {
+            const story = doc.data() as Story;
+            const baseTitle = story.title.split(' - Part ')[0];
+            const correctGenre = seedGenreMap.get(baseTitle);
+
+            if (correctGenre && story.subgenre !== correctGenre) {
+                const storyRef = db.collection('stories').doc(doc.id);
+                batch.update(storyRef, { subgenre: correctGenre });
+                updatedCount++;
+            }
+        });
+
+        await batch.commit();
+
+        const message = updatedCount > 0 
+            ? `Successfully checked ${snapshot.size} stories and updated ${updatedCount} with standardized genres.`
+            : `Checked ${snapshot.size} stories. All genres were already standard.`;
+
+        return {
+            success: true,
+            message: message,
+            checked: snapshot.size,
+            updated: updatedCount,
+        };
+    } catch (error: any) {
+        console.error("Error during genre standardization:", error);
+        return {
+            success: false,
+            message: error.message || "An unknown error occurred during cleanup.",
+            checked: 0,
+            updated: 0,
+        };
+    }
+}

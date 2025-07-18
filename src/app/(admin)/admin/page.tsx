@@ -1,12 +1,13 @@
+
 'use client';
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Users, Layers, Library } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
@@ -86,24 +87,24 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
   const seriesGenres = new Map<string, string>(); // seriesId -> genre
   let standaloneStories = 0;
   
-  // Process all stories
+  // Process all stories to find their genres and count standalones
   stories.forEach(story => {
     const genre = story.subgenre;
     if (!genre) return; // Skip stories without a genre
 
     if (story.seriesId) {
-      // For series, just track the first occurrence to get the genre
+      // For series, just track the genre of the first part encountered
       if (!seriesGenres.has(story.seriesId)) {
         seriesGenres.set(story.seriesId, genre);
       }
     } else {
-      // Standalone story - count it and its genre
+      // This is a standalone story - count it and its genre
       standaloneStories++;
       storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     }
   });
 
-  // Now count each unique series once by its genre
+  // Now, add the unique series counts to the genre breakdown
   seriesGenres.forEach((genre) => {
     storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
   });
@@ -129,6 +130,8 @@ function AdminDashboardContent() {
   const [storyCount, setStoryCount] = useState<StoryCountBreakdown | null>(null);
   const [isCounting, setIsCounting] = useState(false);
   const [countError, setCountError] = useState<string | null>(null);
+  const [isCleaning, setIsCleaning] = useState(false);
+  const [cleanupResult, setCleanupResult] = useState<{ success: boolean; message: string } | null>(null);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -150,6 +153,23 @@ function AdminDashboardContent() {
       setCountError(error.message || "An unknown error occurred while analyzing the database.");
     } finally {
       setIsCounting(false);
+    }
+  };
+
+  const handleStandardizeGenres = async () => {
+    setIsCleaning(true);
+    setCleanupResult(null);
+    try {
+      const result = await standardizeGenresAction();
+      setCleanupResult(result);
+      // Automatically refresh the analysis after cleanup
+      if (result.success) {
+        await handleCountStories();
+      }
+    } catch (error: any) {
+        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.' });
+    } finally {
+        setIsCleaning(false);
     }
   };
 
@@ -224,13 +244,27 @@ function AdminDashboardContent() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center"><Database className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
-            <p className="text-sm text-muted-foreground">Verify the contents of your database.</p>
+            <p className="text-sm text-muted-foreground">Analyze and maintain the story database.</p>
           </CardHeader>
           <CardContent className="space-y-4">
-              <Button onClick={handleCountStories} disabled={isCounting || isGenerating}>
-                {isCounting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookText className="mr-2 h-4 w-4" />}
-                {isCounting ? 'Analyzing...' : 'Analyze Story Database'}
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button onClick={handleCountStories} disabled={isCounting || isGenerating}>
+                  {isCounting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookText className="mr-2 h-4 w-4" />}
+                  {isCounting ? 'Analyzing...' : 'Analyze Story Database'}
+                </Button>
+                <Button onClick={handleStandardizeGenres} disabled={isCleaning || isGenerating} variant="outline">
+                    {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
+                    {isCleaning ? 'Cleaning...' : 'Standardize Genres'}
+                </Button>
+              </div>
+
+              {cleanupResult && (
+                <Alert variant={cleanupResult.success ? 'success' : 'destructive'}>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>{cleanupResult.success ? 'Cleanup Complete' : 'Cleanup Failed'}</AlertTitle>
+                  <AlertDescription>{cleanupResult.message}</AlertDescription>
+                </Alert>
+              )}
               
               {countError && (
                  <Alert variant="destructive">
@@ -282,7 +316,7 @@ function AdminDashboardContent() {
            <CardHeader>
             <CardTitle className="flex items-center"><Bot className="mr-2 h-5 w-5" /> AI Story Generator</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Generate multiple romance stories in parallel using different AI models.
+              Generate new stories from the unused seeds in your library.
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
