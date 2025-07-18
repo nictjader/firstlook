@@ -84,35 +84,32 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 
 function analyzeStories(stories: Story[]): StoryCountBreakdown {
   const storiesPerGenre: Record<string, number> = {};
-  const processedSeries = new Set<string>();
+  const seriesGenres = new Map<string, string>(); // seriesId -> genre
   let standaloneStories = 0;
   
-  // First pass: identify all unique narratives and their genres
-  const narrativeGenres: string[] = [];
-  
+  // Process all stories
   stories.forEach(story => {
     const genre = story.subgenre;
     if (!genre) return; // Skip stories without a genre
 
     if (story.seriesId) {
-      if (!processedSeries.has(story.seriesId)) {
-        // This is the first time we see this series. Count it.
-        narrativeGenres.push(genre);
-        processedSeries.add(story.seriesId);
+      // For series, just track the first occurrence to get the genre
+      if (!seriesGenres.has(story.seriesId)) {
+        seriesGenres.set(story.seriesId, genre);
       }
     } else {
-      // This is a standalone story. Count it.
+      // Standalone story - count it and its genre
       standaloneStories++;
-      narrativeGenres.push(genre);
+      storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     }
   });
 
-  // Second pass: aggregate genres
-  narrativeGenres.forEach(genre => {
+  // Now count each unique series once by its genre
+  seriesGenres.forEach((genre) => {
     storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
   });
 
-  const multiPartSeriesCount = processedSeries.size;
+  const multiPartSeriesCount = seriesGenres.size;
   const totalUniqueStories = standaloneStories + multiPartSeriesCount;
 
   return {
