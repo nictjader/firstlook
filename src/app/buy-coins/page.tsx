@@ -1,4 +1,3 @@
-
 import CoinPurchase from '@/components/monetization/coin-purchase';
 import { Metadata } from 'next';
 

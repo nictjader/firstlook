@@ -1,4 +1,3 @@
-
 import ProfileView from '@/components/profile/profile-view';
 import { Metadata } from 'next';
 
