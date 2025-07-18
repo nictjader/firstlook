@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Story, Subgenre } from '@/lib/types';
@@ -71,17 +72,13 @@ function groupAndSortStories(stories: Story[]): Story[] {
     }
   }
 
-  // 2. Create final series groups, ensuring all parts are present
+  // 2. Create final series groups, handling incomplete ones
   const seriesGroups: Story[][] = [];
   for (const storiesInSeries of seriesStoriesMap.values()) {
-    // Only include a series if all its parts are present in the fetched list
-    if (storiesInSeries.length > 0 && storiesInSeries.length === storiesInSeries[0].totalPartsInSeries) {
+    if (storiesInSeries.length > 0) {
       // Sort the parts of the series correctly
       storiesInSeries.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
       seriesGroups.push(storiesInSeries);
-    } else {
-       // If a series is incomplete, treat its fetched parts as standalone stories to avoid breaking UI.
-       standaloneStories.push(...storiesInSeries);
     }
   }
   
