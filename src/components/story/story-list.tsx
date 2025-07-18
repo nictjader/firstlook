@@ -29,6 +29,41 @@ const StoryListSkeleton = () => (
     </div>
 );
 
+
+function groupAndSortStories(stories: Story[]): Story[] {
+  const storyMap = new Map<string, Story[]>();
+
+  // Group stories by their primary sort key (seriesId or storyId)
+  stories.forEach(story => {
+    const key = story.primarySortKey;
+    if (!storyMap.has(key)) {
+      storyMap.set(key, []);
+    }
+    storyMap.get(key)!.push(story);
+  });
+
+  // Sort each group internally by part number (secondarySortKey)
+  storyMap.forEach(group => {
+    group.sort((a, b) => a.secondarySortKey - b.secondarySortKey);
+  });
+
+  // Flatten the map back into an array, keeping the original fetch order
+  // which is based on publishedAt.
+  const result: Story[] = [];
+  const processedKeys = new Set<string>();
+
+  stories.forEach(story => {
+    const key = story.primarySortKey;
+    if (!processedKeys.has(key)) {
+      result.push(...(storyMap.get(key) || []));
+      processedKeys.add(key);
+    }
+  });
+
+  return result;
+}
+
+
 export default function StoryList({ initialSubgenre }: StoryListProps) {
   const [allStories, setAllStories] = useState<Story[]>([]);
   const [lastPublishedAt, setLastPublishedAt] = useState<string | null>(null);
@@ -73,18 +108,19 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
     });
   }, []); 
 
-  const filteredStories = useMemo(() => {
-    if (selectedSubgenre === 'all') {
-      return allStories;
-    }
-    return allStories.filter(story => story.subgenre === selectedSubgenre);
+  const displayedStories = useMemo(() => {
+    const filtered = selectedSubgenre === 'all' 
+      ? allStories 
+      : allStories.filter(story => story.subgenre === selectedSubgenre);
+    
+    return groupAndSortStories(filtered);
   }, [allStories, selectedSubgenre]);
 
   if (allStories.length === 0 && isLoading) {
     return <StoryListSkeleton />;
   }
 
-  if (filteredStories.length === 0 && !isLoading) {
+  if (displayedStories.length === 0 && !isLoading) {
     return (
       <div className="w-full text-center py-12 md:py-24 col-span-full space-y-4">
         <Separator/>
@@ -110,7 +146,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {filteredStories.map((story, index) => (
+        {displayedStories.map((story, index) => (
           <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
         ))}
       </div>
@@ -125,7 +161,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
             )}
           </Button>
         ) : (
-          filteredStories.length > 0 && <p className="text-muted-foreground">You've reached the end!</p>
+          displayedStories.length > 0 && <p className="text-muted-foreground">You've reached the end!</p>
         )}
       </div>
     </>
