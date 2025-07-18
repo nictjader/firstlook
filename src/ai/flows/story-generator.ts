@@ -9,10 +9,8 @@
 import { z } from 'zod';
 import { StorySeed } from '@/lib/story-seeds';
 import { v4 as uuidv4 } from 'uuid';
-import { getAdminDb } from '@/lib/firebase/admin';
 import { Story } from '@/lib/types';
 import { ai } from '@/ai';
-import { Timestamp } from 'firebase-admin/firestore';
 
 // Define the input schema for the story generation flow.
 export const StoryGenerationInputSchema = z.custom<StorySeed>();
@@ -24,6 +22,8 @@ export const StoryGenerationOutputSchema = z.object({
   title: z.string().describe('The final title of the story.'),
   success: z.boolean().describe('Whether the story generation was successful.'),
   error: z.string().nullable().describe('Any error message if the generation failed.'),
+  // The full story data is now included in the output for the client to handle.
+  storyData: z.custom<Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>>().optional(),
 });
 export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
 
@@ -144,10 +144,8 @@ const storyGenerationFlow = ai.defineFlow(
     outputSchema: StoryGenerationOutputSchema,
   },
   async (seed) => {
-    const db = getAdminDb();
     const storyId = uuidv4();
     const potentialSeriesId = uuidv4(); 
-    const storyDocRef = db.collection('stories').doc(storyId);
 
     try {
       // Call the dedicated prompt object with the combined input
@@ -163,7 +161,7 @@ const storyGenerationFlow = ai.defineFlow(
       
       const isSeriesStory = output.seriesId === potentialSeriesId && output.seriesId !== null;
       
-      const newStory: Omit<Story, 'storyId' | 'publishedAt'> = {
+      const storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'> = {
         title: output.title,
         characterNames: output.characterNames,
         isPremium: (output.coinCost ?? 0) > 0,
@@ -183,28 +181,15 @@ const storyGenerationFlow = ai.defineFlow(
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
       };
 
-      await storyDocRef.set({
-        ...newStory,
-        publishedAt: Timestamp.now(),
-      });
-
       return {
         storyId,
         title: output.title,
         success: true,
         error: null,
+        storyData: storyData,
       };
     } catch (e: any) {
       console.error('Error in generateStory:', e);
-      const failedStory: Partial<Story> = {
-        title: seed.titleIdea,
-        publishedAt: new Date().toISOString(),
-        status: 'failed',
-        content: `Failed to generate story. Error: ${e.message}`,
-        coverImagePrompt: seed.coverImagePrompt,
-      };
-      await storyDocRef.set(failedStory, { merge: true });
-
       return {
         storyId: storyId,
         title: seed.titleIdea,

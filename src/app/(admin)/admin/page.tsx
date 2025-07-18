@@ -7,21 +7,34 @@ import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText } from 'lu
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateSingleStory, type GenerationResult } from '@/app/actions/adminActions';
+import { generateStoryAI, generateAndUploadCoverImageAction, type GenerationResult, type AIStoryResult } from '@/app/actions/adminActions';
 import Link from 'next/link';
+import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { db } from '@/lib/firebase/client';
+import { useAuth } from '@/contexts/auth-context';
 
-// --- Helper Components ---
+type Log = {
+    id: number;
+    status: 'pending' | 'generating' | 'saving' | 'imaging' | 'success' | 'error';
+    message: string;
+    title?: string;
+    storyId?: string;
+    error?: string;
+};
 
-const StatusIcon = ({ status }: { status: 'pending' | 'generating' | 'success' | 'error' }) => {
+const StatusIcon = ({ status }: { status: Log['status'] }) => {
   switch (status) {
     case 'pending': return <Bot className="h-5 w-5 text-muted-foreground" />;
-    case 'generating': return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
+    case 'generating':
+    case 'saving':
+    case 'imaging': 
+        return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
     case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
     case 'error': return <AlertCircle className="h-5 w-5 text-destructive" />;
   }
 };
 
-const GenerationLog = ({ logs }: { logs: (GenerationResult & { logMessage: string })[] }) => (
+const GenerationLog = ({ logs }: { logs: Log[] }) => (
   <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
     <div className="p-6">
       <h3 className="text-2xl font-semibold leading-none tracking-tight flex items-center"><BookText className="mr-2 h-5 w-5" /> Generation Log</h3>
@@ -29,19 +42,19 @@ const GenerationLog = ({ logs }: { logs: (GenerationResult & { logMessage: strin
     </div>
     <div className="p-6 pt-0">
       <div className="space-y-3">
-        {logs.map((log, index) => (
-          <div key={index} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md">
-            <StatusIcon status={log.success ? 'success' : (log.error ? 'error' : 'generating')} />
+        {logs.map((log) => (
+          <div key={log.id} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md">
+            <StatusIcon status={log.status} />
             <div className="flex-1">
-              <p className="font-semibold text-sm">{log.logMessage}</p>
-              {log.success && log.title && (
+              <p className="font-semibold text-sm">{log.message}</p>
+              {log.status === 'success' && log.title && (
                  <p className="text-xs text-primary font-medium">Successfully generated: "{log.title}"</p>
               )}
               {log.error && (
                  <p className="text-xs text-destructive">Error: {log.error}</p>
               )}
             </div>
-            {log.success && log.storyId && (
+            {log.status === 'success' && log.storyId && (
               <Button asChild variant="outline" size="sm">
                 <Link href={`/stories/${log.storyId}`} target="_blank">
                   View <ArrowRight className="ml-2 h-4 w-4" />
@@ -55,37 +68,66 @@ const GenerationLog = ({ logs }: { logs: (GenerationResult & { logMessage: strin
   </div>
 );
 
-// --- Main Admin Dashboard Component ---
-
 function AdminDashboardContent() {
+  const { user } = useAuth();
   const [numStories, setNumStories] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [logs, setLogs] = useState<(GenerationResult & { logMessage: string })[]>([]);
+  const [logs, setLogs] = useState<Log[]>([]);
   const [completed, setCompleted] = useState(0);
 
+  const updateLog = (id: number, updates: Partial<Log>) => {
+      setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
+  };
+
   const handleGenerate = async () => {
+    if (!user) {
+        alert("You must be logged in to generate stories.");
+        return;
+    }
     setIsGenerating(true);
     setLogs([]);
     setCompleted(0);
 
-    const generationPromises = Array.from({ length: numStories }).map((_, index) => {
-      const logMessage = `Initiating generation for story ${index + 1}...`;
-      setLogs(prev => [...prev, { logMessage, success: false, error: null, title: '', storyId: '' }]);
+    const promises = Array.from({ length: numStories }).map(async (_, index) => {
+      const logId = Date.now() + index;
+      setLogs(prev => [...prev, { id: logId, status: 'pending', message: `Story ${index + 1}: Queued...` }]);
       
-      return generateSingleStory()
-        .then(result => {
-          setLogs(prev => prev.map(l => l.logMessage === logMessage ? { ...result, logMessage: `Story ${index + 1}: ${result.title || 'Untitled'}` } : l));
-          setCompleted(prev => prev + 1);
-        })
-        .catch(error => {
-          console.error(`Error generating story ${index + 1}:`, error);
-          const errorMessage = error.message || "An unknown error occurred.";
-          setLogs(prev => prev.map(l => l.logMessage === logMessage ? { logMessage: `Story ${index + 1} Failed`, success: false, error: errorMessage, title: '', storyId: '' } : l));
-          setCompleted(prev => prev + 1);
+      try {
+        // Step 1: AI Text Generation
+        updateLog(logId, { status: 'generating', message: `Story ${index + 1}: Generating text...` });
+        const result = await generateStoryAI();
+        
+        if (!result.success || !result.aiStoryResult) {
+          throw new Error(result.error || "AI Generation failed.");
+        }
+        updateLog(logId, { status: 'saving', message: `Story ${index + 1}: Saving story "${result.title}"...`, title: result.title, storyId: result.storyId });
+
+        // Step 2: Save Story to Firestore (Client-side)
+        const storyDocRef = doc(db, 'stories', result.aiStoryResult.storyId);
+        await setDoc(storyDocRef, {
+            ...result.aiStoryResult.storyData,
+            publishedAt: serverTimestamp(),
+            // Start with a placeholder image
+            coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Generating...'
         });
+        updateLog(logId, { status: 'imaging', message: `Story ${index + 1}: Generating cover image...` });
+
+        // Step 3: Generate and Upload Cover Image
+        const coverImageUrl = await generateAndUploadCoverImageAction(result.storyId, result.aiStoryResult.storyData.coverImagePrompt);
+        
+        // Step 4: Update Story with Cover Image URL (Client-side)
+        await updateDoc(storyDocRef, { coverImageUrl });
+        updateLog(logId, { status: 'success', message: `Story ${index + 1}: Complete!` });
+
+      } catch (error: any) {
+        console.error(`Error generating story ${index + 1}:`, error);
+        updateLog(logId, { status: 'error', message: `Story ${index + 1}: Failed`, error: error.message || "An unknown error occurred." });
+      } finally {
+        setCompleted(prev => prev + 1);
+      }
     });
 
-    await Promise.all(generationPromises);
+    await Promise.all(promises);
     setIsGenerating(false);
   };
 
@@ -131,7 +173,7 @@ function AdminDashboardContent() {
             </div>
           </div>
           <div className="flex items-center p-6 pt-0">
-            <Button onClick={handleGenerate} disabled={isGenerating} className="w-full">
+            <Button onClick={handleGenerate} disabled={isGenerating || !user} className="w-full">
               <Bot className="mr-2 h-4 w-4" /> 
               {isGenerating ? 'Generating...' : `Generate ${numStories} ${numStories > 1 ? 'Stories' : 'Story'}`}
             </Button>

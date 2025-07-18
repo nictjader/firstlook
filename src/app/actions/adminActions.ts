@@ -7,18 +7,26 @@ import { getDownloadURL, ref, uploadString } from 'firebase/storage';
 import { storage } from '@/lib/firebase/client'; // storage uses client SDK for upload
 import { getAdminDb } from '@/lib/firebase/admin';
 import { ai } from '@/ai';
+import { Story } from '@/lib/types';
+
+// The output from the pure AI generation part of the action.
+// The client will handle writing this to Firestore.
+export interface AIStoryResult {
+  storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>;
+  storyId: string;
+}
 
 export interface GenerationResult {
-  logMessage: string;
   success: boolean;
   error: string | null;
   title: string;
   storyId: string;
+  // This will be populated if the text generation part is successful
+  aiStoryResult?: AIStoryResult;
 }
 
 /**
  * Selects a random story seed from the predefined list.
- * This simplified function ensures a seed is always available for generation.
  * @returns A randomly selected StorySeed.
  */
 function selectRandomSeed(): StoryGenerationInput {
@@ -26,40 +34,35 @@ function selectRandomSeed(): StoryGenerationInput {
   return storySeeds[randomIndex];
 }
 
-
 /**
- * Generates a single story by selecting a random seed and invoking the generation flow.
- * This function is now more resilient, separating text and image generation.
- * @returns A promise that resolves to a GenerationResult object.
+ * Generates story text and metadata using an AI flow.
+ * It does NOT write to the database. It returns the generated data to the client.
+ * @returns A promise that resolves to a GenerationResult object containing the AI-generated story data.
  */
-export async function generateSingleStory(): Promise<GenerationResult> {
+export async function generateStoryAI(): Promise<GenerationResult> {
   const seed = selectRandomSeed();
 
   try {
-    // Step 1: Generate the story text and save the initial document.
     const storyResult = await generateStory(seed);
 
-    if (!storyResult.success || !storyResult.storyId) {
-      throw new Error(storyResult.error || 'Story generation flow failed to return a story ID.');
+    if (!storyResult.success || !storyResult.storyId || !storyResult.storyData) {
+      throw new Error(storyResult.error || 'Story generation flow failed to return story data.');
     }
 
-    // Step 2: Generate and upload the cover image. This is now a separate step.
-    // If this fails, it will log an error and use a placeholder, but it won't
-    // cause the entire operation to fail.
-    await generateAndUploadCoverImage(storyResult.storyId, seed.coverImagePrompt);
-
     return {
-      logMessage: `Successfully generated story and initiated cover image generation for: ${storyResult.title}`,
       success: true,
       error: null,
       title: storyResult.title,
       storyId: storyResult.storyId,
+      aiStoryResult: {
+        storyData: storyResult.storyData,
+        storyId: storyResult.storyId,
+      },
     };
 
   } catch (error: any) {
-    console.error(`Critical error in generateSingleStory for seed "${seed.titleIdea}":`, error);
+    console.error(`Critical error in generateStoryAI for seed "${seed.titleIdea}":`, error);
     return {
-      logMessage: `Failed to generate story for seed: ${seed.titleIdea}`,
       success: false,
       error: error.message,
       title: seed.titleIdea,
@@ -70,18 +73,15 @@ export async function generateSingleStory(): Promise<GenerationResult> {
 
 /**
  * Generates a cover image using an AI model and uploads it to Firebase Storage.
- * Updates the existing story document with the image URL or a placeholder on failure.
+ * This is a separate action that can be called by the client after the story is saved.
  * @param storyId The ID of the story to associate the image with.
  * @param prompt The prompt for the image generation model.
+ * @returns A promise that resolves to the public URL of the uploaded image.
  */
-async function generateAndUploadCoverImage(storyId: string, prompt: string): Promise<void> {
-    const db = getAdminDb();
-    const storyDocRef = db.collection('stories').doc(storyId);
-
+export async function generateAndUploadCoverImageAction(storyId: string, prompt: string): Promise<string> {
     if (!prompt) {
         console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
-        await storyDocRef.update({ coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=No+Prompt' });
-        return;
+        return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=No+Prompt';
     }
     
     try {
@@ -100,19 +100,14 @@ async function generateAndUploadCoverImage(storyId: string, prompt: string): Pro
         const imagePath = `story-covers/${storyId}.png`;
         const storageRef = ref(storage, imagePath);
 
-        // The 'data_url' format includes the 'data:mime/type;base64,' prefix.
         await uploadString(storageRef, media.url, 'data_url');
         const downloadURL = await getDownloadURL(storageRef);
 
-        await storyDocRef.update({
-            coverImageUrl: downloadURL,
-        });
         console.log(`Successfully generated and uploaded cover for ${storyId}`);
+        return downloadURL;
 
     } catch (error) {
         console.error(`Failed to generate or upload cover image for story ${storyId}. Using placeholder.`, error);
-        await storyDocRef.update({
-            coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed',
-        });
+        return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
     }
 }
