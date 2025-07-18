@@ -40,7 +40,20 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
   }
 }
 
-// Main function to fetch stories
+export async function getStoriesBySeriesId(seriesId: string): Promise<Story[]> {
+    if (!seriesId) return [];
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const q = storiesRef.where('seriesId', '==', seriesId).orderBy('partNumber', 'asc');
+    const querySnapshot = await q.get();
+
+    if (querySnapshot.empty) {
+        return [];
+    }
+    return querySnapshot.docs.map(doc => docToStory(doc)).filter((s): s is Story => !!s);
+}
+
+// Main function to fetch stories, now with series grouping
 export async function getStories(
   { filter = {}, pagination = {} }: {
     filter?: { subgenre?: Subgenre | 'all' };
@@ -50,17 +63,14 @@ export async function getStories(
   const db = getAdminDb();
   let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
 
-  // Apply required filters first
   storiesQuery = storiesQuery.where('status', '==', 'published');
   
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
   
-  // Temporarily removed to avoid needing a composite index for now
-  // storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
+  storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
 
-  // Handle pagination using a cursor
   if (pagination.cursor) {
     try {
         const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
@@ -72,7 +82,6 @@ export async function getStories(
     }
   }
 
-  // Apply limit
   const limit = pagination.limit || 12;
   storiesQuery = storiesQuery.limit(limit);
 
@@ -83,15 +92,37 @@ export async function getStories(
       return [];
     }
     
-    const stories = querySnapshot.docs
+    const initialStories = querySnapshot.docs
       .map(docToStory)
       .filter((story): story is Story => story !== null); 
     
-    return stories;
+    // --- New logic to group series ---
+    const processedStories: Story[] = [];
+    const processedSeries = new Set<string>();
+
+    for (const story of initialStories) {
+      // If the story is part of a series and we haven't processed this series yet
+      if (story.seriesId && !processedSeries.has(story.seriesId)) {
+        const seriesParts = await getStoriesBySeriesId(story.seriesId);
+        processedStories.push(...seriesParts);
+        processedSeries.add(story.seriesId);
+      } 
+      // If it's a standalone story, just add it
+      else if (!story.seriesId) {
+        processedStories.push(story);
+      }
+      // If it's a series part but we already added the whole series, do nothing.
+    }
+    
+    return processedStories;
 
   } catch (error) {
     console.error('[getStories] A critical error occurred during query execution:', error);
-    return []; // Return an empty array on error
+    // This can happen if a composite index is missing. 
+    // The error in the Firebase console will have a link to create it.
+    const simplifiedQuery = db.collection('stories').where('status', '==', 'published').limit(limit);
+    const snapshot = await simplifiedQuery.get();
+    return snapshot.docs.map(doc => docToStory(doc)).filter((s): s is Story => !!s);
   }
 }
 
@@ -106,19 +137,6 @@ export async function getStoryById(id: string): Promise<Story | undefined> {
   }
   const story = docToStory(docSnap);
   return story ?? undefined;
-}
-
-export async function getStoriesBySeriesId(seriesId: string): Promise<Story[]> {
-    if (!seriesId) return [];
-    const db = getAdminDb();
-    const storiesRef = db.collection('stories');
-    const q = storiesRef.where('seriesId', '==', seriesId).orderBy('partNumber', 'asc');
-    const querySnapshot = await q.get();
-
-    if (querySnapshot.empty) {
-        return [];
-    }
-    return querySnapshot.docs.map(doc => docToStory(doc)).filter((s): s is Story => !!s);
 }
 
 export async function getAllStoryTitles(): Promise<Set<string>> {
@@ -142,7 +160,6 @@ export async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
   const db = getAdminDb();
   const stories: Story[] = [];
 
-  // Firestore 'in' queries are limited to 30 items in the array
   const MAX_IDS_PER_QUERY = 30; 
   for (let i = 0; i < storyIds.length; i += MAX_IDS_PER_QUERY) {
     const batchIds = storyIds.slice(i, i + MAX_IDS_PER_QUERY);
@@ -153,7 +170,6 @@ export async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
     stories.push(...batchStories);
   }
   
-  // Re-order the results to match the original storyIds array order
   const storyMap = new Map(stories.map(s => [s.storyId, s]));
   const orderedStories = storyIds.map(id => storyMap.get(id)).filter((s): s is Story => !!s);
   
