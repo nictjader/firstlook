@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useTransition } from 'react';
+import { useState, useEffect, useCallback, useTransition, useMemo } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { BookX, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -20,7 +20,7 @@ interface StoryListProps {
 
 const StoryListSkeleton = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {Array.from({ length: 6 }).map((_, i) => (
+        {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex flex-col space-y-3">
                 <Skeleton className="h-[300px] w-full rounded-xl" />
                 <div className="space-y-2">
@@ -33,7 +33,7 @@ const StoryListSkeleton = () => (
 );
 
 export default function StoryList({ initialSubgenre }: StoryListProps) {
-  const [stories, setStories] = useState<Story[]>([]);
+  const [allFetchedStories, setAllFetchedStories] = useState<Story[]>([]);
   const [lastStory, setLastStory] = useState<Story | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [isLoading, setIsLoading] = useState(true);
@@ -43,27 +43,24 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
   const loadMoreStories = useCallback(async () => {
     if (!hasMore || isLoading) return;
     setIsLoading(true);
-    startTransition(async () => {
-      const newStories = await getStories(initialSubgenre, lastStory);
-      if (newStories.length > 0) {
-        setStories((prev) => [...prev, ...newStories]);
-        setLastStory(newStories[newStories.length - 1]);
-      }
-      if (newStories.length < STORIES_PER_PAGE) {
-        setHasMore(false);
-      }
-      setIsLoading(false);
-    });
+    // The subgenre is passed to getStories but it's not used in the query
+    const newStories = await getStories(initialSubgenre, lastStory);
+    if (newStories.length > 0) {
+      setAllFetchedStories((prev) => [...prev, ...newStories]);
+      setLastStory(newStories[newStories.length - 1]);
+    }
+    if (newStories.length < STORIES_PER_PAGE) {
+      setHasMore(false);
+    }
+    setIsLoading(false);
   }, [hasMore, isLoading, initialSubgenre, lastStory]);
-
+  
+  // This useEffect will run only once on mount to fetch initial stories
   useEffect(() => {
     const fetchInitial = async () => {
         setIsLoading(true);
-        setStories([]);
-        setLastStory(null);
-        setHasMore(true);
-        const initialStories = await getStories(initialSubgenre, null);
-        setStories(initialStories);
+        const initialStories = await getStories('all', null);
+        setAllFetchedStories(initialStories);
         setLastStory(initialStories[initialStories.length - 1] || null);
         if (initialStories.length < STORIES_PER_PAGE) {
             setHasMore(false);
@@ -71,25 +68,34 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
         setIsLoading(false);
     };
     fetchInitial();
-  }, [initialSubgenre]);
+  }, []);
+
+  const filteredStories = useMemo(() => {
+    if (initialSubgenre === 'all') {
+      return allFetchedStories;
+    }
+    return allFetchedStories.filter(story => story.subgenre === initialSubgenre);
+  }, [allFetchedStories, initialSubgenre]);
 
   const { ref, inView } = useInView({
     threshold: 0,
     triggerOnce: false,
-    rootMargin: '200px',
+    rootMargin: '400px', // Load more when 400px away from the bottom
   });
 
   useEffect(() => {
     if (inView && !isLoading && hasMore) {
-        loadMoreStories();
+        startTransition(() => {
+            loadMoreStories();
+        });
     }
   }, [inView, isLoading, hasMore, loadMoreStories]);
 
-  if (stories.length === 0 && isLoading) {
+  if (allFetchedStories.length === 0 && isLoading) {
     return <StoryListSkeleton />;
   }
 
-  if (stories.length === 0 && !isLoading) {
+  if (filteredStories.length === 0 && !isLoading) {
     return (
       <div className="w-full text-center py-12 md:py-24 col-span-full space-y-4">
         <Separator/>
@@ -115,7 +121,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {stories.map((story, index) => (
+        {filteredStories.map((story, index) => (
           <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
         ))}
       </div>
@@ -127,7 +133,7 @@ export default function StoryList({ initialSubgenre }: StoryListProps) {
             Loading More...
           </Button>
         )}
-        {!hasMore && stories.length > 0 && (
+        {!hasMore && filteredStories.length > 0 && (
           <p className="text-muted-foreground">You've reached the end!</p>
         )}
       </div>

@@ -20,29 +20,25 @@ import {
 const STORIES_PER_PAGE = 12;
 
 export async function getStories(
-  subgenre: Subgenre | 'all',
+  // subgenre is no longer used in the query but kept for potential future use
+  subgenre: Subgenre | 'all', 
   lastStory: Story | null
 ): Promise<Story[]> {
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
 
-    // Simplified query to avoid needing a composite index.
-    // We are trusting that only stories with 'published' status are in the DB.
+    // This is the simplest possible query that will work without a custom index.
+    // It fetches all stories sorted by date. Filtering will happen on the client.
     const constraints = [
       orderBy('publishedAt', 'desc'),
       limit(STORIES_PER_PAGE),
     ];
 
-    if (subgenre !== 'all') {
-      constraints.unshift(where('subgenre', '==', subgenre));
-    }
-
     if (lastStory && lastStory.publishedAt) {
       constraints.push(startAfter(new Date(lastStory.publishedAt)));
     }
     
-    // According to Firestore docs, types on query need to be more generic.
     const q: Query<DocumentData> = (storiesRef as any).query(...constraints);
 
     const documentSnapshots = await q.get();
