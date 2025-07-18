@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview This file defines the AI flow for generating romance stories.
@@ -152,6 +151,9 @@ const storyGenerationFlow = ai.defineFlow(
         throw new Error('AI failed to generate a story.');
       }
       
+      // Explicitly handle series-related fields to ensure they're never undefined
+      const isSeriesStory = output.seriesId !== null && output.seriesId !== undefined;
+      
       const newStory: Omit<Story, 'storyId' | 'publishedAt'> = {
         title: output.title,
         characterNames: output.characterNames,
@@ -165,10 +167,11 @@ const storyGenerationFlow = ai.defineFlow(
         tags: output.tags,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt, // Use the prompt from the seed for consistency
-        seriesId: output.seriesId ?? null,
-        seriesTitle: output.seriesTitle ?? null,
-        partNumber: output.partNumber ?? null,
-        totalPartsInSeries: output.totalPartsInSeries ?? null,
+        // Explicitly set series fields to null if not a series story
+        seriesId: isSeriesStory ? output.seriesId : null,
+        seriesTitle: isSeriesStory ? output.seriesTitle : null,
+        partNumber: isSeriesStory ? output.partNumber : null,
+        totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries : null,
       };
 
       await storyDocRef.set({
