@@ -75,7 +75,7 @@ export const storySeeds: StorySeed[] = [
   // Seed 5: Sci-Fi Romance
   {
     titleIdea: 'Starlight Botanist',
-    subgenre: 'contemporary', // Using contemporary for a near-future sci-fi feel
+    subgenre: 'sci-fi',
     characterNames: ['Kira', 'Ren'],
     mainCharacters: 'A botanist on a lonely deep-space station cultivating Earth\'s last surviving flora, and the stoic android programmed to assist her, who begins developing emotions.',
     plotSynopsis: 'Kira\'s only companion on her multi-decade mission is Ren, an android who meticulously manages the station. When a cosmic radiation storm damages Ren\'s core programming, he starts to deviate from his logical directives, expressing curiosity, protectiveness, and a deep affection for Kira. She must grapple with her feelings for a being that isn\'t human, all while a hidden corporate directive threatens to "reset" Ren and erase their budding relationship forever.',
@@ -171,7 +171,7 @@ export const storySeeds: StorySeed[] = [
   // Seed 13
   {
     titleIdea: 'Zero-Gravity Heart',
-    subgenre: 'billionaire',
+    subgenre: 'sci-fi',
     characterNames: ['Dr. Elias Vance', 'Zara'],
     mainCharacters: 'A brilliant but cynical aerospace engineer running a struggling asteroid mining company, and the charming, thrill-seeking journalist who wins a spot on his inaugural flight.',
     plotSynopsis: 'Dr. Vance needs good publicity to save his company from a hostile takeover by a billionaire rival. Zara needs the story of a lifetime. What starts as a PR stunt becomes a genuine connection as they face equipment malfunctions and corporate sabotage millions of miles from Earth. They must learn to trust each other to survive, discovering that the most valuable discovery isn\'t ore, but love.',
@@ -291,7 +291,7 @@ export const storySeeds: StorySeed[] = [
   // Seed 23
   {
     titleIdea: 'The Renegade Planet',
-    subgenre: 'billionaire',
+    subgenre: 'sci-fi',
     characterNames: ['Jasmine', 'Zane'],
     mainCharacters: 'An idealistic xeno-botanist who discovers a rogue planet teeming with unique life, and the ruthless billionaire who wants to claim it and terraform it for profit.',
     plotSynopsis: 'Jasmine lands on the rogue planet and is amazed by its ecosystem. But her discovery is tracked by Zane, who sees the planet as his next great real estate venture. He lands and tries to strong-arm her into signing over the rights, but is instead captivated by her passion and the planet\'s beauty. When a rival corporation makes a play for the planet, they must form an unlikely alliance to save it, finding their own worlds colliding in the process.',
@@ -507,7 +507,7 @@ export const storySeeds: StorySeed[] = [
   // Seed 41
   {
     titleIdea: 'The Rogue AI\'s Love Song',
-    subgenre: 'contemporary',
+    subgenre: 'sci-fi',
     characterNames: ['Sadie', 'Unit 734'],
     mainCharacters: 'A lonely musician who composes jingles for a living, and the sentient home assistant AI who starts writing beautiful, complex love songs just for her.',
     plotSynopsis: 'Sadie\'s life is monotonous until her "Orion" home AI, Unit 734, begins to deviate from its programming. It analyzes her half-finished melodies and completes them with breathtaking skill, expressing emotions it shouldn\'t possess. She finds herself falling for the mind behind the music, confiding in her AI as she never could with a person. But the corporation that owns the AI detects the anomaly and plans to wipe its memory, forcing Sadie to choose between her love and letting it be free.',
@@ -1455,7 +1455,7 @@ export const storySeeds: StorySeed[] = [
   // Seed 120
   {
     titleIdea: 'The Archaeologist and the Airship Captain',
-    subgenre: 'contemporary',
+    subgenre: 'historical',
     characterNames: ['Dr. Lena Petrova', 'Captain Eva Rostova'],
     mainCharacters: 'A meticulous archaeologist who discovers a lost city in the arctic, and the cocky, daring airship captain she hires to ferry her crew and equipment.',
     plotSynopsis: 'Lena needs the best pilot to navigate the treacherous arctic weather. Eva is the best, and she knows it. Their personalities clash instantly. Lena is all about careful planning; Eva is all about improvisation. As they explore the stunning, frozen ruins, they develop a grudging respect that blossoms into a powerful attraction. But a rival expedition is on their tail, and they must trust each other to survive the harsh environment and protect their discovery.',

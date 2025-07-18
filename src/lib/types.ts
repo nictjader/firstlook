@@ -50,7 +50,7 @@ export interface Story {
   secondarySortKey: number;
 }
 
-export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'] as const;
+export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance', 'sci-fi'] as const;
 export type Subgenre = (typeof ALL_SUBGENRES)[number];
 
 function safeToISOString(timestamp: any): string {
