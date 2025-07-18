@@ -2,7 +2,6 @@
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -85,19 +84,19 @@ export default function ProfileView() {
 
   return (
     <div className="space-y-8">
-      <Card className="shadow-lg">
-        <CardHeader>
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
+        <div className="p-6">
           <div className="flex items-center space-x-3">
             <UserCircle className="h-12 w-12 text-primary" />
             <div>
-              <CardTitle className="text-2xl font-headline">
+              <h3 className="text-2xl font-headline font-semibold leading-none tracking-tight">
                 {userProfile.displayName || userProfile.email || 'Siren User'}
-              </CardTitle>
-              <CardDescription>Manage your account details and preferences.</CardDescription>
+              </h3>
+              <p className="text-sm text-muted-foreground">Manage your account details and preferences.</p>
             </div>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-6">
+        </div>
+        <div className="p-6 pt-0 space-y-6">
           <div className="space-y-2">
             <Label htmlFor="email" className="flex items-center"><Mail className="w-4 h-4 mr-2 text-muted-foreground"/>Email</Label>
             <Input id="email" value={userProfile.email || 'No email provided'} readOnly disabled />
@@ -112,23 +111,23 @@ export default function ProfileView() {
               </Link>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card className="shadow-lg">
-        <CardHeader>
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
+        <div className="p-6">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-xl font-headline">Reading Preferences</CardTitle>
-              <CardDescription>Tell us what you love to read.</CardDescription>
+              <h3 className="text-xl font-headline font-semibold leading-none tracking-tight">Reading Preferences</h3>
+              <p className="text-sm text-muted-foreground">Tell us what you love to read.</p>
             </div>
             <Button variant="ghost" size="icon" onClick={() => setIsEditingPreferences(!isEditingPreferences)}>
               {isEditingPreferences ? <Save className="w-5 h-5" /> : <Edit3 className="w-5 h-5" />}
               <span className="sr-only">{isEditingPreferences ? "Save Preferences" : "Edit Preferences"}</span>
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-6 pt-0">
           {isEditingPreferences ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Select your favorite subgenres:</p>
@@ -160,8 +159,8 @@ export default function ProfileView() {
               <p className="text-muted-foreground">You haven&apos;t set any preferences yet. Click edit to select your favorite subgenres.</p>
             )
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
       
       <StoryListCard 
         title="Favorite Stories" 

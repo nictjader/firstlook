@@ -3,13 +3,12 @@
 
 import type { CoinPackage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gem, ShoppingCart, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { processCoinPurchase } from '@/app/actions/monetizationActions';
+import { processCoinPurchase } from '@/app/actions/userActions';
 
 
 const coinPackages: CoinPackage[] = [
@@ -37,7 +36,7 @@ export default function CoinPurchase() {
     try {
       const result = await processCoinPurchase(user.uid, pkg);
       if (result.success) {
-        await refreshUserProfile(); // Refresh user profile to show new coin balance
+        await refreshUserProfile(); 
         toast({
             title: "Purchase Successful!",
             description: result.message,
@@ -65,16 +64,16 @@ export default function CoinPurchase() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {coinPackages.map((pkg) => (
-        <Card key={pkg.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
-          <CardHeader className="text-center bg-gradient-to-br from-primary/20 to-accent/20 p-6">
+        <div key={pkg.id} className="rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
+          <div className="p-6 text-center bg-gradient-to-br from-primary/20 to-accent/20">
             <Gem className="h-12 w-12 text-primary mx-auto mb-3" />
-            <CardTitle className="text-3xl font-headline">{pkg.coins} Coins</CardTitle>
-            <CardDescription className="text-base text-muted-foreground">{pkg.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-grow flex flex-col justify-center items-center p-6">
+            <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight">{pkg.coins} Coins</h3>
+            <p className="text-base text-muted-foreground">{pkg.description}</p>
+          </div>
+          <div className="flex-grow flex flex-col justify-center items-center p-6">
             <p className="text-4xl font-bold text-accent mb-4">${pkg.priceUSD.toFixed(2)}</p>
-          </CardContent>
-          <CardFooter className="p-6">
+          </div>
+          <div className="p-6">
              <Button
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
                   disabled={loadingPackageId === pkg.id}
@@ -87,8 +86,8 @@ export default function CoinPurchase() {
                   )}
                   {loadingPackageId === pkg.id ? 'Processing...' : 'Purchase'}
               </Button>
-          </CardFooter>
-        </Card>
+          </div>
+        </div>
       ))}
     </div>
   );

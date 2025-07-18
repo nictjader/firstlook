@@ -2,12 +2,11 @@
 "use client";
 
 import type { Story } from '@/lib/types';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from '@/components/ui/card';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Lock, Gem, Heart, BookOpen, Library } from 'lucide-react';
+import { ArrowLeft, Lock, Gem, Heart, BookOpen, Library, Sun, Moon, ZoomIn, ZoomOut, ChevronLeft } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -20,10 +19,10 @@ import {
 } from "@/components/ui/dialog"
 import { useRouter } from 'next/navigation';
 import { capitalizeWords } from '@/lib/utils';
-import { ReaderMode } from './reader-mode';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useTheme } from '@/contexts/theme-context';
 
 const FONT_SIZES = [
   'text-sm', // 14px
@@ -32,6 +31,48 @@ const FONT_SIZES = [
   'text-xl', // 20px
   'text-2xl', // 24px
 ];
+
+// --- Reader Mode Component (Consolidated) ---
+const ReaderMode = ({ story, onBack, initialFontSizeIndex }: { story: Story; onBack: () => void; initialFontSizeIndex: number }) => {
+  const { theme, setTheme } = useTheme();
+  const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(initialFontSizeIndex);
+
+  const toggleTheme = () => setTheme(theme === 'dark' ? 'light' : 'dark');
+
+  const changeFontSize = (direction: 'increase' | 'decrease') => {
+    setCurrentFontSizeIndex((prevIndex) => {
+      const newIndex = direction === 'increase' ? prevIndex + 1 : prevIndex - 1;
+      return Math.max(0, Math.min(newIndex, FONT_SIZES.length - 1));
+    });
+  };
+  
+  return (
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm animate-fade-in">
+        <div className="sticky top-14 z-40 bg-background/80 backdrop-blur-sm border-b flex flex-row justify-between items-center py-2 px-6">
+            <Button variant="outline" size="sm" onClick={onBack}>
+                <ChevronLeft className="h-4 w-4 mr-2" /> Back to Details
+            </Button>
+            <div className="flex items-center space-x-1">
+                <Button variant="ghost" size="icon" onClick={() => changeFontSize('decrease')} aria-label="Decrease font size">
+                    <ZoomOut className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={() => changeFontSize('increase')} aria-label="Increase font size">
+                    <ZoomIn className="h-5 w-5" />
+                </Button>
+                <Button variant="ghost" size="icon" onClick={toggleTheme} aria-label="Toggle theme">
+                    {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+                </Button>
+            </div>
+        </div>
+        <div className={`py-6 px-6 prose dark:prose-invert max-w-none ${FONT_SIZES[currentFontSizeIndex]}`}>
+            <h1 className="text-3xl md:text-4xl font-headline text-primary !mb-2">{story.title}</h1>
+            <p className="lead !text-muted-foreground !mt-0">{story.previewText}</p>
+            <Separator className="my-6" />
+            <div dangerouslySetInnerHTML={{ __html: story.content }} />
+        </div>
+    </div>
+  )
+}
 
 
 // --- Main View Component ---
@@ -146,7 +187,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
             <ArrowLeft className="w-4 h-4 mr-1" />
             Back to Library
         </Link>
-      <Card className="overflow-hidden shadow-xl">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden shadow-xl">
         <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-muted">
            <Image
               src={story.coverImageUrl || placeholderImage}
@@ -157,10 +198,10 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
               data-ai-hint="romance book cover"
             />
         </div>
-        <CardHeader>
+        <div className="p-6">
           <div className="flex justify-between items-start gap-4">
             <div className="flex-grow">
-               <CardTitle className="text-2xl sm:text-3xl md:text-4xl font-headline text-primary !mb-2">{story.title}</CardTitle>
+               <h3 className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold leading-none tracking-tight text-primary !mb-2">{story.title}</h3>
                 {story.seriesTitle && story.partNumber && (
                   <p className="text-accent font-medium mt-1 flex items-center text-sm sm:text-base">
                     <Library className="w-4 h-4 mr-1.5" />
@@ -174,10 +215,10 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
               </Button>
             </div>
           </div>
-        </CardHeader>
+        </div>
         
         {isUnlocked ? (
-          <CardContent className="pt-6 px-6">
+          <div className="p-6 pt-0">
              <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
@@ -188,27 +229,25 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                     <BookOpen className="mr-2 h-5 w-5"/> Start Reading
                 </Button>
              </div>
-          </CardContent>
+          </div>
         ) : (
           <LockedContent />
         )}
 
-      </Card>
+      </div>
 
-      {/* Renders other parts of the series, if they exist AND there are more than just the current one */}
       {story.seriesId && seriesParts && seriesParts.length > 1 && (
-        <Card>
-            <CardHeader>
-                <CardTitle className="text-xl flex items-center">
+        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+            <div className="p-6">
+                <h3 className="text-xl flex items-center font-semibold leading-none tracking-tight">
                     <Library className="w-5 h-5 mr-2 text-primary" />
                     More from {story.seriesTitle}
-                </CardTitle>
-                <CardDescription>Follow the rest of the story.</CardDescription>
-            </CardHeader>
-            <CardContent>
+                </h3>
+                <p className="text-sm text-muted-foreground">Follow the rest of the story.</p>
+            </div>
+            <div className="p-6 pt-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {seriesParts.map(part => (
-                        // Do not show a link to the current story
                         part.storyId !== story.storyId && (
                             <Link key={part.storyId} href={`/stories/${part.storyId}`} passHref>
                                 <Button
@@ -222,8 +261,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                         )
                     ))}
                 </div>
-            </CardContent>
-        </Card>
+            </div>
+        </div>
       )}
     </div>
   );

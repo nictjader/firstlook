@@ -1,8 +1,8 @@
+
 "use client";
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
@@ -50,15 +50,15 @@ export default function AuthForm() {
   };
 
   return (
-    <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
-      <CardHeader className="text-center">
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
+      <div className="p-6 text-center">
         <div className="flex justify-center items-center mb-4">
           <Heart className="h-12 w-12 text-primary" />
         </div>
-        <CardTitle className="text-3xl font-headline">Welcome to Siren</CardTitle>
-        <CardDescription>Stories that feel alive.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+        <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight">Welcome to Siren</h3>
+        <p className="text-sm text-muted-foreground">Stories that feel alive.</p>
+      </div>
+      <div className="p-6 pt-0 flex flex-col gap-4">
         {linkSentTo ? (
           <div className="space-y-4 text-center">
             <Alert variant="default" className="text-left">
@@ -95,12 +95,12 @@ export default function AuthForm() {
             </form>
           </>
         )}
-      </CardContent>
-      <CardFooter>
+      </div>
+      <div className="flex items-center p-6 pt-0">
         <p className="text-xs text-center text-muted-foreground w-full">
           By continuing, you agree to Siren's Terms of Service and Privacy Policy.
         </p>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }

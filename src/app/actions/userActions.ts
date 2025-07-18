@@ -1,9 +1,31 @@
 
 'use server';
 
-import type { CoinPackage, Purchase } from '@/lib/types';
+import { getStoriesByIds, getStories } from '@/lib/services/storyService';
+import type { CoinPackage, Story, Subgenre } from '@/lib/types';
 import { db } from '@/lib/firebase/client';
 import { doc, updateDoc, arrayUnion, serverTimestamp, getDoc } from 'firebase/firestore';
+
+const STORIES_PER_PAGE = 12;
+
+// --- Story Actions ---
+
+export async function getStoriesByIdsAction(storyIds: string[]): Promise<Story[]> {
+  return getStoriesByIds(storyIds);
+}
+
+export async function getMoreStoriesAction(subgenre: Subgenre | 'all', cursor: string): Promise<Story[]> {
+  const stories = await getStories(
+    { 
+      filter: { subgenre: subgenre !== 'all' ? subgenre : undefined },
+      pagination: { limit: STORIES_PER_PAGE, cursor: cursor }
+    }
+  );
+  return stories;
+}
+
+
+// --- Monetization Actions ---
 
 interface PurchaseResult {
   success: boolean;
@@ -11,12 +33,6 @@ interface PurchaseResult {
   error?: string;
 }
 
-/**
- * Processes a purchase of a coin package for a user, updating their balance in Firestore.
- * @param userId The ID of the user making the purchase.
- * @param pkg The coin package being purchased.
- * @returns A result object indicating success or failure.
- */
 export async function processCoinPurchase(userId: string, pkg: CoinPackage): Promise<PurchaseResult> {
   if (!userId || !pkg) {
     return { success: false, message: "User ID and coin package are required." };
@@ -51,7 +67,6 @@ export async function processCoinPurchase(userId: string, pkg: CoinPackage): Pro
     };
   } catch (error) {
     console.error("Error processing coin purchase:", error);
-    // In a real app, you would have more robust error handling and logging (e.g., Sentry, LogRocket).
     return { 
       success: false, 
       message: "The purchase could not be completed due to a server error. Your account was not charged. Please try again later.",

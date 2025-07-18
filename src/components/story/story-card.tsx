@@ -2,13 +2,11 @@
 "use client";
 
 import type { Story } from '@/lib/types';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Gem, BookOpen, CheckCircle2, Heart, Library } from 'lucide-react';
-import { capitalizeWords } from '@/lib/utils';
+import { Lock, Gem, BookOpen, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMemo } from 'react';
 
@@ -27,8 +25,8 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Siren';
   
   return (
-    <Card className="flex flex-col overflow-hidden h-full hover:shadow-lg transition-shadow duration-300 ease-in-out transform hover:-translate-y-1">
-      <CardHeader className="p-0 relative">
+    <div className="flex flex-col overflow-hidden h-full rounded-lg border bg-card text-card-foreground shadow-sm hover:shadow-lg transition-shadow duration-300 ease-in-out transform hover:-translate-y-1">
+      <div className="p-0 relative">
         <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`}>
           <div className="w-full bg-muted aspect-[2/3] relative">
             <Image
@@ -57,10 +55,10 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
               <Heart className="w-4 h-4 text-red-500 fill-current" />
            </div>
         )}
-      </CardHeader>
-      <CardContent className="p-3 sm:p-4 flex-grow">
+      </div>
+      <div className="p-3 sm:p-4 flex-grow">
         <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`}>
-          <CardTitle className="text-sm sm:text-base font-headline mb-1 sm:mb-1.5 hover:text-primary transition-colors line-clamp-3">{title}</CardTitle>
+          <h3 className="text-sm sm:text-base font-headline font-semibold leading-none tracking-tight mb-1 sm:mb-1.5 hover:text-primary transition-colors line-clamp-3">{title}</h3>
         </Link>
         
         <div className="h-5 mb-1.5 flex items-center text-xs text-muted-foreground">
@@ -73,9 +71,9 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
             )}
         </div>
 
-        <CardDescription className="text-xs sm:text-sm text-muted-foreground line-clamp-2">{previewText}</CardDescription>
-      </CardContent>
-      <CardFooter className="p-3 sm:p-4 flex justify-between items-center gap-2">
+        <p className="text-sm text-muted-foreground line-clamp-2">{previewText}</p>
+      </div>
+      <div className="p-3 sm:p-4 flex justify-between items-center gap-2">
         <div className="h-6 flex items-center">
             {isFree ? (
               <Badge variant="success" className="text-xs sm:text-sm">Free</Badge>
@@ -91,7 +89,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
             Read
           </Button>
         </Link>
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }

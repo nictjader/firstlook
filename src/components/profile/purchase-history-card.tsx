@@ -2,7 +2,6 @@
 "use client";
 
 import type { Purchase } from "@/lib/types";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Gem, ShoppingCart } from "lucide-react";
 import { Badge } from "../ui/badge";
@@ -12,7 +11,6 @@ interface PurchaseHistoryCardProps {
 }
 
 export default function PurchaseHistoryCard({ purchaseHistory }: PurchaseHistoryCardProps) {
-  // Sort history to show most recent first
   const sortedHistory = [...(purchaseHistory || [])].sort((a, b) => {
     const timeA = new Date(a.purchasedAt).getTime();
     const timeB = new Date(b.purchasedAt).getTime();
@@ -20,17 +18,17 @@ export default function PurchaseHistoryCard({ purchaseHistory }: PurchaseHistory
   });
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
+      <div className="p-6">
         <div className="flex items-center space-x-3">
           <ShoppingCart className="h-8 w-8 text-primary" />
           <div>
-            <CardTitle className="text-xl font-headline">Purchase History</CardTitle>
-            <CardDescription>A record of your coin purchases.</CardDescription>
+            <h3 className="text-xl font-headline font-semibold leading-none tracking-tight">Purchase History</h3>
+            <p className="text-sm text-muted-foreground">A record of your coin purchases.</p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="p-6 pt-0">
         {sortedHistory.length > 0 ? (
           <Table>
             <TableHeader>
@@ -62,7 +60,7 @@ export default function PurchaseHistoryCard({ purchaseHistory }: PurchaseHistory
         ) : (
           <p className="text-muted-foreground text-center py-4">You have not made any purchases yet.</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

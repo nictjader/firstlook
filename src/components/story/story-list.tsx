@@ -4,11 +4,10 @@
 import { useState, useEffect } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import Link from 'next/link';
 import { BookX, PlusCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { getMoreStoriesAction } from '@/app/actions/storyActions';
+import { getMoreStoriesAction } from '@/app/actions/userActions';
 import { useInView } from 'react-intersection-observer';
 
 const STORIES_PER_PAGE = 12;
@@ -24,10 +23,9 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
   const [hasMore, setHasMore] = useState(initialStories.length === STORIES_PER_PAGE);
   const { ref, inView } = useInView({
     threshold: 0,
-    triggerOnce: false, // Keep observing
+    triggerOnce: false,
   });
 
-  // Reset stories when the subgenre filter changes
   useEffect(() => {
     setStories(initialStories);
     setHasMore(initialStories.length === STORIES_PER_PAGE);
@@ -53,13 +51,11 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
       }
     } catch (error) {
       console.error("Failed to load more stories:", error);
-      // Optionally show a toast or error message to the user
     } finally {
       setIsLoading(false);
     }
   };
   
-  // When the loader element comes into view, load more stories
   useEffect(() => {
     if (inView) {
       loadMoreStories();
@@ -69,30 +65,30 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
 
   if (initialStories.length === 0) {
     return (
-      <Card className="text-center col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 mt-8 shadow-none border-dashed">
-        <CardHeader>
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm text-center col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 mt-8 shadow-none border-dashed">
+        <div className="p-6">
           <div className="mx-auto bg-secondary rounded-full p-3 w-fit">
             <BookX className="h-8 w-8 text-muted-foreground" />
           </div>
-          <CardTitle>No Stories Found</CardTitle>
-          <CardDescription>
+          <h3 className="text-2xl font-semibold leading-none tracking-tight">No Stories Found</h3>
+          <p className="text-sm text-muted-foreground">
             It looks like there are no stories in this category yet.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+          </p>
+        </div>
+        <div className="p-6 pt-0">
           <p className="text-muted-foreground">
             Please check back later or try a different subgenre.
           </p>
-        </CardContent>
-        <CardFooter className="flex justify-center">
+        </div>
+        <div className="flex items-center p-6 pt-0 justify-center">
            <Link href="/admin">
                 <button className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Generate New Stories
                 </button>
             </Link>
-        </CardFooter>
-      </Card>
+        </div>
+      </div>
     );
   }
 
@@ -112,8 +108,6 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
               Loading More...
             </Button>
           ) : (
-            // This is the trigger element, it can be an invisible div or a button
-            // An invisible div is better for infinite scroll UX
             <div className="h-10"></div> 
           )}
         </div>

@@ -4,8 +4,7 @@
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import type { Story } from "@/lib/types";
-import { getStoriesByIdsAction } from "@/app/actions/storyActions";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { getStoriesByIdsAction } from "@/app/actions/userActions";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LucideIcon } from "lucide-react";
@@ -26,7 +25,6 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
     const fetchStoryDetails = async () => {
       if (storyIds.length > 0) {
         setIsLoading(true);
-        // Call the server action instead of the service directly
         const fetchedStories = await getStoriesByIdsAction(storyIds);
         setStories(fetchedStories);
         setIsLoading(false);
@@ -39,17 +37,17 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
   }, [storyIds]);
 
   return (
-    <Card className="shadow-lg">
-      <CardHeader>
+    <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
+      <div className="p-6">
         <div className="flex items-center space-x-3">
           <Icon className="h-8 w-8 text-primary" />
           <div>
-            <CardTitle className="text-xl font-headline">{title}</CardTitle>
-            <CardDescription>Revisit your {title.toLowerCase()}.</CardDescription>
+            <h3 className="text-xl font-headline font-semibold leading-none tracking-tight">{title}</h3>
+            <p className="text-sm text-muted-foreground">Revisit your {title.toLowerCase()}.</p>
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+      </div>
+      <div className="p-6 pt-0">
         {isLoading ? (
           <div className="space-y-4">
             <Skeleton className="h-6 w-3/4" />
@@ -76,7 +74,7 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
         ) : (
           <p className="text-muted-foreground">{emptyMessage}</p>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }
