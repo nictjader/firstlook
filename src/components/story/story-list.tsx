@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -26,47 +25,68 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
     triggerOnce: false,
   });
 
+  // Log initial props
+  console.log('[StoryList] Initializing component with:', { 
+    initialStoriesCount: initialStories.length, 
+    selectedSubgenre 
+  });
+  if (initialStories.length > 0) {
+    console.log('[StoryList] First initial story:', initialStories[0]);
+  }
+
   useEffect(() => {
+    console.log('[StoryList] useEffect triggered. Updating stories state to initialStories.');
     setStories(initialStories);
     setHasMore(initialStories.length === STORIES_PER_PAGE);
   }, [initialStories]);
 
   const loadMoreStories = async () => {
-    if (isLoading || !hasMore) return;
+    if (isLoading || !hasMore) {
+      if(isLoading) console.log('[StoryList] loadMoreStories skipped: already loading');
+      if(!hasMore) console.log('[StoryList] loadMoreStories skipped: no more stories to load');
+      return;
+    }
 
+    console.log('[StoryList] Starting to load more stories...');
     setIsLoading(true);
     const cursor = stories.length > 0 ? stories[stories.length - 1]?.storyId : undefined;
     if (!cursor) {
+      console.log('[StoryList] loadMoreStories stopped: No cursor found.');
       setIsLoading(false);
       setHasMore(false);
       return;
     }
 
+    console.log(`[StoryList] Calling getMoreStoriesAction with subgenre: ${selectedSubgenre}, cursor: ${cursor}`);
     try {
       const newStories = await getMoreStoriesAction(selectedSubgenre, cursor);
+      console.log(`[StoryList] Received ${newStories.length} new stories.`);
       if (newStories.length > 0) {
         setStories(prev => [...prev, ...newStories]);
         setHasMore(newStories.length === STORIES_PER_PAGE);
       } else {
+        console.log('[StoryList] No new stories returned. Setting hasMore to false.');
         setHasMore(false);
       }
     } catch (error) {
-      console.error("Failed to load more stories:", error);
+      console.error("[StoryList] Failed to load more stories:", error);
       // Stop trying to load more if there's an error
       setHasMore(false);
     } finally {
+      console.log('[StoryList] Finished loading more stories.');
       setIsLoading(false);
     }
   };
   
   useEffect(() => {
     if (inView) {
+      console.log('[StoryList] "inView" is true. Triggering loadMoreStories.');
       loadMoreStories();
     }
   }, [inView, loadMoreStories]);
 
-
-  if (stories.length === 0) {
+  if (stories.length === 0 && !isLoading) {
+    console.log('[StoryList] Rendering "No Stories Found" message.');
     return (
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm text-center col-span-1 md:col-span-2 lg:col-span-3 xl:col-span-4 mt-8 shadow-none border-dashed">
         <div className="p-6">
@@ -95,6 +115,7 @@ export default function StoryList({ initialStories, selectedSubgenre }: StoryLis
     );
   }
 
+  console.log(`[StoryList] Rendering story grid with ${stories.length} stories.`);
   return (
     <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
