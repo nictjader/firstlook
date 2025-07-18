@@ -64,14 +64,12 @@ export async function getStories(
 
   // Base filters
   storiesQuery = storiesQuery.where('status', '==', 'published');
-  // This is the key change: We only fetch standalone stories or the FIRST part of a series in the main query.
-  storiesQuery = storiesQuery.where('partNumber', 'in', [null, 1]);
-
+  
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
   
-  storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
+  // storiesQuery = storiesQuery.orderBy('publishedAt', 'desc'); // TEMPORARILY REMOVED
 
   if (pagination.cursor) {
     try {
@@ -94,52 +92,11 @@ export async function getStories(
       return [];
     }
     
-    const mainStories = querySnapshot.docs
+    const stories = querySnapshot.docs
       .map(docToStory)
       .filter((story): story is Story => story !== null);
 
-    // Identify series and collect their IDs
-    const seriesIdsToFetch = mainStories
-      .filter(story => story.seriesId && story.partNumber === 1)
-      .map(story => story.seriesId as string);
-
-    if (seriesIdsToFetch.length > 0) {
-      // Fetch all parts for the identified series
-      const seriesPartsQuery = db.collection('stories')
-        .where('seriesId', 'in', seriesIdsToFetch)
-        .where('partNumber', '>', 1) // Fetch parts other than the first one
-        .orderBy('seriesId')
-        .orderBy('partNumber', 'asc');
-      
-      const seriesPartsSnapshot = await seriesPartsQuery.get();
-      const seriesParts = seriesPartsSnapshot.docs
-        .map(docToStory)
-        .filter((story): story is Story => story !== null);
-
-      // Create a map for easy lookup
-      const seriesPartsMap = new Map<string, Story[]>();
-      seriesParts.forEach(part => {
-        if (part.seriesId) {
-          if (!seriesPartsMap.has(part.seriesId)) {
-            seriesPartsMap.set(part.seriesId, []);
-          }
-          seriesPartsMap.get(part.seriesId)!.push(part);
-        }
-      });
-
-      // Merge the series parts into the main list
-      const finalStories: Story[] = [];
-      mainStories.forEach(story => {
-        finalStories.push(story);
-        if (story.seriesId && seriesPartsMap.has(story.seriesId)) {
-          finalStories.push(...seriesPartsMap.get(story.seriesId)!);
-        }
-      });
-
-      return finalStories;
-    }
-    
-    return mainStories;
+    return stories;
 
   } catch (error) {
     console.error('[getStories] A critical error occurred during query execution:', error);
