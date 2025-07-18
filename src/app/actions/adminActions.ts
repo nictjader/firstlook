@@ -29,42 +29,35 @@ function selectRandomSeed(): StoryGenerationInput {
 
 /**
  * Generates a single story by selecting a random seed and invoking the generation flow.
+ * This function is now more resilient, separating text and image generation.
  * @returns A promise that resolves to a GenerationResult object.
  */
 export async function generateSingleStory(): Promise<GenerationResult> {
-  // Simplified seed selection to ensure generation can always be attempted.
   const seed = selectRandomSeed();
-  if (!seed) {
-    // This case should realistically never be hit if storySeeds is not empty.
-    const errorMsg = 'No story seeds are available in the system.';
-    console.error(errorMsg);
-    return {
-      logMessage: `Failed: ${errorMsg}`,
-      success: false,
-      error: 'Story seeds are missing.',
-      title: '',
-      storyId: '',
-    };
-  }
 
   try {
+    // Step 1: Generate the story text and save the initial document.
     const storyResult = await generateStory(seed);
-    if (storyResult.success && storyResult.storyId) {
-      // The image prompt is in the seed, not the document yet. Pass it directly.
-      await generateAndUploadCoverImage(storyResult.storyId, seed.coverImagePrompt);
 
-      return {
-        logMessage: `Successfully generated story and cover: ${storyResult.title}`,
-        success: true,
-        error: null,
-        title: storyResult.title,
-        storyId: storyResult.storyId,
-      };
-    } else {
-      throw new Error(storyResult.error || 'Story generation failed for an unknown reason.');
+    if (!storyResult.success || !storyResult.storyId) {
+      throw new Error(storyResult.error || 'Story generation flow failed to return a story ID.');
     }
+
+    // Step 2: Generate and upload the cover image. This is now a separate step.
+    // If this fails, it will log an error and use a placeholder, but it won't
+    // cause the entire operation to fail.
+    await generateAndUploadCoverImage(storyResult.storyId, seed.coverImagePrompt);
+
+    return {
+      logMessage: `Successfully generated story and initiated cover image generation for: ${storyResult.title}`,
+      success: true,
+      error: null,
+      title: storyResult.title,
+      storyId: storyResult.storyId,
+    };
+
   } catch (error: any) {
-    console.error(`Error in generation process for seed "${seed.titleIdea}":`, error);
+    console.error(`Critical error in generateSingleStory for seed "${seed.titleIdea}":`, error);
     return {
       logMessage: `Failed to generate story for seed: ${seed.titleIdea}`,
       success: false,
@@ -77,22 +70,18 @@ export async function generateSingleStory(): Promise<GenerationResult> {
 
 /**
  * Generates a cover image using an AI model and uploads it to Firebase Storage.
- * This function no longer fetches the document, as the prompt is passed in directly.
+ * Updates the existing story document with the image URL or a placeholder on failure.
  * @param storyId The ID of the story to associate the image with.
  * @param prompt The prompt for the image generation model.
- * @returns A promise that resolves to the public URL of the uploaded image.
  */
-async function generateAndUploadCoverImage(storyId: string, prompt: string): Promise<string> {
+async function generateAndUploadCoverImage(storyId: string, prompt: string): Promise<void> {
     const db = getAdminDb();
     const storyDocRef = db.collection('stories').doc(storyId);
 
     if (!prompt) {
-        console.error(`No prompt provided for story ${storyId}. Using placeholder.`);
-        // Even if the prompt is missing, update the story with a placeholder so it's not left in a broken state.
-        await storyDocRef.update({
-            coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Prompt+Missing',
-        });
-        return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Prompt+Missing';
+        console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
+        await storyDocRef.update({ coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=No+Prompt' });
+        return;
     }
     
     try {
@@ -111,22 +100,19 @@ async function generateAndUploadCoverImage(storyId: string, prompt: string): Pro
         const imagePath = `story-covers/${storyId}.png`;
         const storageRef = ref(storage, imagePath);
 
+        // The 'data_url' format includes the 'data:mime/type;base64,' prefix.
         await uploadString(storageRef, media.url, 'data_url');
         const downloadURL = await getDownloadURL(storageRef);
 
         await storyDocRef.update({
             coverImageUrl: downloadURL,
         });
-
-        return downloadURL;
+        console.log(`Successfully generated and uploaded cover for ${storyId}`);
 
     } catch (error) {
-        console.error(`Failed to generate or upload cover image for story ${storyId}:`, error);
+        console.error(`Failed to generate or upload cover image for story ${storyId}. Using placeholder.`, error);
         await storyDocRef.update({
             coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed',
-            // ensure it's still visible even if image fails
-            status: 'published', 
         });
-        return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
     }
 }
