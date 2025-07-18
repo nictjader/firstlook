@@ -71,11 +71,21 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
   const router = useRouter();
 
   useEffect(() => {
-    setIsLoading(true);
-    getStoriesBySubgenre(selectedSubgenre).then((fetchedStories) => {
-      setStories(fetchedStories);
-      setIsLoading(false);
-    });
+    const fetchStories = async () => {
+      setIsLoading(true);
+      try {
+        const fetchedStories = await getStoriesBySubgenre(selectedSubgenre);
+        setStories(fetchedStories);
+      } catch (error) {
+        console.error("Failed to fetch stories:", error);
+        // Set stories to empty array on failure to prevent crash
+        setStories([]); 
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStories();
   }, [selectedSubgenre]); 
 
   const displayedStories = useMemo(() => {
