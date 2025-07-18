@@ -29,7 +29,8 @@ type Log = {
 };
 
 export interface StoryCountBreakdown {
-  totalStories: number;
+  totalDocs: number;
+  totalUniqueStories: number;
   standaloneStories: number;
   storiesInSeries: number;
   multiPartSeriesCount: number;
@@ -106,12 +107,15 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
       }
     });
 
-    const totalStories = stories.length;
+    const totalDocs = stories.length;
     const multiPartSeriesCount = seriesIds.size;
-    const standaloneStories = totalStories - storiesInSeries;
+    const standaloneStories = totalDocs - storiesInSeries;
+    const totalUniqueStories = standaloneStories + multiPartSeriesCount;
+
 
     return {
-      totalStories,
+      totalDocs,
+      totalUniqueStories,
       standaloneStories,
       storiesInSeries,
       multiPartSeriesCount,
@@ -247,8 +251,8 @@ function AdminDashboardContent() {
                     <AlertDescription asChild>
                       <div className="mt-2 space-y-4">
                         <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-md text-base">
-                          <div className="font-semibold flex items-center"><Book className="mr-2 h-5 w-5" />Total Stories in Database</div>
-                          <div className="font-bold text-xl">{storyCount.totalStories}</div>
+                          <div className="font-semibold flex items-center"><Book className="mr-2 h-5 w-5" />Total Unique Stories</div>
+                          <div className="font-bold text-xl">{storyCount.totalUniqueStories}</div>
                         </div>
                          
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -271,6 +275,9 @@ function AdminDashboardContent() {
                                   <p className="text-sm text-muted-foreground">No genre data available.</p>
                                 )}
                            </div>
+                        </div>
+                        <div className="text-xs text-muted-foreground text-center pt-2">
+                          Total documents in database: {storyCount.totalDocs}
                         </div>
                       </div>
                     </AlertDescription>
