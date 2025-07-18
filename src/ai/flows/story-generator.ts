@@ -12,9 +12,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { Story } from '@/lib/types';
 import { ai } from '@/ai';
 
-// Define the input schema for the story generation flow.
-export const StoryGenerationInputSchema = z.custom<StorySeed>();
+// Define the input schema for the story generation flow by mirroring the StorySeed interface.
+export const StoryGenerationInputSchema = z.object({
+  titleIdea: z.string(),
+  subgenre: z.string(),
+  mainCharacters: z.string(),
+  characterNames: z.array(z.string()),
+  plotSynopsis: z.string(),
+  keyTropes: z.array(z.string()),
+  desiredTone: z.string(),
+  approxWordCount: z.number(),
+  coverImagePrompt: z.string(),
+});
 export type StoryGenerationInput = z.infer<typeof StoryGenerationInputSchema>;
+
 
 // Define the output schema for the story generation flow.
 export const StoryGenerationOutputSchema = z.object({
