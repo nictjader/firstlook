@@ -1,3 +1,4 @@
+
 'use server';
 
 import type { Story, Subgenre } from '@/lib/types';
@@ -14,7 +15,6 @@ function safeToISOString(timestamp: any): string {
     if (!isNaN(date.getTime())) {
         return date.toISOString();
     }
-    console.warn('Could not parse date value:', timestamp);
     return new Date().toISOString(); // Default to current date as a fallback
 }
 
@@ -23,24 +23,10 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
   try {
     const data = doc.data();
     if (!data) {
-      console.warn(`No data found for document with ID ${doc.id}`);
       return null;
     }
     
     const publishedAt = data.publishedAt;
-    
-    // Add debugging for problematic fields
-    console.log(`Converting document ${doc.id} to Story:`, {
-      title: data.title,
-      seriesId: data.seriesId,
-      seriesTitle: data.seriesTitle,
-      partNumber: data.partNumber,
-      totalPartsInSeries: data.totalPartsInSeries,
-      hasSeriesId: data.hasOwnProperty('seriesId'),
-      hasSeriesTitle: data.hasOwnProperty('seriesTitle'),
-      hasPartNumber: data.hasOwnProperty('partNumber'),
-      hasTotalParts: data.hasOwnProperty('totalPartsInSeries')
-    });
     
     return {
       storyId: doc.id,
@@ -65,7 +51,6 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
     };
   } catch (error) {
     console.error(`Error converting document ${doc.id} to Story:`, error);
-    console.error('Document data:', doc.data());
     return null;
   }
 }
@@ -77,23 +62,18 @@ export async function getStories(
     pagination?: { limit?: number; cursor?: string };
   } = {}
 ): Promise<Story[]> {
-  console.log('getStories called with:', { filter, pagination });
-  
   const db = getAdminDb();
   let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
 
   // Apply required filters first
   storiesQuery = storiesQuery.where('status', '==', 'published');
-  console.log('Applied status filter: published');
   
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
-    console.log('Applied subgenre filter:', filter.subgenre);
   }
   
   // ALWAYS order by a consistent field for pagination to work reliably.
   storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
-  console.log('Applied ordering: publishedAt desc');
 
   // Handle pagination using a cursor
   if (pagination.cursor) {
@@ -101,9 +81,6 @@ export async function getStories(
         const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
         if (cursorDoc.exists) {
             storiesQuery = storiesQuery.startAfter(cursorDoc);
-            console.log('Applied cursor pagination after:', pagination.cursor);
-        } else {
-            console.warn(`Cursor document with ID ${pagination.cursor} not found.`);
         }
     } catch(e) {
         console.error(`Error fetching cursor document:`, e);
@@ -113,36 +90,22 @@ export async function getStories(
   // Apply limit
   const limit = pagination.limit || 12;
   storiesQuery = storiesQuery.limit(limit);
-  console.log('Applied limit:', limit);
 
   try {
-    console.log('Executing Firestore query...');
     const querySnapshot = await storiesQuery.get();
-    console.log('Query completed. Documents found:', querySnapshot.size);
     
     if (querySnapshot.empty) {
-      console.log('No documents found in query');
       return [];
     }
-    
-    // Log first few documents for debugging
-    querySnapshot.docs.slice(0, 2).forEach((doc, index) => {
-      console.log(`Document ${index + 1} (${doc.id}):`, doc.data());
-    });
     
     const stories = querySnapshot.docs
       .map(docToStory)
       .filter((story): story is Story => story !== null); 
     
-    console.log(`Successfully converted ${stories.length} documents to stories`);
     return stories;
 
   } catch (error) {
     console.error('[getStories] A critical error occurred during query execution:', error);
-    // Log the full error for debugging
-    console.error('Full error details:', JSON.stringify(error, null, 2));
-    // This is often due to a missing Firestore index. The error message in the
-    // Firebase console will contain a link to create the required index automatically.
     return []; // Return an empty array on error
   }
 }
