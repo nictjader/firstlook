@@ -71,7 +71,7 @@ const StorySchema = z.object({
   content: z
     .string()
     .describe(
-      'The full story content in well-formatted HTML, including <p>, <h2>, and <h3> tags for paragraphs and section breaks. The story should be engaging, romantic, and follow the provided plot synopsis. The approximate word count should be {{seed.approxWordCount}} words.'
+      'The full story content in well-formatted HTML, including <p>, <h2>, and <h3> tags for paragraphs and section breaks. The story should be engaging, romantic, and follow the provided plot synopsis. The approximate word count should be {{approxWordCount}} words.'
     ),
   previewText: z
     .string()
@@ -93,6 +93,50 @@ const StorySchema = z.object({
   status: z.enum(['published', 'failed']).describe("Set to 'published' on success."),
 });
 
+// Define a new input schema for the prompt that includes the potentialSeriesId
+const StoryPromptInputSchema = StoryGenerationInputSchema.extend({
+  potentialSeriesId: z.string(),
+});
+
+// Create a dedicated prompt object for story generation.
+const storyGenerationPrompt = ai.definePrompt({
+  name: 'storyGenerationPrompt',
+  input: { schema: StoryPromptInputSchema },
+  output: { schema: StorySchema },
+  prompt: `
+    You are an expert romance novelist. Your task is to write a complete, compelling, and satisfying short romance story based on the provided seed.
+
+    **Story Seed:**
+    - **Title Idea:** {{{titleIdea}}}
+    - **Subgenre:** {{{subgenre}}}
+    - **Main Characters:** {{{mainCharacters}}}
+    - **Character Names to Use:** {{#each characterNames}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+    - **Plot Synopsis:** {{{plotSynopsis}}}
+    - **Key Tropes:** {{#each keyTropes}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+    - **Desired Tone:** {{{desiredTone}}}
+    - **Approximate Word Count:** {{{approxWordCount}}}
+
+    **Important Instructions:**
+    1.  **Originality & Completeness:** The story must be original and have a satisfying romantic conclusion.
+    2.  **Formatting:** The story content MUST be in HTML format (using <p>, <h2>, etc.).
+    3.  **Series Logic:**
+        - Most stories should be standalone.
+        - **If and only if** you create a multi-part series (e.g., a two-part story), you MUST use this exact pre-defined ID for the 'seriesId' field for ALL parts of the series: \`{{{potentialSeriesId}}}\`.
+        - For standalone stories, the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields MUST all be null.
+    4.  **Monetization Logic:**
+        - A standalone story can be free (coinCost: 0) or premium (coinCost: 50-100).
+        - For a series, Part 1 MUST be free (coinCost: 0). Subsequent parts MUST be premium (coinCost: 50-100).
+    5.  **Output Format:** You MUST return the output in the specified JSON format. Do not deviate from the schema.
+
+    Now, write the story.
+  `,
+  config: {
+    model: 'googleai/gemini-1.5-pro-preview',
+    temperature: 1.0,
+  },
+});
+
+
 const storyGenerationFlow = ai.defineFlow(
   {
     name: 'storyGenerationFlow',
@@ -101,55 +145,18 @@ const storyGenerationFlow = ai.defineFlow(
   },
   async (seed) => {
     const db = getAdminDb();
-    // Each story, even a part of a series, gets its own unique storyId.
     const storyId = uuidv4();
-    // A potential seriesId is created beforehand. If the AI decides to make a series,
-    // it will use this ID, ensuring all parts are linked.
     const potentialSeriesId = uuidv4(); 
     const storyDocRef = db.collection('stories').doc(storyId);
 
     try {
-      const prompt = `
-        You are an expert romance novelist. Your task is to write a complete, compelling, and satisfying short romance story based on the provided seed.
-
-        **Story Seed:**
-        - **Title Idea:** ${seed.titleIdea}
-        - **Subgenre:** ${seed.subgenre}
-        - **Main Characters:** ${seed.mainCharacters}
-        - **Character Names to Use:** ${seed.characterNames.join(', ')}
-        - **Plot Synopsis:** ${seed.plotSynopsis}
-        - **Key Tropes:** ${seed.keyTropes.join(', ')}
-        - **Desired Tone:** ${seed.desiredTone}
-        - **Approximate Word Count:** ${seed.approxWordCount}
-
-        **Important Instructions:**
-        1.  **Originality & Completeness:** The story must be original and have a satisfying romantic conclusion.
-        2.  **Formatting:** The story content MUST be in HTML format (using <p>, <h2>, etc.).
-        3.  **Series Logic:**
-            - Most stories should be standalone.
-            - **If and only if** you create a multi-part series (e.g., a two-part story), you MUST use this exact pre-defined ID for the 'seriesId' field for ALL parts of the series: \`${potentialSeriesId}\`.
-            - For standalone stories, the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields MUST all be null.
-        4.  **Monetization Logic:**
-            - A standalone story can be free (coinCost: 0) or premium (coinCost: 50-100).
-            - For a series, Part 1 MUST be free (coinCost: 0). Subsequent parts MUST be premium (coinCost: 50-100).
-        5.  **Output Format:** You MUST return the output in the specified JSON format. Do not deviate from the schema.
-
-        Now, write the story.
-    `;
-
-      const llmResponse = await ai.generate({
-        model: 'googleai/gemini-1.5-pro-preview',
-        prompt: prompt,
-        output: {
-          schema: StorySchema,
-        },
-        config: {
-          temperature: 1.0,
-        },
+      // Call the dedicated prompt object with the combined input
+      const llmResponse = await storyGenerationPrompt({
+        ...seed,
+        potentialSeriesId,
       });
 
       const output = llmResponse.output;
-
       if (!output) {
         throw new Error('AI failed to generate a story.');
       }
@@ -178,7 +185,7 @@ const storyGenerationFlow = ai.defineFlow(
 
       await storyDocRef.set({
         ...newStory,
-        publishedAt: Timestamp.now(), // Use Admin SDK Timestamp
+        publishedAt: Timestamp.now(),
       });
 
       return {
@@ -191,7 +198,7 @@ const storyGenerationFlow = ai.defineFlow(
       console.error('Error in generateStory:', e);
       const failedStory: Partial<Story> = {
         title: seed.titleIdea,
-        publishedAt: Timestamp.now().toDate().toISOString(),
+        publishedAt: new Date().toISOString(),
         status: 'failed',
         content: `Failed to generate story. Error: ${e.message}`,
         coverImagePrompt: seed.coverImagePrompt,
