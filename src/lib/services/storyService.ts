@@ -45,15 +45,18 @@ export async function getStories(
   const db = getAdminDb();
   let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
 
+  // 1. Basic filter: Only get published stories.
   storiesQuery = storiesQuery.where('status', '==', 'published');
 
+  // 2. Add subgenre filter if it exists and is not 'all'.
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
   
-  // ALWAYS order by publishedAt for consistent pagination.
+  // 3. Always order by publishedAt for consistent pagination.
   storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
 
+  // 4. Handle pagination using a cursor.
   if (pagination.cursor) {
     const cursorDoc = await db.collection('stories').doc(pagination.cursor).get();
     if (cursorDoc.exists) {
@@ -61,6 +64,7 @@ export async function getStories(
     }
   }
 
+  // 5. Apply a limit to the number of documents returned.
   if (pagination.limit) {
     storiesQuery = storiesQuery.limit(pagination.limit);
   }
