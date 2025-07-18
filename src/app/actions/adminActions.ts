@@ -3,11 +3,12 @@
 
 import { generateStory, StoryGenerationInput } from '@/ai/flows/story-generator';
 import { storySeeds } from '@/lib/story-seeds';
-import { getDownloadURL, ref, uploadString } from 'firebase/storage';
-import { storage } from '@/lib/firebase/client'; // storage uses client SDK for upload
 import { getAdminDb } from '@/lib/firebase/admin';
+import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { Story, Subgenre, docToStory, ALL_SUBGENRES } from '@/lib/types';
+import { Story, Subgenre, ALL_SUBGENRES } from '@/lib/types';
+import { extractBase64FromDataUri } from '@/lib/utils';
+import { v4 as uuidv4 } from 'uuid';
 
 // The output from the pure AI generation part of the action.
 // The client will handle writing this to Firestore.
@@ -104,12 +105,26 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         if (!media || !media.url) {
             throw new Error('Image generation failed to return media.');
         }
+        
+        const { base64Data, mimeType } = extractBase64FromDataUri(media.url);
+        const imageBuffer = Buffer.from(base64Data, 'base64');
 
+        const bucket = getStorage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
         const imagePath = `story-covers/${storyId}.png`;
-        const storageRef = ref(storage, imagePath);
+        const file = bucket.file(imagePath);
 
-        await uploadString(storageRef, media.url, 'data_url');
-        const downloadURL = await getDownloadURL(storageRef);
+        await file.save(imageBuffer, {
+          metadata: {
+            contentType: mimeType || 'image/png',
+            metadata: {
+              firebaseStorageDownloadTokens: uuidv4(),
+            }
+          },
+        });
+
+        // Make the file public and get the URL
+        await file.makePublic();
+        const downloadURL = file.publicUrl();
 
         console.log(`Successfully generated and uploaded cover for ${storyId}`);
         return downloadURL;
@@ -140,6 +155,7 @@ export async function countStoriesInDB(): Promise<StoryCountBreakdown> {
     };
 
     if (snapshot.empty) {
+      console.log("Firestore 'stories' collection appears to be empty or is inaccessible by the Admin SDK.");
       return emptyBreakdown;
     }
     

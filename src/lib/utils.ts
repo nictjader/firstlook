@@ -38,7 +38,7 @@ export function extractBase64FromDataUri(dataUri: string): { base64Data: string;
       console.warn(`Unexpected MIME type in data URI: ${fallbackMatch[1]}`);
       return { mimeType: fallbackMatch[1], base64Data: fallbackMatch[2] };
     }
-    console.error('Invalid data URI format received:', dataUri);
+    console.error('Invalid data URI format received:', dataUri.substring(0, 100));
     throw new Error('Invalid data URI format');
   }
   return { mimeType: match[1], base64Data: match[2] };
