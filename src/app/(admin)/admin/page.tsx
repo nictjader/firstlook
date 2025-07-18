@@ -100,18 +100,14 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
         multiPartStoryDocCount++;
       }
       
-      // Tally stories for each genre dynamically
+      // Tally stories for each genre dynamically, only if subgenre exists
       if (story.subgenre) {
           storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
       }
     });
 
     const totalStories = stories.length;
-
-    // The number of unique series is the size of the set of seriesIds
     const multiPartSeriesCount = seriesIds.size;
-    
-    // Standalone stories are the total minus stories that are part of a series
     const standaloneStories = totalStories - multiPartStoryDocCount;
 
     return {
@@ -142,12 +138,10 @@ function AdminDashboardContent() {
     setStoryCount(null);
     setCountError(null);
     try {
-      // Use the known-working server action to fetch all stories
       const stories = await getAllStories();
       if (!stories) {
         throw new Error("The story fetch returned null or undefined.");
       }
-      // Process the results on the client
       const counts = analyzeStories(stories);
       setStoryCount(counts);
     } catch (error: any) {
