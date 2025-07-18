@@ -20,7 +20,7 @@ export interface UserProfile {
   favoriteStories: string[]; // Array of storyIds
   purchaseHistory: Purchase[]; // Array of purchase records
   preferences: {
-    subgenres: string[];
+    subgenres: Subgenre[];
   };
   createdAt?: Date | null;
   lastLogin?: Date | null;
@@ -59,7 +59,7 @@ export interface CoinPackage {
 
 export type Subgenre = 'contemporary' | 'paranormal' | 'historical' | 'billionaire' | 'second-chance';
 
-export const ALL_SUBGENRES: string[] = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'];
+export const ALL_SUBGENRES: Subgenre[] = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'];
 
 export function isValidSubgenre(value: string): value is Subgenre {
   return (ALL_SUBGENRES as string[]).includes(value);
