@@ -1,3 +1,4 @@
+
 import { getStories } from '@/lib/services/storyService';
 import StoryList from '@/components/story/story-list';
 import SubgenreFilter from '@/components/story/subgenre-filter';
@@ -14,10 +15,10 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
   
   let initialStories: Story[] = [];
   try {
-    initialStories = await getStories(
-      { subgenre: selectedSubgenre },
-      { limit: STORIES_PER_PAGE }
-    );
+    initialStories = await getStories({
+      filter: { subgenre: selectedSubgenre !== 'all' ? selectedSubgenre : undefined },
+      pagination: { limit: STORIES_PER_PAGE }
+    });
   } catch (error) {
     console.error("Failed to fetch stories:", error);
     // In case of an error (like PERMISSION_DENIED),

@@ -24,8 +24,10 @@ export async function getStoriesByIdsAction(storyIds: string[]): Promise<Story[]
  */
 export async function getMoreStoriesAction(subgenre: Subgenre | 'all', cursor: string): Promise<Story[]> {
   const stories = await getStories(
-    { subgenre: subgenre !== 'all' ? subgenre : undefined },
-    { limit: STORIES_PER_PAGE, cursor: cursor }
+    { 
+      filter: { subgenre: subgenre !== 'all' ? subgenre : undefined },
+      pagination: { limit: STORIES_PER_PAGE, cursor: cursor }
+    }
   );
   return stories;
 }

@@ -52,20 +52,21 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story {
 
 // Main function to fetch stories
 export async function getStories(
-  filter: { subgenre?: Subgenre | 'all' } = {},
-  pagination: { limit?: number; cursor?: string } = {}
+  { filter = {}, pagination = {} }: {
+    filter?: { subgenre?: Subgenre | 'all' };
+    pagination?: { limit?: number; cursor?: string };
+  } = {}
 ): Promise<Story[]> {
   const db = getAdminDb();
   let storiesQuery: FirebaseFirestore.Query = db.collection('stories');
 
-  // Add a status filter to only fetch published stories
   storiesQuery = storiesQuery.where('status', '==', 'published');
 
   if (filter.subgenre && filter.subgenre !== 'all') {
     storiesQuery = storiesQuery.where('subgenre', '==', filter.subgenre);
   }
   
-  // Apply ordering before using a cursor
+  // ALWAYS order by publishedAt for consistent pagination.
   storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
 
   if (pagination.cursor) {
@@ -80,9 +81,7 @@ export async function getStories(
   }
 
   const querySnapshot = await storiesQuery.get();
-  const stories = querySnapshot.docs.map(docToStory);
-
-  return stories;
+  return querySnapshot.docs.map(docToStory);
 }
 
 // Function to get a single story
