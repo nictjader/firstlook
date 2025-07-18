@@ -84,6 +84,7 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
 
 /**
  * Processes an array of stories to provide a detailed breakdown based on unique narratives.
+ * Each standalone story is counted as one. Each series is counted as one.
  * @param stories An array of all Story document objects.
  * @returns A detailed breakdown of unique story counts.
  */
@@ -93,8 +94,8 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
     let standaloneStories = 0;
 
     stories.forEach(story => {
+        // Count genre for unique narratives (standalone or first part of a series)
         if (story.seriesId) {
-            // This is part of a series. Only count it if we haven't processed this series yet.
             if (!processedSeries.has(story.seriesId)) {
                 if (story.subgenre) {
                     storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
@@ -102,7 +103,6 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
                 processedSeries.add(story.seriesId);
             }
         } else {
-            // This is a standalone story.
             standaloneStories++;
             if (story.subgenre) {
                 storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
