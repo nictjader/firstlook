@@ -55,10 +55,12 @@ export interface CoinPackage {
   stripePriceId?: string;
 }
 
-export const ALL_SUBGENRES: Subgenre[] = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'];
+// Define the array of subgenres as a constant tuple
+export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance'] as const;
 
+// Derive the Subgenre type from the constant array
 export type Subgenre = (typeof ALL_SUBGENRES)[number];
 
 export function isValidSubgenre(value: string): value is Subgenre {
-  return (ALL_SUBGENRES as string[]).includes(value);
+  return (ALL_SUBGENRES as readonly string[]).includes(value);
 }
