@@ -5,19 +5,6 @@ import type { Story, Subgenre } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { Timestamp } from 'firebase-admin/firestore';
 
-// Helper to safely convert Firestore Timestamps or date strings to a serializable string
-function safeToISOString(timestamp: any): string {
-    if (!timestamp) return new Date().toISOString();
-    if (timestamp instanceof Timestamp || (timestamp && typeof timestamp.toDate === 'function')) {
-        return timestamp.toDate().toISOString();
-    }
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
-        return date.toISOString();
-    }
-    return new Date().toISOString(); // Default to current date as a fallback
-}
-
 // Helper to safely convert Firestore DocumentSnapshot to a Story object
 function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
   try {
@@ -25,8 +12,6 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
     if (!data) {
       return null;
     }
-    
-    const publishedAt = data.publishedAt;
     
     return {
       storyId: doc.id,
@@ -42,7 +27,7 @@ function docToStory(doc: FirebaseFirestore.DocumentSnapshot): Story | null {
       previewText: data.previewText || '',
       subgenre: data.subgenre || 'contemporary',
       wordCount: data.wordCount || 0,
-      publishedAt: safeToISOString(publishedAt), // Convert to ISO string here
+      publishedAt: data.publishedAt?.toDate().toISOString() || new Date().toISOString(),
       coverImageUrl: data.coverImageUrl || '',
       coverImagePrompt: data.coverImagePrompt || '',
       author: data.author || 'Anonymous',
