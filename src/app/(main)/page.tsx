@@ -1,8 +1,10 @@
 
+
 import StoryList from '@/components/story/story-list';
 import SubgenreFilter from '@/components/story/subgenre-filter';
 import { Suspense } from 'react';
 import type { Subgenre } from '@/lib/types';
+import { Skeleton } from '@/components/ui/skeleton';
 
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
@@ -31,13 +33,13 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
 }
 
 const StoryListSkeleton = () => (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex flex-col space-y-3">
-                <div className="w-full bg-muted aspect-[2/3] rounded-lg"></div>
+                <Skeleton className="h-[300px] w-full rounded-xl" />
                 <div className="space-y-2">
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                    <div className="h-4 bg-muted rounded w-1/2" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-1/2" />
                 </div>
             </div>
         ))}
