@@ -29,6 +29,70 @@ const StoryListSkeleton = () => (
     </div>
 );
 
+/**
+ * Groups stories by series and sorts them.
+ * Series are grouped together, and parts within a series are sorted by partNumber.
+ * Standalone stories are sorted by publication date.
+ * The entire list is sorted so that newest series/stories appear first.
+ * @param stories The raw array of stories.
+ * @returns A sorted array of stories with series grouped together.
+ */
+function groupAndSortStories(stories: Story[]): Story[] {
+  const seriesMap = new Map<string, Story[]>();
+  const standalone: Story[] = [];
+
+  // Separate stories into series or standalone
+  stories.forEach(story => {
+    if (story.seriesId) {
+      if (!seriesMap.has(story.seriesId)) {
+        seriesMap.set(story.seriesId, []);
+      }
+      seriesMap.get(story.seriesId)!.push(story);
+    } else {
+      standalone.push(story);
+    }
+  });
+
+  // Sort parts within each series
+  seriesMap.forEach(parts => {
+    parts.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
+  });
+
+  // Get the sorted series as an array of arrays
+  const sortedSeries = Array.from(seriesMap.values())
+    .sort((a, b) => {
+      const dateA = new Date(a[0].publishedAt).getTime();
+      const dateB = new Date(b[0].publishedAt).getTime();
+      return dateB - dateA; // Newest series first
+    });
+
+  // Sort standalone stories
+  standalone.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  
+  // Combine sorted series and standalone stories
+  const groupedStories = sortedSeries.flat();
+  const finalStories = [...groupedStories, ...standalone];
+
+  // A final sort to ensure the groups are interleaved correctly by date
+  // We can do this by finding the "representative" date for each item
+  // For a series, it's the date of its first part. For standalone, it's its own date.
+  const storyToDateMap = new Map<string, number>();
+  stories.forEach(s => {
+      if(s.seriesId && s.partNumber === 1) {
+          storyToDateMap.set(s.seriesId, new Date(s.publishedAt).getTime());
+      }
+  });
+
+  finalStories.sort((a, b) => {
+      const dateA = a.seriesId ? (storyToDateMap.get(a.seriesId) || 0) : new Date(a.publishedAt).getTime();
+      const dateB = b.seriesId ? (storyToDateMap.get(b.seriesId) || 0) : new Date(b.publishedAt).getTime();
+      return dateB - dateA;
+  })
+  
+  return finalStories;
+}
+
+
 export default function StoryList({ selectedSubgenre }: StoryListProps) {
   const [allStories, setAllStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,9 +102,9 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     const fetchStories = async () => {
       setIsLoading(true);
       try {
-        // The stories are now pre-sorted by the server action
         const fetchedStories = await getAllStories();
-        setAllStories(fetchedStories);
+        const groupedAndSorted = groupAndSortStories(fetchedStories);
+        setAllStories(groupedAndSorted);
       } catch (error) {
         console.error("Failed to fetch stories:", error);
         setAllStories([]); 

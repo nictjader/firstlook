@@ -14,20 +14,6 @@
           "order": "ASCENDING"
         }
       ]
-    },
-    {
-      "collectionGroup": "stories",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "primarySortKey",
-          "order": "DESCENDING"
-        },
-        {
-          "fieldPath": "secondarySortKey",
-          "order": "ASCENDING"
-        }
-      ]
     }
   ],
   "fieldOverrides": []

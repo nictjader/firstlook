@@ -73,8 +73,6 @@ export interface Story {
   coverImagePrompt: string;
   author?: string;
   status: 'published' | 'failed';
-  primarySortKey: string;
-  secondarySortKey: number;
 }
 
 export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance', 'sci-fi'] as const;
@@ -130,8 +128,6 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       coverImagePrompt: data.coverImagePrompt || '',
       author: data.author || 'Anonymous',
       status: data.status || 'published',
-      primarySortKey: data.primarySortKey || storyId,
-      secondarySortKey: data.secondarySortKey === undefined ? 0 : data.secondarySortKey,
     };
 }
 

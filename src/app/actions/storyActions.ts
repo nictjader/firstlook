@@ -8,23 +8,16 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 
 /**
- * Fetches all stories from the database, sorted logically with series grouped together.
- * This is used for the main story list page.
+ * Fetches all stories from the database.
+ * The client will be responsible for grouping and sorting.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    // Use the new composite index to sort stories correctly.
-    // Series will be grouped together by seriesId (primary key), and parts will be in order (secondary key).
-    // Standalone stories will be sorted by their own storyId.
-    const q = storiesRef
-      .orderBy('primarySortKey', 'desc')
-      .orderBy('secondarySortKey', 'asc')
-      .limit(200);
-
-    const documentSnapshots = await q.get();
+    // Fetch all documents. Sorting will be handled client-side to ensure series are grouped.
+    const documentSnapshots = await storiesRef.limit(200).get();
     
     if (documentSnapshots.empty) {
       return [];
