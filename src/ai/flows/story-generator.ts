@@ -147,9 +147,10 @@ const storyGenerationFlow = ai.defineFlow(
         throw new Error('AI failed to generate a story.');
       }
       
-      const isSeriesStory = output.seriesId === potentialSeriesId && output.seriesId !== null;
+      const isSeriesStory = output.seriesId !== null && output.seriesId !== undefined && output.partNumber !== null;
       
-      const storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'> = {
+      const storyData: Omit<Story, 'publishedAt' | 'coverImageUrl'> = {
+        storyId: storyId,
         title: output.title,
         characterNames: output.characterNames,
         isPremium: (output.coinCost ?? 0) > 0,
@@ -161,13 +162,13 @@ const storyGenerationFlow = ai.defineFlow(
         author: output.author,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt,
-        seriesId: isSeriesStory ? potentialSeriesId : undefined,
+        seriesId: isSeriesStory ? output.seriesId : undefined,
         seriesTitle: isSeriesStory ? output.seriesTitle ?? undefined : undefined,
         partNumber: isSeriesStory ? output.partNumber ?? undefined : undefined,
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
         // Add sorting keys
-        primarySortKey: isSeriesStory ? potentialSeriesId : storyId,
-        secondarySortKey: isSeriesStory ? (output.partNumber ?? 0) : 0,
+        primarySortKey: isSeriesStory ? (output.seriesId!) : storyId,
+        secondarySortKey: isSeriesStory ? (output.partNumber!) : 0,
       };
 
       return {

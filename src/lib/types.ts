@@ -22,7 +22,7 @@ export const StoryGenerationOutputSchema = z.object({
   title: z.string().describe('The final title of the story.'),
   success: z.boolean().describe('Whether the story generation was successful.'),
   error: z.string().nullable().describe('Any error message if the generation failed.'),
-  storyData: z.custom<Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>>().optional(),
+  storyData: z.custom<Omit<Story, 'publishedAt' | 'coverImageUrl'>>().optional(),
 });
 
 
@@ -144,7 +144,7 @@ export interface CoinPackage {
 }
 
 export interface AIStoryResult {
-  storyData: Omit<Story, 'storyId' | 'publishedAt' | 'coverImageUrl'>;
+  storyData: Omit<Story, 'publishedAt' | 'coverImageUrl'>;
   storyId: string;
 }
 

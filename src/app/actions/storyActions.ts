@@ -8,7 +8,7 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 
 /**
- * Fetches all stories from the database, sorted by publication date.
+ * Fetches all stories from the database, sorted logically with series grouped together.
  * This is used for the main story list page.
  */
 export async function getAllStories(): Promise<Story[]> {
@@ -16,9 +16,13 @@ export async function getAllStories(): Promise<Story[]> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    // Simple query that doesn't require a composite index.
-    // Explicitly limit to 500 to ensure all stories are fetched.
-    const q = storiesRef.orderBy('publishedAt', 'desc').limit(500);
+    // Use the new composite index to sort stories correctly.
+    // Series will be grouped together by seriesId (primary key), and parts will be in order (secondary key).
+    // Standalone stories will be sorted by their own storyId.
+    const q = storiesRef
+      .orderBy('primarySortKey', 'desc')
+      .orderBy('secondarySortKey', 'asc')
+      .limit(200);
 
     const documentSnapshots = await q.get();
     

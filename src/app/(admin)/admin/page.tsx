@@ -194,16 +194,16 @@ function AdminDashboardContent() {
           throw new Error(result.error || "AI Generation failed.");
         }
         
-        if (!result.aiStoryResult) {
+        if (!result.aiStoryResult?.storyData) {
             throw new Error('AI result is missing story data.');
         }
 
         updateLog(logId, { status: 'saving', message: `Story ${index + 1}: Saving story "${result.title}"...`, title: result.title, storyId: result.storyId });
 
         const storyDocRef = doc(db, 'stories', result.storyId);
+        // The storyData from the flow now contains the full story object including the ID
         await setDoc(storyDocRef, {
             ...result.aiStoryResult.storyData,
-            storyId: result.aiStoryResult.storyId,
             publishedAt: serverTimestamp(),
             coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Generating...'
         });

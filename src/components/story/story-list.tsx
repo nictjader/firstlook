@@ -29,42 +29,6 @@ const StoryListSkeleton = () => (
     </div>
 );
 
-function groupAndSortStories(stories: Story[]): Story[] {
-  const storyMap = new Map<string, Story[]>();
-  const standaloneStories: Story[] = [];
-
-  // Separate standalone stories and group series parts
-  stories.forEach(story => {
-    if (story.seriesId) {
-      if (!storyMap.has(story.seriesId)) {
-        storyMap.set(story.seriesId, []);
-      }
-      storyMap.get(story.seriesId)!.push(story);
-    } else {
-      standaloneStories.push(story);
-    }
-  });
-
-  // Sort each series by part number
-  storyMap.forEach(group => {
-    group.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
-  });
-
-  // Combine standalone stories and sorted series into a single array
-  const combined: (Story | Story[])[] = [...standaloneStories, ...Array.from(storyMap.values())];
-
-  // Sort the combined list by the publication date of the story or the first part of the series
-  combined.sort((a, b) => {
-    const dateA = new Date(Array.isArray(a) ? a[0].publishedAt : a.publishedAt).getTime();
-    const dateB = new Date(Array.isArray(b) ? b[0].publishedAt : b.publishedAt).getTime();
-    return dateB - dateA; // Sort descending (newest first)
-  });
-  
-  // Flatten the array
-  return combined.flat();
-}
-
-
 export default function StoryList({ selectedSubgenre }: StoryListProps) {
   const [allStories, setAllStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,6 +38,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     const fetchStories = async () => {
       setIsLoading(true);
       try {
+        // The stories are now pre-sorted by the server action
         const fetchedStories = await getAllStories();
         setAllStories(fetchedStories);
       } catch (error) {
@@ -87,9 +52,9 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     fetchStories();
   }, []); 
 
-  const filteredAndSortedStories = useMemo(() => {
+  const filteredStories = useMemo(() => {
     if (selectedSubgenre === 'all') {
-      return groupAndSortStories(allStories);
+      return allStories;
     }
 
     // Find all series IDs that have at least one part matching the subgenre
@@ -101,7 +66,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     });
 
     // Filter stories: include all parts of matching series, and standalone stories that match
-    const filtered = allStories.filter(story => {
+    return allStories.filter(story => {
       // Include if it's part of a matched series
       if (story.seriesId && matchingSeriesIds.has(story.seriesId)) {
         return true;
@@ -112,15 +77,13 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
       }
       return false;
     });
-    
-    return groupAndSortStories(filtered);
   }, [allStories, selectedSubgenre]);
 
   if (isLoading) {
     return <StoryListSkeleton />;
   }
 
-  if (filteredAndSortedStories.length === 0) {
+  if (filteredStories.length === 0) {
     return (
       <div className="w-full text-center py-12 md:py-24 col-span-full space-y-4">
         <Separator/>
@@ -145,7 +108,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-      {filteredAndSortedStories.map((story, index) => (
+      {filteredStories.map((story, index) => (
         <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
       ))}
     </div>
