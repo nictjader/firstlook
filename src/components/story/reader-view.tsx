@@ -99,12 +99,14 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
   // This is the content that shows as a preview or a paywall when the story is locked
   const LockedContent = () => (
-     <div className="space-y-4 pt-6 px-6">
-        <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="secondary" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
+     <div className="space-y-4">
+        <div className="px-6 pt-6">
+            <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="secondary" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
+            </div>
+            <p className="text-base text-muted-foreground prose dark:prose-invert max-w-none mt-4">{story.previewText}</p>
         </div>
-        <p className="text-base text-muted-foreground prose dark:prose-invert max-w-none">{story.previewText}</p>
-        <div className="flex-col items-center gap-4 bg-muted/50 p-6 rounded-lg text-center mt-6">
+        <div className="flex-col items-center gap-4 bg-muted/50 p-6 rounded-b-lg text-center">
           <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
           <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
           <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
