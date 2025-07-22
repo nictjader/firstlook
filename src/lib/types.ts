@@ -108,7 +108,7 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       throw new Error("Document data is missing.");
     }
     
-    const storyId = doc.id;
+    const storyId = String(doc.id);
 
     return {
       storyId: storyId,
