@@ -24,11 +24,11 @@ import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/contexts/theme-context';
 
 const FONT_SIZES = [
-  'text-base',   // 16px
   'text-lg',     // 18px
   'text-xl',     // 20px
   'text-2xl',    // 24px
   'text-3xl',    // 30px
+  'text-4xl',    // 36px
 ];
 
 // --- Main View Component ---
@@ -40,7 +40,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
   const [isLoadingUnlock, setIsLoadingUnlock] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
-  const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(1);
+  const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(0);
 
   const isEffectivelyFree = useMemo(() => !story.isPremium || story.coinCost <= 0, [story.isPremium, story.coinCost]);
   const isUnlocked = useMemo(() => isEffectivelyFree || (userProfile?.unlockedStories.includes(story.storyId) ?? false), [story.storyId, userProfile, isEffectivelyFree]);
@@ -213,7 +213,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
       </div>
 
-      {otherParts.length > 0 && (
+      {story.seriesId && otherParts.length > 0 && (
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="p-6">
                 <h3 className="text-xl flex items-center font-semibold leading-none tracking-tight">
@@ -242,3 +242,5 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     </div>
   );
 }
+
+    
