@@ -80,7 +80,6 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       throw new Error("Document data is missing.");
     }
     
-    // Explicitly cast the document ID to a string to prevent type mismatches.
     const storyId = String(doc.id);
 
     return {
@@ -113,27 +112,26 @@ export interface CoinPackage {
   stripePriceId?: string;
 }
 
-export interface AIStoryResult {
-  storyData: Omit<Story, 'publishedAt' | 'coverImageUrl'>;
+// This is the output from the AI flow, which includes the full story data
+// This should only be used on the server.
+export type StoryGenerationOutput = {
   storyId: string;
-}
+  title: string;
+  success: boolean;
+  error: string | null;
+  storyData?: Omit<Story, 'publishedAt' | 'coverImageUrl'>;
+};
 
-export interface GenerationResult {
+
+// This is the simplified object that the server action returns to the client.
+// It is client-safe and prevents complex types from being passed.
+export type GeneratedStoryIdentifiers = {
   success: boolean;
   error: string | null;
   title: string;
   storyId: string;
-  aiStoryResult?: AIStoryResult;
-}
-
-const StoryGenerationOutputSchema = z.object({
-  storyId: z.string().describe('The unique ID for the generated story.'),
-  title: z.string().describe('The final title of the story.'),
-  success: z.boolean().describe('Whether the story generation was successful.'),
-  error: z.string().nullable().describe('Any error message if the generation failed.'),
-  storyData: z.custom<Omit<Story, 'publishedAt' | 'coverImageUrl'>>().optional(),
-});
-export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
+  coverImagePrompt?: string;
+};
 
 
 export interface CleanupResult {

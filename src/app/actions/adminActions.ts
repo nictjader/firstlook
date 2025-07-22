@@ -2,14 +2,14 @@
 'use server';
 
 import { generateStory } from '@/ai/flows/story-generator';
-import type { StoryGenerationOutput } from '@/lib/types';
+import type { GeneratedStoryIdentifiers } from '@/lib/types';
 import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { v4 as uuidv4 } from 'uuid';
-import { FieldValue } from 'firebase-admin/firestore';
-import type { GenerationResult, CleanupResult, Story } from '@/lib/types';
+import { FieldValue, serverTimestamp } from 'firebase-admin/firestore';
+import type { CleanupResult, Story } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 
 
@@ -21,19 +21,15 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    // We only need the title field to check for existence.
     const q = storiesRef.select('title');
     const snapshot = await q.get();
 
-    // Create a Set of existing base titles for efficient lookup.
-    // This handles series by stripping " - Part X" from the title.
     const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Part ')[0]));
 
-    // Filter the master seed list to find seeds that haven't been used.
     const unusedSeeds = storySeeds.filter(seed => !existingTitles.has(seed.titleIdea));
 
     if (unusedSeeds.length === 0) {
-        return null; // All seeds have been used
+        return null; 
     }
 
     const randomIndex = Math.floor(Math.random() * unusedSeeds.length);
@@ -41,11 +37,10 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
 }
 
 /**
- * Generates story text and metadata using an AI flow from an unused seed.
- * It does NOT write to the database. It returns the generated data to the client.
- * @returns A promise that resolves to a GenerationResult object containing the AI-generated story data.
+ * Generates a story from a seed, saves it to Firestore, and returns simple identifiers.
+ * This action is self-contained to prevent client components from needing complex AI types.
  */
-export async function generateStoryAI(): Promise<GenerationResult> {
+export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
   const seed = await selectUnusedSeed();
 
   if (!seed) {
@@ -58,21 +53,26 @@ export async function generateStoryAI(): Promise<GenerationResult> {
   }
 
   try {
-    const storyResult: StoryGenerationOutput = await generateStory(seed);
+    const storyResult = await generateStory(seed);
 
     if (!storyResult.success || !storyResult.storyId || !storyResult.storyData) {
       throw new Error(storyResult.error || 'Story generation flow failed to return story data.');
     }
+    
+    // Save the story directly to Firestore within this server action
+    const storyDocRef = getAdminDb().collection('stories').doc(storyResult.storyId);
+    await storyDocRef.set({
+        ...storyResult.storyData,
+        publishedAt: serverTimestamp(),
+        coverImageUrl: '' // Will be updated by the cover image action
+    });
 
     return {
       success: true,
       error: null,
       title: storyResult.title,
       storyId: storyResult.storyId,
-      aiStoryResult: {
-        storyData: storyResult.storyData,
-        storyId: storyResult.storyId,
-      },
+      coverImagePrompt: storyResult.storyData.coverImagePrompt,
     };
 
   } catch (error: any) {
@@ -88,7 +88,6 @@ export async function generateStoryAI(): Promise<GenerationResult> {
 
 /**
  * Generates a cover image using an AI model and uploads it to Firebase Storage.
- * This is a separate action that can be called by the client after the story is saved.
  * @param storyId The ID of the story to associate the image with.
  * @param prompt The prompt for the image generation model.
  * @returns A promise that resolves to the public URL of the uploaded image.
@@ -131,12 +130,22 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         // Make the file public and get the URL
         await file.makePublic();
         const downloadURL = file.publicUrl();
+        
+        // Update the story document with the final cover URL
+        const db = getAdminDb();
+        await db.collection('stories').doc(storyId).update({ coverImageUrl: downloadURL });
 
         console.log(`Successfully generated and uploaded cover for ${storyId}`);
         return downloadURL;
 
     } catch (error) {
         console.error(`Failed to generate or upload cover image for ${storyId}. Using placeholder.`, error);
+        const db = getAdminDb();
+        try {
+            await db.collection('stories').doc(storyId).update({ coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed' });
+        } catch (dbError) {
+            console.error(`Failed to update story ${storyId} with placeholder URL.`, dbError);
+        }
         return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
     }
 }
@@ -161,7 +170,6 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
 
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
-        // Handle series titles like "The Rival Restaurateurs - Part 1"
         const baseTitle = story.title.split(' - Part ')[0]; 
         const correctGenre = seedGenreMap.get(baseTitle);
 
@@ -206,7 +214,6 @@ export async function removeTagsAction(): Promise<CleanupResult> {
         const story = doc.data();
         if (story.tags) {
             const storyRef = db.collection('stories').doc(doc.id);
-            // Use FieldValue.delete() to remove the 'tags' field
             batch.update(storyRef, { tags: FieldValue.delete() });
             updatedCount++;
         }

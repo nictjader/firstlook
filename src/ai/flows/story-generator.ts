@@ -9,9 +9,9 @@
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 import { 
-  Story, 
-  Subgenre,
-  StoryGenerationOutput,
+  type Story, 
+  type Subgenre,
+  type StoryGenerationOutput,
 } from '@/lib/types';
 import { ai } from '@/ai';
 import { type StorySeed } from '@/lib/story-seeds';
@@ -99,7 +99,8 @@ const StoryPromptInputSchema = StoryGenerationInputSchema.extend({
   potentialSeriesId: z.string(),
 });
 
-const StoryGenerationOutputSchema = z.object({
+// This is the internal schema for the flow's output. The client will receive a simplified version.
+const InternalStoryGenerationOutputSchema = z.object({
   storyId: z.string().describe('The unique ID for the generated story.'),
   title: z.string().describe('The final title of the story.'),
   success: z.boolean().describe('Whether the story generation was successful.'),
@@ -151,14 +152,13 @@ const storyGenerationFlow = ai.defineFlow(
   {
     name: 'storyGenerationFlow',
     inputSchema: StoryGenerationInputSchema,
-    outputSchema: StoryGenerationOutputSchema,
+    outputSchema: InternalStoryGenerationOutputSchema,
   },
   async (seed) => {
     const storyId = uuidv4();
     const potentialSeriesId = uuidv4(); 
 
     try {
-      // Call the dedicated prompt object with the combined input
       const llmResponse = await storyGenerationPrompt({
         ...seed,
         potentialSeriesId,

@@ -9,19 +9,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateStoryAI, standardizeGenresAction, removeTagsAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
-import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
-import { type Story, type GenerationResult, type CleanupResult, type StoryCountBreakdown } from '@/lib/types';
+import { type Story, type GeneratedStoryIdentifiers, type CleanupResult, type StoryCountBreakdown } from '@/lib/types';
 import { getAllStories } from '@/app/actions/storyActions';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 
 
 type Log = {
     id: number;
-    status: 'pending' | 'generating' | 'saving' | 'imaging' | 'success' | 'error';
+    status: 'pending' | 'generating' | 'imaging' | 'success' | 'error';
     message: string;
     title?: string;
     storyId?: string;
@@ -32,7 +30,6 @@ const StatusIcon = ({ status }: { status: Log['status'] }) => {
   switch (status) {
     case 'pending': return <Bot className="h-5 w-5 text-muted-foreground" />;
     case 'generating':
-    case 'saving':
     case 'imaging': 
         return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
     case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
@@ -187,31 +184,19 @@ function AdminDashboardContent() {
       setLogs(prev => [...prev, { id: logId, status: 'pending', message: `Story ${index + 1}: Queued...` }]);
       
       try {
-        updateLog(logId, { status: 'generating', message: `Story ${index + 1}: Generating text...` });
-        const result: GenerationResult = await generateStoryAI();
+        updateLog(logId, { status: 'generating', message: `Story ${index + 1}: Generating text and saving...` });
+        const result: GeneratedStoryIdentifiers = await generateStoryAI();
         
         if (!result.success || !result.storyId) {
           throw new Error(result.error || "AI Generation failed.");
         }
         
-        if (!result.aiStoryResult?.storyData) {
-            throw new Error('AI result is missing story data.');
+        updateLog(logId, { status: 'imaging', message: `Story ${index + 1}: Generating cover image for "${result.title}"...`, title: result.title, storyId: result.storyId });
+
+        if (result.coverImagePrompt) {
+          await generateAndUploadCoverImageAction(result.storyId, result.coverImagePrompt);
         }
-
-        updateLog(logId, { status: 'saving', message: `Story ${index + 1}: Saving story "${result.title}"...`, title: result.title, storyId: result.storyId });
-
-        const storyDocRef = doc(db, 'stories', result.storyId);
-        // The storyData from the flow now contains the full story object including the ID
-        await setDoc(storyDocRef, {
-            ...result.aiStoryResult.storyData,
-            publishedAt: serverTimestamp(),
-            coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Generating...'
-        });
-        updateLog(logId, { status: 'imaging', message: `Story ${index + 1}: Generating cover image...` });
-
-        const coverImageUrl = await generateAndUploadCoverImageAction(result.storyId, result.aiStoryResult.storyData.coverImagePrompt);
         
-        await updateDoc(storyDocRef, { coverImageUrl });
         updateLog(logId, { status: 'success', message: `Story ${index + 1}: Complete!` });
 
       } catch (error: any) {
