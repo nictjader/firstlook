@@ -9,6 +9,7 @@ import { Lock, Heart, Library } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMemo } from 'react';
 import { capitalizeWords } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 type StoryCardProps = {
   story: Story;
@@ -16,36 +17,29 @@ type StoryCardProps = {
 };
 
 export default function StoryCard({ story, isPriority = false }: StoryCardProps) {
-  const { title, coverImageUrl, coinCost, storyId, subgenre, seriesId, totalPartsInSeries } = story;
+  const { title, coverImageUrl, coinCost, storyId, subgenre, seriesId, totalPartsInSeries, partNumber } = story;
   const { userProfile } = useAuth();
   
-  // A story is favorited if its ID is in the user's favorite list.
-  // For a series, we check if ANY part of the series is favorited.
   const isFavorited = useMemo(() => {
     if (!userProfile) return false;
-    if (seriesId) {
-      // This is a simplified check. A more robust solution might need all series parts.
-      // For now, we assume if the first part is favorited, the series is.
-      // This will be improved when we group stories properly.
-      return userProfile.favoriteStories?.includes(storyId);
-    }
     return userProfile.favoriteStories?.includes(storyId) ?? false;
-  }, [userProfile, storyId, seriesId]);
+  }, [userProfile, storyId]);
 
   const isFree = coinCost <= 0;
+  const isSeries = seriesId && totalPartsInSeries && totalPartsInSeries > 1;
 
   const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
   
-  const subgenreText = capitalizeWords(subgenre);
+  const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
   
   return (
-    <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="block relative group overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
+    <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="block group overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
       <div className="w-full bg-muted aspect-[2/3] relative">
         <Image
           src={coverImageUrl || placeholderImage}
           alt={title || "Story cover"}
           fill
-          sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, (max-width: 1280px) 25vw, 20vw"
+          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
           data-ai-hint="romance book cover"
           priority={isPriority}
@@ -56,11 +50,18 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
         {/* Top-aligned content: Badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
           <div className='flex flex-col gap-2'>
-            <Badge variant={isFree ? 'secondary' : 'destructive'} className="flex items-center text-xs shadow-md w-fit">
-              {!isFree && <Lock className="w-3 h-3 mr-1" />}
-              {isFree ? 'Free' : 'Premium'}
-            </Badge>
-            {seriesId && totalPartsInSeries && (
+            {isSeries ? (
+              <Badge variant="secondary" className="flex items-center text-xs shadow-md w-fit">
+                Part 1 Free
+              </Badge>
+            ) : (
+               <Badge variant={isFree ? 'secondary' : 'destructive'} className="flex items-center text-xs shadow-md w-fit">
+                {!isFree && <Lock className="w-3 h-3 mr-1" />}
+                {isFree ? 'Free' : 'Premium'}
+              </Badge>
+            )}
+
+            {isSeries && (
               <Badge variant="outline" className="flex items-center text-xs shadow-md bg-black/50 text-white w-fit">
                 <Library className="w-3 h-3 mr-1" />
                 {totalPartsInSeries}-Part Series
