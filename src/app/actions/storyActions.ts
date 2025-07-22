@@ -8,15 +8,14 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 
 /**
- * Fetches all stories from the database.
- * The client will be responsible for grouping and sorting.
+ * Fetches all stories from the database, sorted logically with series grouped together.
+ * This is used for the main story list page.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    // Fetch all documents. Sorting will be handled client-side to ensure series are grouped.
     const documentSnapshots = await storiesRef.limit(200).get();
     
     if (documentSnapshots.empty) {
@@ -57,17 +56,35 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
 
 /**
  * Fetches all parts of a series.
+ * This simplified version removes the orderBy clause to avoid potential index issues
+ * and sorts the results in memory.
  * @param seriesId The ID of the series to fetch parts for.
  * @returns An array of story objects belonging to the series.
  */
 export async function getSeriesParts(seriesId: string): Promise<Story[]> {
-    if (!seriesId) return [];
+    if (!seriesId) {
+        return [];
+    }
+    
     try {
         const db = getAdminDb();
         const storiesRef = db.collection('stories');
-        const q = storiesRef.where('seriesId', '==', seriesId).orderBy('partNumber', 'asc');
+        
+        // Simple query without ordering to avoid index issues
+        const q = storiesRef.where('seriesId', '==', seriesId);
         const querySnapshot = await q.get();
-        return querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+        
+        if (querySnapshot.empty) {
+            return [];
+        }
+        
+        const stories = querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+        
+        // Sort manually by partNumber
+        stories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
+        
+        return stories;
+        
     } catch (error) {
         console.error(`Error fetching series parts for seriesId ${seriesId}:`, error);
         return [];
