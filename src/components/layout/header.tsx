@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -32,7 +31,7 @@ export default function Header() {
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
               <BookOpen className="h-6 w-6 text-primary" />
-              <span className="font-headline text-2xl font-bold text-primary leading-none">FirstLook</span>
+              <span className="font-headline text-2xl font-bold text-primary relative bottom-px">FirstLook</span>
             </Link>
           </div>
 
