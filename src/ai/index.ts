@@ -10,7 +10,7 @@
  */
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { firebase } from '@genkit-ai/firebase';
+import { firebase } from '@genkit-ai/firebase/plugin';
 
 // This file is now ONLY for AI-related initialization.
 // The firebase() plugin is removed to prevent conflicting initializations.
