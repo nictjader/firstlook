@@ -17,14 +17,10 @@ interface StoryListProps {
 }
 
 const StoryListSkeleton = () => (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-        {Array.from({ length: 8 }).map((_, i) => (
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+        {Array.from({ length: 10 }).map((_, i) => (
             <div key={i} className="flex flex-col space-y-3">
-                <Skeleton className="h-[300px] w-full rounded-xl" />
-                <div className="space-y-2">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                </div>
+                <Skeleton className="h-[45vw] sm:h-[30vw] md:h-[25vw] lg:h-[20vw] w-full rounded-xl" />
             </div>
         ))}
     </div>
@@ -63,7 +59,7 @@ function groupAndSortStories(stories: Story[]): Story[] {
   const sortedSeries = Array.from(seriesMap.values())
     .sort((a, b) => {
       const dateA = new Date(a[0].publishedAt).getTime();
-      const dateB = new Date(b[0].publishedAt).getTime();
+      const dateB = a.length > 0 ? new Date(b[0].publishedAt).getTime() : 0;
       return dateB - dateA; // Newest series first
     });
 
@@ -172,7 +168,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
       {filteredStories.map((story, index) => (
         <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
       ))}
