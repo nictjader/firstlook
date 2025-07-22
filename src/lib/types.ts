@@ -1,6 +1,6 @@
 
-import { Timestamp as ClientTimestamp, FieldValue, DocumentData, QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
-import { Timestamp as AdminTimestamp, QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
+import { type Timestamp as ClientTimestamp, type FieldValue, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
+import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 import { z } from 'zod';
 
 // --- Zod Schemas for Story Generation ---
