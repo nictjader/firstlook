@@ -69,7 +69,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
 
         <p className="text-sm text-muted-foreground line-clamp-3 flex-grow">{previewText}</p>
       </div>
-      <div className="p-4 pt-0 flex justify-between items-center gap-2 border-t mt-auto">
+      <div className="px-4 py-3 flex justify-between items-center gap-2 border-t mt-auto">
         <div className="flex items-center">
             {isFree ? (
               <Badge variant="success" className="text-sm">Free</Badge>
@@ -89,3 +89,4 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     </div>
   );
 }
+
