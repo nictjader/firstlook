@@ -108,6 +108,7 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       throw new Error("Document data is missing.");
     }
     
+    // Explicitly cast the document ID to a string to prevent type mismatches.
     const storyId = String(doc.id);
 
     return {
