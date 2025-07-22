@@ -2,11 +2,11 @@
 "use client";
 
 import type { Story } from '@/lib/types';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Lock, Gem, Heart, Library, Sun, Moon, ZoomIn, ZoomOut } from 'lucide-react';
+import { ArrowLeft, Lock, Gem, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -33,7 +33,7 @@ const FONT_SIZES = [
 
 // --- Main View Component ---
 export default function ReaderView({ story, seriesParts }: { story: Story; seriesParts: Story[] }) {
-  const { user, userProfile, updateUserProfile, refreshUserProfile, toggleFavoriteStory } = useAuth();
+  const { user, userProfile, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
@@ -46,6 +46,13 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   const isUnlocked = useMemo(() => isEffectivelyFree || (userProfile?.unlockedStories.includes(story.storyId) ?? false), [story.storyId, userProfile, isEffectivelyFree]);
   const isFavorited = useMemo(() => userProfile?.favoriteStories.includes(story.storyId) ?? false, [story.storyId, userProfile]);
   const hasSufficientCoins = useMemo(() => isEffectivelyFree || !userProfile ? true : userProfile.coins >= story.coinCost, [story, userProfile, isEffectivelyFree]);
+
+  useEffect(() => {
+    if (isUnlocked) {
+      markStoryAsRead(story.storyId);
+    }
+  }, [isUnlocked, story.storyId, markStoryAsRead]);
+
 
   const changeFontSize = (direction: 'increase' | 'decrease') => {
     setCurrentFontSizeIndex((prevIndex) => {
@@ -87,7 +94,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     toggleFavoriteStory(story.storyId);
   };
 
-  const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=Siren';
+  const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=FirstLook';
   if (!story) return <p>Story not found.</p>;
 
   // This is the content that shows as a preview or a paywall when the story is locked

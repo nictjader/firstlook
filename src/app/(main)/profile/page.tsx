@@ -3,8 +3,8 @@ import ProfileView from '@/components/profile/profile-view';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'My Profile - Siren',
-  description: 'Manage your Siren account, coin balance, and preferences.',
+  title: 'My Profile - FirstLook',
+  description: 'Manage your FirstLook account, coin balance, and preferences.',
 };
 
 export default function ProfilePage() {

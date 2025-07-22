@@ -90,7 +90,7 @@ export default function ProfileView() {
             <UserCircle className="h-12 w-12 text-primary" />
             <div>
               <h3 className="text-2xl font-headline font-semibold leading-none tracking-tight">
-                {userProfile.displayName || userProfile.email || 'Siren User'}
+                {userProfile.displayName || userProfile.email || 'FirstLook User'}
               </h3>
               <p className="text-sm text-muted-foreground">Manage your account details and preferences.</p>
             </div>

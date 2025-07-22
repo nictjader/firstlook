@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Inter, Playfair_Display } from 'next/font/google';
 import './globals.css';
@@ -17,7 +18,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Siren - Stories that feel alive',
+  title: 'FirstLook - Unforgettable first encounters.',
   description:
     'Discover captivating, AI-generated romance stories. Unlock premium content and immerse yourself in a world of passion and adventure.',
   icons: {

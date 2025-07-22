@@ -3,8 +3,8 @@ import CoinPurchase from '@/components/monetization/coin-purchase';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Buy Coins - Siren',
-  description: 'Purchase coins to unlock premium romance stories on Siren.',
+  title: 'Buy Coins - FirstLook',
+  description: 'Purchase coins to unlock premium romance stories on FirstLook.',
 };
 
 export default function BuyCoinsPage() {

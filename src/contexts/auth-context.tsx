@@ -8,6 +8,8 @@ import type { UserProfile, Purchase } from '@/lib/types';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, type DocumentData, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 
+const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
+
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
@@ -15,35 +17,29 @@ interface AuthContextType {
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
+  markStoryAsRead: (storyId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Helper function to convert Firestore Timestamps to ISO strings for serialization
-// This should only handle client-side Timestamp objects now.
 function safeToISOString(timestamp: any): string {
   if (!timestamp) return new Date().toISOString();
   if (timestamp instanceof Timestamp) {
     return timestamp.toDate().toISOString();
   }
-  // Handle serialized Timestamps that might come from server actions
   if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
     return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate().toISOString();
   }
-  // Handle date strings
   const date = new Date(timestamp);
   if (!isNaN(date.getTime())) {
     return date.toISOString();
   }
-  // Fallback for unexpected types
   console.warn("Unsupported timestamp format:", timestamp);
   return new Date().toISOString();
 }
 
-
 function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
     const data = doc;
-
     return {
       userId: userId,
       email: data.email,
@@ -62,13 +58,11 @@ function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
     };
 }
 
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // This function now uses the CLIENT SDK
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     const userDocRef = doc(db, "users", userId);
     const userDocSnap = await getDoc(userDocRef);
@@ -78,21 +72,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return null;
   }, []);
 
-  // This function now uses the CLIENT SDK
   const createUserProfile = useCallback(async (user: User): Promise<UserProfile> => {
     const userDocRef = doc(db, "users", user.uid);
     const userDocSnap = await getDoc(userDocRef);
-
-    // Check if profile already exists to prevent race conditions
     if (userDocSnap.exists()) {
       return docToUserProfile(userDocSnap.data(), user.uid);
     }
-
     const newUserProfileData = {
       userId: user.uid,
       email: user.email,
       displayName: user.displayName,
-      coins: 100, // Starting coins for new users
+      coins: 100, 
       unlockedStories: [],
       readStories: [],
       favoriteStories: [],
@@ -102,8 +92,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastLogin: serverTimestamp(),
     };
     await setDoc(userDocRef, newUserProfileData);
-    
-    // Fetch again to get the server-generated timestamps correctly
     const finalDocSnap = await getDoc(userDocRef);
     if (!finalDocSnap.exists()) {
         throw new Error("Failed to create and fetch user profile.");
@@ -111,18 +99,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return docToUserProfile(finalDocSnap.data(), user.uid);
   }, []);
 
+  const syncLocalReadHistory = useCallback(async (userId: string) => {
+    const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
+    if (localReadJson) {
+        const localReadStories: string[] = JSON.parse(localReadJson);
+        if (localReadStories.length > 0) {
+            const userDocRef = doc(db, "users", userId);
+            await updateDoc(userDocRef, {
+                readStories: arrayUnion(...localReadStories)
+            });
+            localStorage.removeItem(LOCAL_STORAGE_READ_KEY);
+        }
+    }
+  }, []);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       if (user) {
+        await syncLocalReadHistory(user.uid);
         setUser(user);
         let profile = await fetchUserProfile(user.uid);
-        
         if (profile) {
-          // Update lastLogin using client SDK
           const userDocRef = doc(db, "users", user.uid);
           await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
-          // We need to refetch to get the updated timestamp correctly serialized
           profile = await fetchUserProfile(user.uid);
         } else {
           profile = await createUserProfile(user);
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [fetchUserProfile, createUserProfile]);
+  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory]);
   
   const refreshUserProfile = useCallback(async () => {
     if (user) {
@@ -158,7 +158,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (user && userProfile) {
           const userDocRef = doc(db, 'users', user.uid);
           const isFavorited = userProfile.favoriteStories.includes(storyId);
-
           await updateDoc(userDocRef, {
               favoriteStories: isFavorited ? arrayRemove(storyId) : arrayUnion(storyId)
           });
@@ -174,6 +173,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
   }, [user, userProfile]);
 
+  const markStoryAsRead = useCallback((storyId: string) => {
+    if (user && userProfile) {
+      if (!userProfile.readStories.includes(storyId)) {
+        const userDocRef = doc(db, 'users', user.uid);
+        updateDoc(userDocRef, { readStories: arrayUnion(storyId) });
+        setUserProfile(prev => prev ? { ...prev, readStories: [...prev.readStories, storyId] } : null);
+      }
+    } else {
+      const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
+      const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
+      if (!localReadStories.includes(storyId)) {
+        localReadStories.push(storyId);
+        localStorage.setItem(LOCAL_STORAGE_READ_KEY, JSON.stringify(localReadStories));
+      }
+    }
+  }, [user, userProfile]);
+
   const value: AuthContextType = {
     user,
     userProfile,
@@ -181,6 +197,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     updateUserProfile,
     refreshUserProfile,
     toggleFavoriteStory,
+    markStoryAsRead,
   };
 
   return (

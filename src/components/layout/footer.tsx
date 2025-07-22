@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -24,11 +25,11 @@ export default function Footer() {
           </Link>
         </div>
         {year ? (
-          <p>&copy; {year} Siren. All rights reserved.</p>
+          <p>&copy; {year} FirstLook. All rights reserved.</p>
         ) : (
           <p className="h-5">&nbsp;</p> 
         )}
-        <p className="mt-1">Stories that feel alive.</p>
+        <p className="mt-1">Unforgettable first encounters.</p>
       </div>
     </footer>
   );

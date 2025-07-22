@@ -23,7 +23,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const isFavorited = useMemo(() => userProfile?.favoriteStories?.includes(storyId) ?? false, [userProfile, storyId]);
   const isFree = coinCost <= 0;
 
-  const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Siren';
+  const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
   
   const subgenreText = capitalizeWords(subgenre);
   

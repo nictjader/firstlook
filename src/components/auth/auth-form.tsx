@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
 import { sendSignInLinkToEmail } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { Heart, Loader2, Mail, MailCheck } from 'lucide-react';
+import { BookOpen, Loader2, Mail, MailCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 
@@ -53,10 +53,10 @@ export default function AuthForm() {
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
       <div className="p-6 text-center">
         <div className="flex justify-center items-center mb-4">
-          <Heart className="h-12 w-12 text-primary" />
+          <BookOpen className="h-12 w-12 text-primary" />
         </div>
-        <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight">Welcome to Siren</h3>
-        <p className="text-sm text-muted-foreground">Stories that feel alive.</p>
+        <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight">Welcome to FirstLook</h3>
+        <p className="text-sm text-muted-foreground">Unforgettable first encounters.</p>
       </div>
       <div className="p-6 pt-0 flex flex-col gap-4">
         {linkSentTo ? (
@@ -98,7 +98,7 @@ export default function AuthForm() {
       </div>
       <div className="flex items-center p-6 pt-0">
         <p className="text-xs text-center text-muted-foreground w-full">
-          By continuing, you agree to Siren's Terms of Service and Privacy Policy.
+          By continuing, you agree to FirstLook's Terms of Service and Privacy Policy.
         </p>
       </div>
     </div>

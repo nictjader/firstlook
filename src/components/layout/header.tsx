@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { Gem, LogIn, LogOut, UserCircle, Heart, Moon, Sun, Loader2 } from 'lucide-react';
+import { Gem, LogIn, LogOut, UserCircle, BookOpen, Moon, Sun, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTheme } from '@/contexts/theme-context';
 
@@ -31,8 +31,8 @@ export default function Header() {
         <div className="container mx-auto flex h-14 items-center justify-between px-4">
           <div className="flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <Heart className="h-6 w-6 text-primary" />
-              <span className="font-headline text-2xl font-bold text-primary">Siren</span>
+              <BookOpen className="h-6 w-6 text-primary" />
+              <span className="font-headline text-2xl font-bold text-primary">FirstLook</span>
             </Link>
           </div>
 
