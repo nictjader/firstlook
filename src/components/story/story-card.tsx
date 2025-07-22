@@ -53,7 +53,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
         </div>
       </Link>
       <div className="p-4 flex-grow flex flex-col">
-        <h3 className="text-base font-headline font-semibold leading-tight mb-1 hover:text-primary transition-colors line-clamp-2">
+        <h3 className="text-base font-headline font-semibold leading-tight mb-1 hover:text-primary transition-colors line-clamp-2 min-h-[2.5rem]">
            <Link href={`/stories/${storyId}`}>{title}</Link>
         </h3>
         
@@ -89,4 +89,3 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     </div>
   );
 }
-
