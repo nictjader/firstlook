@@ -242,5 +242,3 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     </div>
   );
 }
-
-    
