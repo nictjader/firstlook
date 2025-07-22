@@ -52,7 +52,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
       </Link>
       <div className="p-4 flex-grow flex flex-col">
         <div className="flex items-center gap-2 mb-2">
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs whitespace-nowrap">
               {subgenreText}
             </Badge>
             {!isFree && (
@@ -62,13 +62,13 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
             )}
         </div>
 
-        <h3 className="text-base font-headline font-semibold leading-tight mb-2 hover:text-primary transition-colors min-h-[2.5rem]">
+        <h3 className="text-base font-headline font-semibold leading-tight mb-2 hover:text-primary transition-colors min-h-[2.5rem] line-clamp-2">
            <Link href={`/stories/${storyId}`}>{title}</Link>
         </h3>
         
         <div className="h-6 mb-2 flex items-center text-xs text-muted-foreground">
             {(seriesId && partNumber && totalPartsInSeries && totalPartsInSeries > 1) ? (
-                 <Badge variant="outline" className="text-xs font-medium border-accent/50 text-accent">
+                 <Badge variant="outline" className="text-xs font-medium">
                     Part {partNumber} of {totalPartsInSeries}
                  </Badge>
             ) : (
@@ -78,7 +78,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
 
         <p className="text-sm text-muted-foreground line-clamp-3 flex-grow">{previewText}</p>
       </div>
-      <div className="p-4 pt-3 border-t mt-auto">
+      <div className="p-4 pt-3 mt-auto border-t">
         <Link href={`/stories/${storyId}`} passHref>
           <Button variant="default" size="sm" className="w-full">
             <BookOpen className="w-4 h-4 mr-2" />
