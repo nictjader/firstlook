@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { processCoinPurchase } from '@/app/actions/userActions';
+import { processCoinPurchase } from '@/app/actions/storyActions';
 
 
 const coinPackages: CoinPackage[] = [

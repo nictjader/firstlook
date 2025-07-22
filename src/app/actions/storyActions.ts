@@ -2,9 +2,10 @@
 'use server';
 
 import { getAdminDb } from '@/lib/firebase/admin';
-import type { Story } from '@/lib/types';
+import type { CoinPackage, PurchaseResult, Story } from '@/lib/types';
 import { docToStory } from '@/lib/types';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import { serverTimestamp, arrayUnion } from 'firebase-admin/firestore';
 
 
 /**
@@ -89,4 +90,50 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
         console.error(`Error fetching series parts for seriesId ${seriesId}:`, error);
         return [];
     }
+}
+
+
+// --- Monetization Actions ---
+
+export async function processCoinPurchase(userId: string, pkg: CoinPackage): Promise<PurchaseResult> {
+  if (!userId || !pkg) {
+    return { success: false, message: "User ID and coin package are required." };
+  }
+  const db = getAdminDb();
+  const userRef = db.collection("users").doc(userId);
+  
+
+  try {
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      return { success: false, message: "User profile not found." };
+    }
+  
+    const currentCoins = userDoc.data()?.coins || 0;
+    const newCoinBalance = currentCoins + pkg.coins;
+
+    const purchaseRecord = {
+      packageId: pkg.id,
+      coins: pkg.coins,
+      priceUSD: pkg.priceUSD,
+      purchasedAt: serverTimestamp(),
+    };
+
+    await userRef.update({
+      coins: newCoinBalance,
+      purchaseHistory: arrayUnion(purchaseRecord),
+    });
+    
+    return { 
+      success: true, 
+      message: `Successfully added ${pkg.coins} coins to your balance. You now have ${newCoinBalance} coins.`
+    };
+  } catch (error) {
+    console.error("Error processing coin purchase:", error);
+    return { 
+      success: false, 
+      message: "The purchase could not be completed due to a server error. Your account was not charged. Please try again later.",
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
 }
