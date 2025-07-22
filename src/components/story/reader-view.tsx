@@ -145,6 +145,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         </div>
       </div>
   );
+  
+  const otherParts = seriesParts.filter(part => part.storyId !== story.storyId);
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
@@ -211,7 +213,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
       </div>
 
-      {story.seriesId && seriesParts && seriesParts.length > 1 && (
+      {otherParts.length > 0 && (
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
             <div className="p-6">
                 <h3 className="text-xl flex items-center font-semibold leading-none tracking-tight">
@@ -222,18 +224,16 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
             </div>
             <div className="p-6 pt-0">
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {seriesParts.map(part => (
-                        part.storyId !== story.storyId && (
-                            <Link key={part.storyId} href={`/stories/${part.storyId}`} passHref>
-                                <Button
-                                    variant="outline"
-                                    className="w-full h-full text-left flex-col items-start p-3 justify-start"
-                                >
-                                    <span className="text-xs text-muted-foreground">Part {part.partNumber}</span>
-                                    <span className="font-semibold truncate text-primary">{part.title}</span>
-                                </Button>
-                            </Link>
-                        )
+                    {otherParts.map(part => (
+                        <Link key={part.storyId} href={`/stories/${part.storyId}`} passHref>
+                            <Button
+                                variant="outline"
+                                className="w-full h-full text-left flex-col items-start p-3 justify-start"
+                            >
+                                <span className="text-xs text-muted-foreground">Part {part.partNumber}</span>
+                                <span className="font-semibold truncate text-primary">{part.title}</span>
+                            </Button>
+                        </Link>
                     ))}
                 </div>
             </div>
