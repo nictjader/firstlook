@@ -6,22 +6,29 @@ import { storySeeds } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { Story, Subgenre, GenerationResult, CleanupResult, StoryGenerationInput } from '@/lib/types';
-import { extractBase64FromDataUri } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { FieldValue } from 'firebase-admin/firestore';
+import type { GenerationResult, CleanupResult, StoryGenerationInput, Story } from '@/lib/types';
+import { extractBase64FromDataUri } from '@/lib/utils';
 
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
- * @returns A randomly selected StorySeed or null if all seeds are used.
+ * @returns A randomly selected StoryGenerationInput or null if all seeds are used.
  */
 async function selectUnusedSeed(): Promise<StoryGenerationInput | null> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
+    
+    // We only need the title field to check for existence.
     const q = storiesRef.select('title');
     const snapshot = await q.get();
+
+    // Create a Set of existing base titles for efficient lookup.
+    // This handles series by stripping " - Part X" from the title.
     const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Part ')[0]));
 
+    // Filter the master seed list to find seeds that haven't been used.
     const unusedSeeds = storySeeds.filter(seed => !existingTitles.has(seed.titleIdea));
 
     if (unusedSeeds.length === 0) {
@@ -138,52 +145,84 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
  * It matches stories to their seeds by title and updates the `subgenre` field.
  */
 export async function standardizeGenresAction(): Promise<CleanupResult> {
-    try {
-        const db = getAdminDb();
-        const storiesRef = db.collection('stories');
-        const snapshot = await storiesRef.get();
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.get();
 
-        if (snapshot.empty) {
-            return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
-        }
-
-        // Create a map of seed titles to their correct subgenres for quick lookup
-        const seedGenreMap = new Map(storySeeds.map(seed => [seed.titleIdea, seed.subgenre]));
-        
-        const batch = db.batch();
-        let updatedCount = 0;
-
-        snapshot.docs.forEach(doc => {
-            const story = doc.data() as Story;
-            const baseTitle = story.title.split(' - Part ')[0];
-            const correctGenre = seedGenreMap.get(baseTitle);
-
-            if (correctGenre && story.subgenre !== correctGenre) {
-                const storyRef = db.collection('stories').doc(doc.id);
-                batch.update(storyRef, { subgenre: correctGenre });
-                updatedCount++;
-            }
-        });
-
-        await batch.commit();
-
-        const message = updatedCount > 0 
-            ? `Successfully checked ${snapshot.size} stories and updated ${updatedCount} with standardized genres.`
-            : `Checked ${snapshot.size} stories. All genres were already standard.`;
-
-        return {
-            success: true,
-            message: message,
-            checked: snapshot.size,
-            updated: updatedCount,
-        };
-    } catch (error: any) {
-        console.error("Error during genre standardization:", error);
-        return {
-            success: false,
-            message: error.message || "An unknown error occurred during cleanup.",
-            checked: 0,
-            updated: 0,
-        };
+    if (snapshot.empty) {
+        return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
     }
+
+    const seedGenreMap = new Map(storySeeds.map(seed => [seed.titleIdea, seed.subgenre]));
+    
+    const batch = db.batch();
+    let updatedCount = 0;
+
+    snapshot.docs.forEach(doc => {
+        const story = doc.data() as Story;
+        // Handle series titles like "The Rival Restaurateurs - Part 1"
+        const baseTitle = story.title.split(' - Part ')[0]; 
+        const correctGenre = seedGenreMap.get(baseTitle);
+
+        if (correctGenre && story.subgenre !== correctGenre) {
+            const storyRef = db.collection('stories').doc(doc.id);
+            batch.update(storyRef, { subgenre: correctGenre });
+            updatedCount++;
+        }
+    });
+
+    await batch.commit();
+
+    const message = updatedCount > 0 
+        ? `Successfully checked ${snapshot.size} stories and updated ${updatedCount} with standardized genres.`
+        : `Checked ${snapshot.size} stories. All genres were already standard.`;
+
+    return {
+        success: true,
+        message: message,
+        checked: snapshot.size,
+        updated: updatedCount,
+    };
+}
+
+
+/**
+ * A one-time action to remove the 'tags' field from all stories in Firestore.
+ */
+export async function removeTagsAction(): Promise<CleanupResult> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.get();
+
+    if (snapshot.empty) {
+        return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
+    }
+
+    const batch = db.batch();
+    let updatedCount = 0;
+
+    snapshot.docs.forEach(doc => {
+        const story = doc.data();
+        if (story.tags) {
+            const storyRef = db.collection('stories').doc(doc.id);
+            // Use FieldValue.delete() to remove the 'tags' field
+            batch.update(storyRef, { tags: FieldValue.delete() });
+            updatedCount++;
+        }
+    });
+
+    if (updatedCount > 0) {
+        await batch.commit();
+    }
+    
+    const message = updatedCount > 0 
+        ? `Successfully checked ${snapshot.size} stories and removed the 'tags' field from ${updatedCount} of them.`
+        : `Checked ${snapshot.size} stories. None had the 'tags' field.`;
+
+    return {
+        success: true,
+        message: message,
+        checked: snapshot.size,
+        updated: updatedCount,
+    };
 }

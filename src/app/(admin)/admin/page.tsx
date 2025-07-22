@@ -3,11 +3,11 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { doc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
@@ -79,24 +79,19 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
   const seriesGenres = new Map<string, string>(); // seriesId -> genre
   let standaloneStories = 0;
   
-  // Process all stories
   stories.forEach(story => {
-    const genre = story.subgenre;
-    if (!genre) return; // Skip stories without a genre
+    const genre = story.subgenre || 'uncategorized';
 
     if (story.seriesId) {
-      // For series, just track the first occurrence to get the genre
       if (!seriesGenres.has(story.seriesId)) {
         seriesGenres.set(story.seriesId, genre);
       }
     } else {
-      // Standalone story - count it and its genre
       standaloneStories++;
       storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     }
   });
 
-  // Now count each unique series once by its genre
   seriesGenres.forEach((genre) => {
     storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
   });
@@ -112,7 +107,6 @@ function analyzeStories(stories: Story[]): StoryCountBreakdown {
   };
 }
 
-
 function AdminDashboardContent() {
   const { user } = useAuth();
   const [numStories, setNumStories] = useState(1);
@@ -124,6 +118,7 @@ function AdminDashboardContent() {
   const [countError, setCountError] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
+  const [isRemovingTags, setIsRemovingTags] = useState(false);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -154,7 +149,6 @@ function AdminDashboardContent() {
     try {
       const result = await standardizeGenresAction();
       setCleanupResult(result);
-      // Automatically refresh the analysis after cleanup
       if (result.success) {
         await handleCountStories();
       }
@@ -164,6 +158,20 @@ function AdminDashboardContent() {
         setIsCleaning(false);
     }
   };
+
+  const handleRemoveTags = async () => {
+    setIsRemovingTags(true);
+    setCleanupResult(null);
+    try {
+      const result = await removeTagsAction();
+      setCleanupResult(result);
+    } catch (error: any) {
+      setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
+    } finally {
+      setIsRemovingTags(false);
+    }
+  };
+
 
   const handleGenerate = async () => {
     if (!user) {
@@ -182,12 +190,17 @@ function AdminDashboardContent() {
         updateLog(logId, { status: 'generating', message: `Story ${index + 1}: Generating text...` });
         const result: GenerationResult = await generateStoryAI();
         
-        if (!result.success || !result.aiStoryResult) {
+        if (!result.success || !result.storyId) {
           throw new Error(result.error || "AI Generation failed.");
         }
+        
+        if (!result.aiStoryResult) {
+            throw new Error('AI result is missing story data.');
+        }
+
         updateLog(logId, { status: 'saving', message: `Story ${index + 1}: Saving story "${result.title}"...`, title: result.title, storyId: result.storyId });
 
-        const storyDocRef = doc(db, 'stories', result.aiStoryResult.storyId);
+        const storyDocRef = doc(db, 'stories', result.storyId);
         await setDoc(storyDocRef, {
             ...result.aiStoryResult.storyData,
             storyId: result.aiStoryResult.storyId,
@@ -212,6 +225,8 @@ function AdminDashboardContent() {
     await Promise.all(promises);
     setIsGenerating(false);
   };
+
+  const isToolRunning = isCounting || isGenerating || isCleaning || isRemovingTags;
 
   return (
     <>
@@ -240,13 +255,17 @@ function AdminDashboardContent() {
           </CardHeader>
           <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
-                <Button onClick={handleCountStories} disabled={isCounting || isGenerating}>
+                <Button onClick={handleCountStories} disabled={isToolRunning}>
                   {isCounting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookText className="mr-2 h-4 w-4" />}
                   {isCounting ? 'Analyzing...' : 'Analyze Story Database'}
                 </Button>
-                <Button onClick={handleStandardizeGenres} disabled={isCleaning || isGenerating} variant="outline">
+                <Button onClick={handleStandardizeGenres} disabled={isToolRunning} variant="outline">
                     {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
                     {isCleaning ? 'Cleaning...' : 'Standardize Genres'}
+                </Button>
+                <Button onClick={handleRemoveTags} disabled={isToolRunning} variant="outline">
+                    {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
+                    {isRemovingTags ? 'Removing...' : 'Remove Orphaned Tags'}
                 </Button>
               </div>
 
@@ -324,7 +343,7 @@ function AdminDashboardContent() {
                 disabled={isGenerating}
               />
             </div>
-             <Button onClick={handleGenerate} disabled={isGenerating || !user} className="w-full">
+             <Button onClick={handleGenerate} disabled={isToolRunning || !user} className="w-full">
               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
               {isGenerating ? `Generating ${completed}/${numStories}...` : `Generate ${numStories} ${numStories > 1 ? 'Stories' : 'Story'}`}
             </Button>
