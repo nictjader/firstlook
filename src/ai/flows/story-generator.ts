@@ -11,17 +11,29 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   Story, 
   Subgenre,
-  StoryGenerationInputSchema, 
-  StoryGenerationOutputSchema,
-  StoryGenerationInput,
-  StoryGenerationOutput
 } from '@/lib/types';
 import { ai } from '@/ai';
+import { type StorySeed } from '@/lib/story-seeds';
 
 
+// Schemas specific to this story generation flow.
+// By keeping them in this server-only file, we prevent them from being
+// accidentally bundled in client-side code, which was causing build failures.
+
+const StoryGenerationInputSchema = z.object({
+  titleIdea: z.string(),
+  subgenre: z.string(),
+  mainCharacters: z.string(),
+  characterNames: z.array(z.string()),
+  plotSynopsis: z.string(),
+  keyTropes: z.array(z.string()),
+  desiredTone: z.string(),
+  approxWordCount: z.number(),
+  coverImagePrompt: z.string(),
+});
 
 // This Zod schema defines the structure we expect the AI to return for a story.
-const StorySchema = z.object({
+const AIStoryResponseSchema = z.object({
   title: z
     .string()
     .describe(
@@ -86,11 +98,21 @@ const StoryPromptInputSchema = StoryGenerationInputSchema.extend({
   potentialSeriesId: z.string(),
 });
 
+const StoryGenerationOutputSchema = z.object({
+  storyId: z.string().describe('The unique ID for the generated story.'),
+  title: z.string().describe('The final title of the story.'),
+  success: z.boolean().describe('Whether the story generation was successful.'),
+  error: z.string().nullable().describe('Any error message if the generation failed.'),
+  storyData: z.custom<Omit<Story, 'publishedAt' | 'coverImageUrl'>>().optional(),
+});
+
+export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
+
 // Create a dedicated prompt object for story generation.
 const storyGenerationPrompt = ai.definePrompt({
   name: 'storyGenerationPrompt',
   input: { schema: StoryPromptInputSchema },
-  output: { schema: StorySchema },
+  output: { schema: AIStoryResponseSchema },
   prompt: `
     You are an expert romance novelist. Your task is to write a complete, compelling, and satisfying short romance story based on the provided seed.
 
@@ -166,9 +188,6 @@ const storyGenerationFlow = ai.defineFlow(
         seriesTitle: isSeriesStory ? output.seriesTitle ?? undefined : undefined,
         partNumber: isSeriesStory ? output.partNumber ?? undefined : undefined,
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
-        // Add sorting keys
-        primarySortKey: isSeriesStory ? (output.seriesId!) : storyId,
-        secondarySortKey: isSeriesStory ? (output.partNumber!) : 0,
       };
 
       return {
@@ -192,7 +211,7 @@ const storyGenerationFlow = ai.defineFlow(
 
 // This is the exported function that clients will call.
 export async function generateStory(
-  seed: StoryGenerationInput
+  seed: StorySeed
 ): Promise<StoryGenerationOutput> {
   return storyGenerationFlow(seed);
 }

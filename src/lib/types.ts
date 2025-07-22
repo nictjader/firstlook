@@ -3,33 +3,7 @@ import { type Timestamp as ClientTimestamp, type FieldValue, type DocumentData, 
 import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 import { z } from 'zod';
 
-// --- Zod Schemas for Story Generation ---
-
-export const StoryGenerationInputSchema = z.object({
-  titleIdea: z.string(),
-  subgenre: z.string(),
-  mainCharacters: z.string(),
-  characterNames: z.array(z.string()),
-  plotSynopsis: z.string(),
-  keyTropes: z.array(z.string()),
-  desiredTone: z.string(),
-  approxWordCount: z.number(),
-  coverImagePrompt: z.string(),
-});
-
-export const StoryGenerationOutputSchema = z.object({
-  storyId: z.string().describe('The unique ID for the generated story.'),
-  title: z.string().describe('The final title of the story.'),
-  success: z.boolean().describe('Whether the story generation was successful.'),
-  error: z.string().nullable().describe('Any error message if the generation failed.'),
-  storyData: z.custom<Omit<Story, 'publishedAt' | 'coverImageUrl'>>().optional(),
-});
-
-
 // --- Type Definitions ---
-
-export type StoryGenerationInput = z.infer<typeof StoryGenerationInputSchema>;
-export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
 
 export interface Purchase {
   packageId: string;

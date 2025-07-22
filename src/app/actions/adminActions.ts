@@ -2,21 +2,22 @@
 'use server';
 
 import { generateStory } from '@/ai/flows/story-generator';
-import { storySeeds } from '@/lib/story-seeds';
+import type { StoryGenerationOutput } from '@/ai/flows/story-generator';
+import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { v4 as uuidv4 } from 'uuid';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { GenerationResult, CleanupResult, StoryGenerationInput, Story } from '@/lib/types';
+import type { GenerationResult, CleanupResult, Story } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
- * @returns A randomly selected StoryGenerationInput or null if all seeds are used.
+ * @returns A randomly selected StorySeed or null if all seeds are used.
  */
-async function selectUnusedSeed(): Promise<StoryGenerationInput | null> {
+async function selectUnusedSeed(): Promise<StorySeed | null> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
@@ -57,7 +58,7 @@ export async function generateStoryAI(): Promise<GenerationResult> {
   }
 
   try {
-    const storyResult = await generateStory(seed);
+    const storyResult: StoryGenerationOutput = await generateStory(seed);
 
     if (!storyResult.success || !storyResult.storyId || !storyResult.storyData) {
       throw new Error(storyResult.error || 'Story generation flow failed to return story data.');
