@@ -27,65 +27,40 @@ const StoryListSkeleton = () => (
 );
 
 /**
- * Groups stories by series and sorts them.
- * Series are grouped together, and parts within a series are sorted by partNumber.
- * Standalone stories are sorted by publication date.
- * The entire list is sorted so that newest series/stories appear first.
+ * Groups stories by series. For any series, it only returns Part 1.
+ * Standalone stories are returned as-is.
+ * The final list is sorted by publication date, with newest stories/series first.
  * @param stories The raw array of stories.
- * @returns A sorted array of stories with series grouped together.
+ * @returns A sorted array of stories with series represented only by their first part.
  */
 function groupAndSortStories(stories: Story[]): Story[] {
-  const seriesMap = new Map<string, Story[]>();
-  const standalone: Story[] = [];
+  const processedStories = new Map<string, Story>();
 
-  // Separate stories into series or standalone
+  // Sort stories to ensure Part 1 is processed first for series
+  stories.sort((a, b) => {
+    if (a.seriesId && b.seriesId && a.seriesId === b.seriesId) {
+      return (a.partNumber || 0) - (b.partNumber || 0);
+    }
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  });
+
   stories.forEach(story => {
     if (story.seriesId) {
-      if (!seriesMap.has(story.seriesId)) {
-        seriesMap.set(story.seriesId, []);
+      // If we haven't processed this series yet, add Part 1.
+      if (!processedStories.has(story.seriesId)) {
+        processedStories.set(story.seriesId, story);
       }
-      seriesMap.get(story.seriesId)!.push(story);
     } else {
-      standalone.push(story);
+      // Standalone stories are always added.
+      processedStories.set(story.storyId, story);
     }
   });
 
-  // Sort parts within each series
-  seriesMap.forEach(parts => {
-    parts.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
-  });
-
-  // Get the sorted series as an array of arrays
-  const sortedSeries = Array.from(seriesMap.values())
-    .sort((a, b) => {
-      const dateA = new Date(a[0].publishedAt).getTime();
-      const dateB = a.length > 0 ? new Date(b[0].publishedAt).getTime() : 0;
-      return dateB - dateA; // Newest series first
-    });
-
-  // Sort standalone stories
-  standalone.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  const finalStories = Array.from(processedStories.values());
   
-  // Combine sorted series and standalone stories
-  const groupedStories = sortedSeries.flat();
-  const finalStories = [...groupedStories, ...standalone];
+  // Sort the final list by publication date to ensure newest appear first
+  finalStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
-  // A final sort to ensure the groups are interleaved correctly by date
-  // We can do this by finding the "representative" date for each item
-  // For a series, it's the date of its first part. For standalone, it's its own date.
-  const storyToDateMap = new Map<string, number>();
-  stories.forEach(s => {
-      if(s.seriesId && s.partNumber === 1) {
-          storyToDateMap.set(s.seriesId, new Date(s.publishedAt).getTime());
-      }
-  });
-
-  finalStories.sort((a, b) => {
-      const dateA = a.seriesId ? (storyToDateMap.get(a.seriesId) || 0) : new Date(a.publishedAt).getTime();
-      const dateB = b.seriesId ? (storyToDateMap.get(b.seriesId) || 0) : new Date(b.publishedAt).getTime();
-      return dateB - dateA;
-  })
-  
   return finalStories;
 }
 
@@ -117,27 +92,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     if (selectedSubgenre === 'all') {
       return allStories;
     }
-
-    // Find all series IDs that have at least one part matching the subgenre
-    const matchingSeriesIds = new Set<string>();
-    allStories.forEach(story => {
-      if (story.seriesId && story.subgenre === selectedSubgenre) {
-        matchingSeriesIds.add(story.seriesId);
-      }
-    });
-
-    // Filter stories: include all parts of matching series, and standalone stories that match
-    return allStories.filter(story => {
-      // Include if it's part of a matched series
-      if (story.seriesId && matchingSeriesIds.has(story.seriesId)) {
-        return true;
-      }
-      // Include if it's a standalone story that matches the subgenre
-      if (!story.seriesId && story.subgenre === selectedSubgenre) {
-        return true;
-      }
-      return false;
-    });
+    return allStories.filter(story => story.subgenre === selectedSubgenre);
   }, [allStories, selectedSubgenre]);
 
   if (isLoading) {
