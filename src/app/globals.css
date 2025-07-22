@@ -103,7 +103,7 @@
 }
 
 .prose p {
-    @apply my-4 leading-relaxed; /* Adds margin between paragraphs and increases line height */
+    @apply mb-5 leading-relaxed; /* Adds margin between paragraphs and increases line height */
 }
 
 
@@ -121,3 +121,5 @@
     transform: translateY(0);
   }
 }
+
+    
