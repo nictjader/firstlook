@@ -4,6 +4,7 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-context';
+import GoogleAnalytics from '@/components/analytics/google-analytics';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -34,6 +35,7 @@ export default function RootLayout({
       <body
         className={`${inter.variable} ${playfairDisplay.variable} font-sans`}
       >
+        <GoogleAnalytics measurementId="G-TCQE0Z6MKG" />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
