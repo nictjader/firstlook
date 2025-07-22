@@ -2,7 +2,7 @@
 'use server';
 
 import { generateStory } from '@/ai/flows/story-generator';
-import type { StoryGenerationOutput } from '@/ai/flows/story-generator';
+import type { StoryGenerationOutput } from '@/lib/types';
 import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';

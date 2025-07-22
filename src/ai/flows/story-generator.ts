@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { 
   Story, 
   Subgenre,
+  StoryGenerationOutput,
 } from '@/lib/types';
 import { ai } from '@/ai';
 import { type StorySeed } from '@/lib/story-seeds';
@@ -106,7 +107,6 @@ const StoryGenerationOutputSchema = z.object({
   storyData: z.custom<Omit<Story, 'publishedAt' | 'coverImageUrl'>>().optional(),
 });
 
-export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
 
 // Create a dedicated prompt object for story generation.
 const storyGenerationPrompt = ai.definePrompt({

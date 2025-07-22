@@ -126,6 +126,16 @@ export interface GenerationResult {
   aiStoryResult?: AIStoryResult;
 }
 
+const StoryGenerationOutputSchema = z.object({
+  storyId: z.string().describe('The unique ID for the generated story.'),
+  title: z.string().describe('The final title of the story.'),
+  success: z.boolean().describe('Whether the story generation was successful.'),
+  error: z.string().nullable().describe('Any error message if the generation failed.'),
+  storyData: z.custom<Omit<Story, 'publishedAt' | 'coverImageUrl'>>().optional(),
+});
+export type StoryGenerationOutput = z.infer<typeof StoryGenerationOutputSchema>;
+
+
 export interface CleanupResult {
     success: boolean;
     message: string;
