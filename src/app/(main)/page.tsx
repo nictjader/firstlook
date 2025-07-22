@@ -17,7 +17,7 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
           Discover Your Next Obsession
         </h1>
         <p className="text-muted-foreground">
-          Explore our growing library of AI-generated romance stories.
+          Explore our growing library of romance stories.
         </p>
       </div>
       <Suspense fallback={<div>Loading filter...</div>}>

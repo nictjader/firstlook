@@ -325,7 +325,7 @@ function AdminDashboardContent() {
         
         <Card>
            <CardHeader>
-            <CardTitle className="flex items-center"><Bot className="mr-2 h-5 w-5" /> AI Story Generator</CardTitle>
+            <CardTitle className="flex items-center"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
             <p className="text-sm text-muted-foreground">
               Generate new stories from the unused seeds in your library.
             </p>
