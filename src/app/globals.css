@@ -101,6 +101,11 @@
   --tw-prose-invert-td-borders: hsl(var(--border));
 }
 
+.prose p {
+    @apply my-4 leading-relaxed; /* Adds margin between paragraphs and increases line height */
+}
+
+
 .fade-in {
   animation: fadeIn 0.5s ease-out forwards;
 }

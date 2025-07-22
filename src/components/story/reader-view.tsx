@@ -24,11 +24,11 @@ import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/contexts/theme-context';
 
 const FONT_SIZES = [
-  'text-sm', // 14px
-  'text-base', // 16px
-  'text-lg', // 18px
-  'text-xl', // 20px
-  'text-2xl', // 24px
+  'text-base',   // 16px
+  'text-lg',     // 18px
+  'text-xl',     // 20px
+  'text-2xl',    // 24px
+  'text-3xl',    // 30px
 ];
 
 // --- Main View Component ---
