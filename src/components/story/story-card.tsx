@@ -10,6 +10,7 @@ import { Lock, Gem, BookOpen, Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMemo } from 'react';
 import { capitalizeWords } from '@/lib/utils';
+import { Separator } from '@/components/ui/separator';
 
 type StoryCardProps = {
   story: Story;
