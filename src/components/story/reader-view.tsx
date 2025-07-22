@@ -215,30 +215,39 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
       {otherParts.length > 0 && (
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-            <div className="p-6">
-                <h3 className="text-xl flex items-center font-semibold leading-none tracking-tight">
-                    <Library className="w-5 h-5 mr-2 text-primary" />
-                    More from {story.seriesTitle || 'this series'}
-                </h3>
-                <p className="text-sm text-muted-foreground">Follow the rest of the story.</p>
+          <div className="p-6">
+            <h3 className="text-xl flex items-center font-semibold leading-none tracking-tight">
+              <Library className="w-5 h-5 mr-2 text-primary" />
+              More from {story.seriesTitle || 'this series'}
+            </h3>
+            <p className="text-sm text-muted-foreground">Follow the rest of the story.</p>
+          </div>
+          <div className="p-6 pt-0">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {otherParts.map(part => (
+                <Link key={part.storyId} href={`/stories/${part.storyId}`} className="block group">
+                  <div className="rounded-lg border overflow-hidden h-full flex flex-col hover:shadow-lg transition-shadow">
+                    <div className="relative w-full aspect-video bg-muted">
+                      <Image
+                        src={part.coverImageUrl || placeholderImage}
+                        alt={`Cover for ${part.title}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                    <div className="p-3 flex-grow flex flex-col">
+                      <p className="text-xs text-muted-foreground">Part {part.partNumber}</p>
+                      <p className="font-semibold text-sm group-hover:text-primary transition-colors flex-grow">{part.title}</p>
+                    </div>
+                  </div>
+                </Link>
+              ))}
             </div>
-            <div className="p-6 pt-0">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {otherParts.map(part => (
-                        <Link key={part.storyId} href={`/stories/${part.storyId}`} passHref>
-                            <Button
-                                variant="outline"
-                                className="w-full h-full text-left flex-col items-start p-3 justify-start"
-                            >
-                                <span className="text-xs text-muted-foreground">Part {part.partNumber}</span>
-                                <span className="font-semibold truncate text-primary">{part.title}</span>
-                            </Button>
-                        </Link>
-                    ))}
-                </div>
-            </div>
+          </div>
         </div>
       )}
     </div>
   );
 }
+
+    
