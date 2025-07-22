@@ -136,7 +136,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
      <div className="space-y-4 pt-6 px-6">
         <div className="flex flex-wrap items-center gap-2">
             <Badge variant="secondary" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
-            {story.tags?.map(tag => <Badge key={tag} variant="outline" className="px-3 py-1 text-sm hidden sm:inline-flex">{capitalizeWords(tag)}</Badge>)}
         </div>
         <p className="text-base text-muted-foreground prose dark:prose-invert max-w-none">{story.previewText}</p>
         <div className="flex-col items-center gap-4 bg-muted/50 p-6 rounded-lg text-center mt-6">
@@ -222,7 +221,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
              <div className="space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="secondary" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
-                    {story.tags?.map(tag => <Badge key={tag} variant="outline" className="px-3 py-1 text-sm hidden sm:inline-flex">{capitalizeWords(tag)}</Badge>)}
                 </div>
                 <p className="text-base text-muted-foreground prose dark:prose-invert max-w-none">{story.previewText}</p>
                  <Button size="lg" className="w-full h-12 text-lg" onClick={() => setIsReaderMode(true)}>

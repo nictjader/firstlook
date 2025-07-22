@@ -72,7 +72,6 @@ export interface Story {
   coverImageUrl?: string;
   coverImagePrompt: string;
   author?: string;
-  tags?: string[];
   status: 'published' | 'failed';
   primarySortKey: string;
   secondarySortKey: number;
@@ -129,7 +128,6 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       coverImageUrl: data.coverImageUrl || '',
       coverImagePrompt: data.coverImagePrompt || '',
       author: data.author || 'Anonymous',
-      tags: data.tags || [],
       status: data.status || 'published',
       primarySortKey: data.primarySortKey || storyId,
       secondarySortKey: data.secondarySortKey === undefined ? 0 : data.secondarySortKey,

@@ -8,14 +8,16 @@
 
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
-import { Story, Subgenre } from '@/lib/types';
-import { ai } from '@/ai';
 import { 
+  Story, 
+  Subgenre,
   StoryGenerationInputSchema, 
   StoryGenerationOutputSchema,
   StoryGenerationInput,
   StoryGenerationOutput
 } from '@/lib/types';
+import { ai } from '@/ai';
+
 
 
 // This Zod schema defines the structure we expect the AI to return for a story.
@@ -76,11 +78,6 @@ const StorySchema = z.object({
     ),
   wordCount: z.number().describe('The total word count of the generated story content.'),
   author: z.string().describe('A plausible-sounding, fictional author name for the story.'),
-  tags: z
-    .array(z.string())
-    .describe(
-      'An array of 3-5 relevant tags or tropes for the story (e.g., "enemies-to-lovers", "fake-relationship", "slow-burn"). These should be consistent with the seed.'
-    ),
   status: z.enum(['published', 'failed']).describe("Set to 'published' on success."),
 });
 
@@ -162,7 +159,6 @@ const storyGenerationFlow = ai.defineFlow(
         subgenre: output.subgenre as Subgenre,
         wordCount: output.wordCount,
         author: output.author,
-        tags: output.tags,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt,
         seriesId: isSeriesStory ? potentialSeriesId : undefined,
