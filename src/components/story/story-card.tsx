@@ -40,8 +40,18 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
             data-ai-hint="romance book cover"
             priority={isPriority}
           />
-           <div className="absolute top-0 left-0 right-0 p-2 flex justify-between items-start">
-            <Badge variant="secondary" className="bg-black/60 text-white border-transparent text-xs">
+           <div className="absolute top-2 right-2">
+             {isFavorited && (
+                <div className="bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow-md">
+                    <Heart className="w-4 h-4 text-red-500 fill-current" />
+                </div>
+            )}
+           </div>
+        </div>
+      </Link>
+      <div className="p-4 flex-grow flex flex-col">
+        <div className="flex items-center gap-2 mb-2">
+            <Badge variant="secondary" className="text-xs">
               {subgenreText}
             </Badge>
             {!isFree && (
@@ -49,11 +59,9 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
                 <Lock className="w-3 h-3 mr-1" /> Premium
               </Badge>
             )}
-          </div>
         </div>
-      </Link>
-      <div className="p-4 flex-grow flex flex-col">
-        <h3 className="text-base font-headline font-semibold leading-tight mb-1 hover:text-primary transition-colors line-clamp-2 min-h-[2.5rem]">
+
+        <h3 className="text-base font-headline font-semibold leading-tight mb-2 hover:text-primary transition-colors min-h-[2.5rem]">
            <Link href={`/stories/${storyId}`}>{title}</Link>
         </h3>
         
@@ -69,20 +77,22 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
 
         <p className="text-sm text-muted-foreground line-clamp-3 flex-grow">{previewText}</p>
       </div>
-      <div className="px-4 py-3 flex justify-between items-center gap-2 border-t mt-auto">
-        <div className="flex items-center">
-            {isFree ? (
-              <Badge variant="success" className="text-sm">Free</Badge>
-            ) : (
-                <div className="flex items-center text-primary font-semibold text-sm">
-                <Gem className="w-4 h-4 mr-1.5 text-yellow-500" /> {coinCost} Coins
-                </div>
-            )}
-        </div>
+      <div className="p-4 pt-3 border-t mt-auto">
         <Link href={`/stories/${storyId}`} passHref>
-          <Button variant="default" size="sm">
+          <Button variant="default" size="sm" className="w-full">
             <BookOpen className="w-4 h-4 mr-2" />
-            Read
+            <div className="flex items-center justify-center">
+                <span>Read Now</span>
+                {!isFree && (
+                    <>
+                        <Separator orientation="vertical" className="h-4 mx-2 bg-primary-foreground/50" />
+                        <div className="flex items-center">
+                            <Gem className="w-3 h-3 mr-1" />
+                            <span>{coinCost}</span>
+                        </div>
+                    </>
+                )}
+            </div>
           </Button>
         </Link>
       </div>
