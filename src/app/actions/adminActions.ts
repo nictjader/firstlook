@@ -247,31 +247,41 @@ export async function removeTagsAction(): Promise<CleanupResult> {
 
 /**
  * Calculates the most cost-effective way to purchase a given number of coins.
+ * This is a classic dynamic programming problem (Unbounded Knapsack / Change-making problem).
  * @param totalCoinsNeeded The total number of coins to purchase.
  * @returns The minimum cost in USD.
  */
 function calculateMinimumCost(totalCoinsNeeded: number): number {
-    const sortedPackages = [...coinPackages].sort((a, b) => b.coins / b.priceUSD - a.coins / a.priceUSD);
-    let cost = 0;
-    let coinsRemaining = totalCoinsNeeded;
-
-    for (const pkg of sortedPackages) {
-        const count = Math.floor(coinsRemaining / pkg.coins);
-        cost += count * pkg.priceUSD;
-        coinsRemaining %= pkg.coins;
+    if (totalCoinsNeeded <= 0) {
+        return 0;
     }
 
-    if (coinsRemaining > 0) {
-        const smallestPackage = sortedPackages.reduce((prev, curr) => (prev.coins < curr.coins ? prev : curr));
-        const smallestPackageThatCovers = coinPackages.filter(p => p.coins >= coinsRemaining).sort((a,b) => a.priceUSD - b.priceUSD)[0];
-        if (smallestPackageThatCovers) {
-          cost += smallestPackageThatCovers.priceUSD;
-        } else {
-           cost += smallestPackage.priceUSD;
+    // Sort packages by coins to handle cases where buying a larger package is cheaper.
+    const sortedPackages = [...coinPackages].sort((a, b) => a.coins - b.coins);
+
+    // dp[i] will be storing the minimum cost to get 'i' coins.
+    // Initialize with a value larger than any possible cost.
+    const dp = new Array(totalCoinsNeeded + 1).fill(Infinity);
+
+    // Base case: cost to get 0 coins is 0.
+    dp[0] = 0;
+
+    for (let i = 1; i <= totalCoinsNeeded; i++) {
+        for (const pkg of sortedPackages) {
+            if (pkg.coins <= i) {
+                // If we use this package, the cost is its price + the minimum cost for the remaining coins.
+                const cost = pkg.priceUSD + dp[i - pkg.coins];
+                dp[i] = Math.min(dp[i], cost);
+            } else {
+                // If the package provides more coins than currently needed,
+                // it might still be the cheapest option.
+                dp[i] = Math.min(dp[i], pkg.priceUSD);
+            }
         }
     }
-
-    return parseFloat(cost.toFixed(2));
+    
+    // The result could have floating point inaccuracies, so we round to 2 decimal places.
+    return parseFloat(dp[totalCoinsNeeded].toFixed(2));
 }
 
 
@@ -420,3 +430,6 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         updated: updatedCount,
     };
 }
+
+
+    
