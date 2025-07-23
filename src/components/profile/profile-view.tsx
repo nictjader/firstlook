@@ -78,10 +78,6 @@ export default function ProfileView() {
     return <p>Redirecting to login...</p>;
   }
 
-  const lastLoginDate = new Date(userProfile.lastLogin).toLocaleString() ?? 'N/A';
-  const memberSinceDate = new Date(userProfile.createdAt).toLocaleDateString() ?? 'N/A';
-
-
   return (
     <div className="space-y-8">
        <Card className="overflow-hidden shadow-lg">
@@ -187,8 +183,6 @@ export default function ProfileView() {
       </div>
       <div className="mt-8 text-center text-xs text-muted-foreground">
         <p>User ID: {userProfile.userId}</p>
-        <p>Last Login: {lastLoginDate}</p>
-         <p>Member Since: {memberSinceDate}</p>
       </div>
     </div>
   );

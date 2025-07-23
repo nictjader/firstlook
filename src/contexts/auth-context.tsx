@@ -51,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           userId: user.uid,
           email: user.email,
           displayName: user.displayName,
-          coins: 100, 
+          coins: 0, 
           unlockedStories: [],
           readStories: [],
           favoriteStories: [],
