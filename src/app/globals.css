@@ -4,54 +4,54 @@
 
 @layer base {
   :root {
-    --background: 222 47% 95%; /* Lighter Slate Blue */
-    --foreground: 222 47% 11%;
-    --card: 222 47% 98%;
-    --card-foreground: 222 47% 11%;
-    --popover: 222 47% 98%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 226 25% 41%; /* #525f7f */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 222 47% 90%;
-    --secondary-foreground: 222 47% 21%;
-    --muted: 222 47% 90%;
-    --muted-foreground: 222 47% 44%;
-    --accent: 207 100% 42%; /* #0074d4 */
-    --accent-foreground: 210 40% 98%;
+    --background: 345 60% 97%; /* Very light pink */
+    --foreground: 343 30% 25%; /* Dark, muted magenta */
+    --card: 345 60% 99%;
+    --card-foreground: 343 30% 25%;
+    --popover: 345 60% 99%;
+    --popover-foreground: 343 30% 25%;
+    --primary: 343 74% 60%; /* Soft magenta-pink D87093 */
+    --primary-foreground: 355 100% 98%;
+    --secondary: 345 60% 94%;
+    --secondary-foreground: 343 74% 40%;
+    --muted: 345 60% 94%;
+    --muted-foreground: 343 30% 55%;
+    --accent: 343 80% 70%; /* Brighter accent pink */
+    --accent-foreground: 355 100% 98%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
-    --border: 222 47% 85%;
-    --input: 222 47% 85%;
-    --ring: 207 100% 42%;
+    --border: 345 40% 90%;
+    --input: 345 40% 90%;
+    --ring: 343 74% 60%;
     --radius: 0.5rem;
 
-    --chart-1: 226 25% 41%;
-    --chart-2: 207 100% 42%;
+    --chart-1: 343 74% 60%;
+    --chart-2: 343 80% 70%;
     --chart-3: 0 72% 51%;
     --chart-4: 280 95% 65%;
     --chart-5: 250 80% 70%;
   }
 
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 14%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 226 25% 51%; /* Brighter #525f7f for dark mode */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 222 47% 21%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 222 47% 21%;
-    --muted-foreground: 222 47% 64%;
-    --accent: 207 100% 52%; /* Brighter #0074d4 for dark mode */
-    --accent-foreground: 210 40% 98%;
+    --background: 343 30% 12%; /* Dark magenta-charcoal */
+    --foreground: 345 20% 92%;
+    --card: 343 30% 16%;
+    --card-foreground: 345 20% 92%;
+    --popover: 343 30% 12%;
+    --popover-foreground: 345 20% 92%;
+    --primary: 343 74% 60%; /* Soft magenta-pink */
+    --primary-foreground: 355 100% 98%;
+    --secondary: 343 30% 25%;
+    --secondary-foreground: 345 20% 92%;
+    --muted: 343 30% 25%;
+    --muted-foreground: 345 20% 75%;
+    --accent: 343 80% 70%; /* Brighter accent pink */
+    --accent-foreground: 355 100% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 85.7% 97.3%;
-    --border: 222 47% 21%;
-    --input: 222 47% 21%;
-    --ring: 207 100% 52%;
+    --border: 343 30% 25%;
+    --input: 343 30% 25%;
+    --ring: 343 74% 60%;
   }
 }
 
