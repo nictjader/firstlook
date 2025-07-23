@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, Coins, FileText, Type, Lock, Search } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, Coins, FileText, Type, Lock, Search, DollarSign } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -268,7 +268,7 @@ function AdminDashboardContent() {
                                     />
                                     <MetricCard 
                                         title="Total Chapters" 
-                                        value={analysisResult.totalStories.toLocaleString()} 
+                                        value={analysisResult.totalChapters.toLocaleString()} 
                                         icon={BookText}
                                         description="Total number of story chapters in the DB."
                                     />
@@ -314,7 +314,7 @@ function AdminDashboardContent() {
                             {/* Monetization Metrics */}
                             <div>
                                <h3 className="text-lg font-semibold mb-2 flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</h3>
-                               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                                     <Card className="lg:col-span-1">
                                         <CardHeader>
                                             <CardTitle className="text-base flex items-center"><Lock className="mr-2 h-4 w-4 text-primary" />Paid Chapters</CardTitle>
@@ -335,10 +335,16 @@ function AdminDashboardContent() {
                                         description="Total coins to unlock all paid content."
                                     />
                                     <MetricCard 
+                                        title="Total Library Value" 
+                                        value={`$${analysisResult.totalValueUSD.toLocaleString()}`}
+                                        icon={DollarSign}
+                                        description="Min. USD cost to unlock all paid content."
+                                    />
+                                    <MetricCard 
                                         title="Avg. Cost / Paid Chapter" 
-                                        value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
+                                        value={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)}`}
                                         icon={Type}
-                                        description="Average cost for a premium chapter."
+                                        description={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
                                     />
                                 </div>
                             </div>

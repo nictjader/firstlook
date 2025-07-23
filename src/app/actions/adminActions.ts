@@ -8,10 +8,18 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { CleanupResult, Story, DatabaseMetrics } from '@/lib/types';
+import type { CleanupResult, Story, DatabaseMetrics, CoinPackage } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
+
+// Hardcode coin packages here to avoid importing a client component in a server action.
+const coinPackages: CoinPackage[] = [
+  { id: 'cp_100', coins: 100, priceUSD: 1.99, description: 'Unlocks 2 stories' },
+  { id: 'cp_275', coins: 275, priceUSD: 4.99, description: 'Unlocks 5 stories' },
+  { id: 'cp_650', coins: 650, priceUSD: 9.99, description: 'Unlocks 13 Stories', bestValue: true },
+  { id: 'cp_1500', coins: 1500, priceUSD: 19.99, description: 'Unlocks 30 Stories' },
+];
 
 
 /**
@@ -238,6 +246,36 @@ export async function removeTagsAction(): Promise<CleanupResult> {
 
 
 /**
+ * Calculates the most cost-effective way to purchase a given number of coins.
+ * @param totalCoinsNeeded The total number of coins to purchase.
+ * @returns The minimum cost in USD.
+ */
+function calculateMinimumCost(totalCoinsNeeded: number): number {
+    const sortedPackages = [...coinPackages].sort((a, b) => b.coins / b.priceUSD - a.coins / a.priceUSD);
+    let cost = 0;
+    let coinsRemaining = totalCoinsNeeded;
+
+    for (const pkg of sortedPackages) {
+        const count = Math.floor(coinsRemaining / pkg.coins);
+        cost += count * pkg.priceUSD;
+        coinsRemaining %= pkg.coins;
+    }
+
+    if (coinsRemaining > 0) {
+        const smallestPackage = sortedPackages.reduce((prev, curr) => (prev.coins < curr.coins ? prev : curr));
+        const smallestPackageThatCovers = coinPackages.filter(p => p.coins >= coinsRemaining).sort((a,b) => a.priceUSD - b.priceUSD)[0];
+        if (smallestPackageThatCovers) {
+          cost += smallestPackageThatCovers.priceUSD;
+        } else {
+           cost += smallestPackage.priceUSD;
+        }
+    }
+
+    return parseFloat(cost.toFixed(2));
+}
+
+
+/**
  * Analyzes all stories in the database to provide clear, actionable composition and pricing metrics.
  */
 export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
@@ -246,17 +284,19 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const snapshot = await storiesRef.get();
 
     const emptyMetrics: DatabaseMetrics = {
-        totalStories: 0,
+        totalChapters: 0,
         totalUniqueStories: 0,
         standaloneStories: 0,
         multiPartSeriesCount: 0,
         storiesPerGenre: {},
-        totalPaidChapters: 0,
         totalWordCount: 0,
+        totalPaidChapters: 0,
         totalCoinCost: 0,
         avgCoinCostPerPaidChapter: 0,
         paidStandaloneStories: 0,
         paidSeriesChapters: 0,
+        totalValueUSD: 0,
+        avgValuePerPaidChapterUSD: 0,
     };
 
     if (snapshot.empty) {
@@ -315,20 +355,24 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const multiPartSeriesCount = seriesGenres.size;
     const totalUniqueStories = standaloneStoriesCount + multiPartSeriesCount;
-    const totalStories = stories.length;
+    const totalChapters = stories.length;
     const paidSeriesChapters = Array.from(seriesData.values()).reduce((acc, s) => acc + s.paidParts, 0);
+    
+    const totalValueUSD = calculateMinimumCost(totalCoinCost);
 
     return {
-        totalStories,
+        totalChapters,
         totalUniqueStories,
         standaloneStories: standaloneStoriesCount,
         multiPartSeriesCount,
         storiesPerGenre,
-        totalPaidChapters: paidChaptersCount,
         totalWordCount,
+        totalPaidChapters: paidChaptersCount,
         totalCoinCost,
         avgCoinCostPerPaidChapter: paidChaptersCount > 0 ? Math.round(totalCoinCost / paidChaptersCount) : 0,
         paidStandaloneStories,
         paidSeriesChapters,
+        totalValueUSD: totalValueUSD,
+        avgValuePerPaidChapterUSD: paidChaptersCount > 0 ? parseFloat((totalValueUSD / paidChaptersCount).toFixed(2)) : 0,
     };
 }

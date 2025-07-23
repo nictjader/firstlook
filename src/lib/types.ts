@@ -182,7 +182,7 @@ export interface PurchaseResult {
 
 export interface DatabaseMetrics {
   // Composition Metrics
-  totalStories: number;
+  totalChapters: number;
   totalUniqueStories: number;
   standaloneStories: number;
   multiPartSeriesCount: number;
@@ -195,4 +195,8 @@ export interface DatabaseMetrics {
   avgCoinCostPerPaidChapter: number;
   paidStandaloneStories: number;
   paidSeriesChapters: number;
+
+  // USD Value Metrics
+  totalValueUSD: number;
+  avgValuePerPaidChapterUSD: number;
 }
