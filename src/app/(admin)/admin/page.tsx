@@ -285,23 +285,23 @@ function AdminDashboardContent() {
                                         title="Total Unique Stories" 
                                         value={analysisResult.totalUniqueStories.toLocaleString()} 
                                         icon={Library}
-                                        description="Standalone stories + multi-chapter series."
+                                        description="Standalone stories + series."
                                     />
                                     <MetricCard 
                                         title="Total Chapters" 
                                         value={analysisResult.totalChapters.toLocaleString()} 
                                         icon={BookText}
-                                        description="Total number of story entries in the DB."
+                                        description="Total individual story parts."
                                     />
                                     <MetricCard 
                                         title="Total Words" 
                                         value={analysisResult.totalWordCount.toLocaleString()} 
                                         icon={FileText}
-                                        description="Total word count of all chapters."
+                                        description="Across all story content."
                                     />
                                 </div>
                                 <Card>
-                                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 md:divide-x">
+                                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-border">
                                     <div className="p-2">
                                       <h4 className="font-semibold text-base flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary" />Story Types</h4>
                                       <div className="text-sm space-y-2">
@@ -404,7 +404,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
 
     
