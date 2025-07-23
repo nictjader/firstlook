@@ -325,7 +325,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     let totalCoinCost = 0;
     let paidChaptersCount = 0;
     let paidStandaloneStories = 0;
-    const seriesData = new Map<string, { totalParts: number, paidParts: number }>();
+    const seriesData = new Map<string, { totalChapters: number, paidChapters: number }>();
 
     stories.forEach(story => {
         const genre = story.subgenre || 'uncategorized';
@@ -343,12 +343,12 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
                 seriesGenres.set(story.seriesId, genre);
             }
             if (!seriesData.has(story.seriesId)) {
-                seriesData.set(story.seriesId, { totalParts: 0, paidParts: 0 });
+                seriesData.set(story.seriesId, { totalChapters: 0, paidChapters: 0 });
             }
             const currentSeries = seriesData.get(story.seriesId)!;
-            currentSeries.totalParts++;
+            currentSeries.totalChapters++;
             if (story.isPremium && story.coinCost > 0) {
-                currentSeries.paidParts++;
+                currentSeries.paidChapters++;
             }
         } else {
             standaloneStoriesCount++;
@@ -366,7 +366,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const multiPartSeriesCount = seriesGenres.size;
     const totalUniqueStories = standaloneStoriesCount + multiPartSeriesCount;
     const totalChapters = stories.length;
-    const paidSeriesChapters = Array.from(seriesData.values()).reduce((acc, s) => acc + s.paidParts, 0);
+    const paidSeriesChapters = Array.from(seriesData.values()).reduce((acc, s) => acc + s.paidChapters, 0);
     
     const totalValueUSD = calculateMinimumCost(totalCoinCost);
 
@@ -407,7 +407,7 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
         
-        // Update price only for stories that are premium and don't already have the new price
+        // Update price only for stories that are premium (cost > 0) and don't already have the new price
         if (story.isPremium && story.coinCost > 0 && story.coinCost !== NEW_PREMIUM_PRICE) {
             const storyRef = db.collection('stories').doc(doc.id);
             batch.update(storyRef, { coinCost: NEW_PREMIUM_PRICE });

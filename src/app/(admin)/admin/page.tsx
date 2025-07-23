@@ -290,7 +290,7 @@ function AdminDashboardContent() {
                                         title="Total Chapters" 
                                         value={analysisResult.totalChapters.toLocaleString()} 
                                         icon={BookText}
-                                        description="Total number of story chapters in the DB."
+                                        description="Total number of story entries in the DB."
                                     />
                                     <MetricCard 
                                         title="Total Words" 
