@@ -301,15 +301,15 @@ function AdminDashboardContent() {
                                     />
                                 </div>
                                 <Card>
-                                  <CardContent className="p-4 flex flex-col md:flex-row md:divide-x">
-                                    <div className="flex-1 p-2">
+                                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 md:divide-x">
+                                    <div className="p-2">
                                       <h4 className="font-semibold text-base flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary" />Story Types</h4>
                                       <div className="text-sm space-y-2">
                                         <p className="flex justify-between"><span>Standalone Stories:</span> <strong>{analysisResult.standaloneStories}</strong></p>
                                         <p className="flex justify-between"><span>Multi-Chapter Series:</span> <strong>{analysisResult.multiPartSeriesCount}</strong></p>
                                       </div>
                                     </div>
-                                    <div className="flex-1 p-2 pt-4 md:pt-2 md:pl-4">
+                                    <div className="p-2 pt-4 md:pt-2 md:pl-4">
                                       <h4 className="font-semibold text-base flex items-center mb-2"><Tags className="mr-2 h-4 w-4 text-primary" />Genre Breakdown</h4>
                                       <div className="text-sm space-y-1">
                                         {Object.entries(analysisResult.storiesPerGenre).length > 0 ? (
@@ -404,5 +404,7 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
 
     
