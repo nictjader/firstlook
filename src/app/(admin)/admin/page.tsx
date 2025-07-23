@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -314,7 +313,7 @@ function AdminDashboardContent() {
                             {/* Monetization Metrics */}
                             <div>
                                <h3 className="text-lg font-semibold mb-2 flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</h3>
-                               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                                     <Card className="lg:col-span-1">
                                         <CardHeader>
                                             <CardTitle className="text-base flex items-center"><Lock className="mr-2 h-4 w-4 text-primary" />Paid Chapters</CardTitle>
@@ -329,16 +328,10 @@ function AdminDashboardContent() {
                                         </CardContent>
                                     </Card>
                                     <MetricCard 
-                                        title="Total Coin Cost" 
-                                        value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
-                                        icon={Coins}
-                                        description="Total coins to unlock all paid content."
-                                    />
-                                    <MetricCard 
                                         title="Total Library Value" 
                                         value={`$${analysisResult.totalValueUSD.toLocaleString()}`}
                                         icon={DollarSign}
-                                        description="Min. USD cost to unlock all paid content."
+                                        description={`${analysisResult.totalCoinCost.toLocaleString()} Coins to unlock all paid content.`}
                                     />
                                     <MetricCard 
                                         title="Avg. Cost / Paid Chapter" 
@@ -391,7 +384,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
-
-    
