@@ -1,4 +1,5 @@
-<svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="120" height="120" rx="24" fill="#FEF0F5"/>
-<path d="M84.4184 45.0335C78.4341 38.3335 69.3101 37.5869 62.3384 42.6669L60.0021 44.6935L57.6657 42.6669C50.6941 37.5869 41.5701 38.3335 35.5857 45.0335C28.4314 52.9202 28.6184 64.5469 36.0341 72.7069L58.2121 95.3335C59.2081 96.3518 60.7961 96.3518 61.7921 95.3335L83.9701 72.7069C91.3857 64.5469 91.5727 52.9202 84.4184 45.0335Z" fill="#D87093"/>
+<svg width="1024" height="512" viewBox="0 0 1024 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect width="1024" height="512" fill="white"/>
+<path d="M248 352C232 344 160 288 128 240C72 160 80 72 144 32C184 8 232 32 248 56C264 32 312 8 352 32C416 72 424 160 368 240C336 288 264 344 248 352Z" fill="#D87093"/>
+<text fill="#4D3D47" xml:space="preserve" style="white-space: pre" font-family="Playfair Display" font-size="128" font-weight="bold" letter-spacing="0em"><tspan x="448" y="296.531">Siren</tspan></text>
 </svg>
