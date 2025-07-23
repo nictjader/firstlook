@@ -276,8 +276,7 @@ function AdminDashboardContent() {
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
                     <AlertDescription asChild>
-                        <div className="space-y-6 mt-4">
-                             {/* Content Composition Section */}
+                         <div className="space-y-6 mt-4">
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-lg flex items-center"><Book className="mr-2 h-5 w-5 text-primary" />Content Composition</CardTitle>
@@ -332,13 +331,12 @@ function AdminDashboardContent() {
                                 </CardContent>
                             </Card>
 
-                            {/* Monetization Metrics Section */}
                             <Card>
                                 <CardHeader>
                                     <CardTitle className="text-lg flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</CardTitle>
                                 </CardHeader>
                                 <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                    <Card className="lg:col-span-1">
+                                     <Card className="lg:col-span-1">
                                         <CardHeader>
                                             <CardTitle className="text-base flex items-center"><Lock className="mr-2 h-4 w-4 text-primary" />Paid Chapters</CardTitle>
                                         </CardHeader>
@@ -361,7 +359,7 @@ function AdminDashboardContent() {
                                         title="Avg. Cost / Paid Chapter" 
                                         value={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)}`}
                                         icon={Type}
-                                        description={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
+                                        description={`${analysisResult.avgCoinCostPerPaidChapter} Coins. Based on the 50-coin premium price.`}
                                     />
                                 </CardContent>
                             </Card>
@@ -409,3 +407,4 @@ export default function AdminPage() {
     return <AdminDashboardContent />;
 }
 
+    
