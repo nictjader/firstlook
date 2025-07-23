@@ -7,7 +7,6 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-context';
 import GoogleAnalytics from '@/components/analytics/google-analytics';
 
-// The Inter font has been removed to use the System UI font stack.
 // The font-sans class in tailwind.config.js will now apply the system fonts.
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],

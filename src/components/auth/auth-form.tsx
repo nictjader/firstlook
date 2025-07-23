@@ -90,7 +90,7 @@ export default function AuthForm() {
     <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
       <div className="p-6 text-center">
         <div className="flex justify-center items-center mb-4">
-          <Logo isTextVisible={false} />
+          <Logo />
         </div>
         <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight">Welcome to FirstLook</h3>
         <p className="text-sm text-muted-foreground">Unforgettable first encounters.</p>
