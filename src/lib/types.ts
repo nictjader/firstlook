@@ -189,7 +189,7 @@ export interface DatabaseMetrics {
   totalWordCount: number;
   
   // Monetization Metrics
-  totalUnlockableChapters: number;
+  totalPaidChapters: number;
   totalCoinCost: number;
   avgCoinCostPerPaidChapter: number;
   paidStandaloneStories: number;

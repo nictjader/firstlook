@@ -316,13 +316,13 @@ function AdminDashboardContent() {
                                <h3 className="text-lg font-semibold mb-2 flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</h3>
                                <div className="grid gap-4 md:grid-cols-3">
                                     <MetricCard 
-                                        title="Unlockable Chapters" 
-                                        value={analysisResult.totalUnlockableChapters.toLocaleString()} 
+                                        title="Paid Chapters" 
+                                        value={analysisResult.totalPaidChapters.toLocaleString()} 
                                         icon={Lock}
                                         description="Total chapters that require payment."
                                     />
                                     <MetricCard 
-                                        title="Total Unlock Cost" 
+                                        title="Total Coin Cost" 
                                         value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
                                         icon={Coins}
                                         description="Total coins to unlock all paid content."
