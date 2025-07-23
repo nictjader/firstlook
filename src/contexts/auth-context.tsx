@@ -10,7 +10,7 @@ import type { DocumentData } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import { docToUserProfile } from '@/lib/types';
 
-const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
+const LOCAL_STORAGE_READ_KEY = 'siren_read_stories';
 
 interface AuthContextType {
   user: User | null;
@@ -100,8 +100,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           let profile = await fetchUserProfile(user.uid);
           if (profile) {
             const userDocRef = doc(db, "users", user.uid);
-            await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
-            // Refetch after update to get the server-resolved timestamp
+            await updateDoc(userDocRef, { 
+                lastLogin: serverTimestamp(),
+                // Also update email in Firestore if it has changed in Auth
+                email: user.email 
+            });
+            // Refetch after update to get the latest data
             profile = await fetchUserProfile(user.uid);
           } else {
             profile = await createUserProfile(user);
