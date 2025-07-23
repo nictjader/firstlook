@@ -116,8 +116,7 @@ function LoginContent() {
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => completeSignIn(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePromptSubmit}>Confirm</Aler
-tDialogAction>
+            <AlertDialogAction onClick={handlePromptSubmit}>Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
