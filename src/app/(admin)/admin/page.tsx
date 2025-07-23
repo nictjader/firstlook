@@ -6,7 +6,7 @@ import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database,
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -97,6 +97,7 @@ function AdminDashboardContent() {
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
+  const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
@@ -132,6 +133,22 @@ function AdminDashboardContent() {
         setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
     } finally {
         setIsCleaning(false);
+    }
+  };
+  
+  const handleStandardizePrices = async () => {
+    setIsPricing(true);
+    setCleanupResult(null);
+    try {
+      const result = await standardizeStoryPricesAction();
+      setCleanupResult(result);
+      if (result.success && analysisResult) {
+        await handleAnalyzeDatabase();
+      }
+    } catch (error: any) {
+        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
+    } finally {
+        setIsPricing(false);
     }
   };
 
@@ -190,7 +207,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing;
 
   return (
     <>
@@ -223,6 +240,10 @@ function AdminDashboardContent() {
                   {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                   {isAnalyzing ? 'Analyzing...' : 'Analyze Database'}
                 </Button>
+                 <Button onClick={handleStandardizePrices} disabled={isToolRunning} variant="outline">
+                    {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                    {isPricing ? 'Updating...' : 'Standardize Story Prices'}
+                </Button>
                 <Button onClick={handleStandardizeGenres} disabled={isToolRunning} variant="outline">
                     {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
                     {isCleaning ? 'Cleaning...' : 'Standardize Genres'}
@@ -236,7 +257,7 @@ function AdminDashboardContent() {
               {cleanupResult && (
                 <Alert variant={cleanupResult.success ? 'success' : 'destructive'}>
                   <AlertCircle className="h-4 w-4" />
-                  <AlertTitle>{cleanupResult.success ? 'Cleanup Complete' : 'Cleanup Failed'}</AlertTitle>
+                  <AlertTitle>{cleanupResult.success ? 'Operation Complete' : 'Operation Failed'}</AlertTitle>
                   <AlertDescription>{cleanupResult.message}</AlertDescription>
                 </Alert>
               )}

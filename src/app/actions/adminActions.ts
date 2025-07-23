@@ -376,3 +376,47 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         avgValuePerPaidChapterUSD: paidChaptersCount > 0 ? parseFloat((totalValueUSD / paidChaptersCount).toFixed(2)) : 0,
     };
 }
+
+
+/**
+ * A one-time action to standardize the coinCost of all premium stories.
+ */
+export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.get();
+
+    if (snapshot.empty) {
+        return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
+    }
+
+    const batch = db.batch();
+    let updatedCount = 0;
+    const NEW_PREMIUM_PRICE = 50;
+
+    snapshot.docs.forEach(doc => {
+        const story = doc.data() as Story;
+        
+        // Update price only for stories that are premium and don't already have the new price
+        if (story.isPremium && story.coinCost > 0 && story.coinCost !== NEW_PREMIUM_PRICE) {
+            const storyRef = db.collection('stories').doc(doc.id);
+            batch.update(storyRef, { coinCost: NEW_PREMIUM_PRICE });
+            updatedCount++;
+        }
+    });
+
+    if (updatedCount > 0) {
+        await batch.commit();
+    }
+    
+    const message = updatedCount > 0 
+        ? `Successfully checked ${snapshot.size} stories and updated the price of ${updatedCount} premium stories to ${NEW_PREMIUM_PRICE} coins.`
+        : `Checked ${snapshot.size} stories. All premium stories already have the standard price.`;
+
+    return {
+        success: true,
+        message: message,
+        checked: snapshot.size,
+        updated: updatedCount,
+    };
+}
