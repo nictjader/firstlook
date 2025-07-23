@@ -8,7 +8,7 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { v4 as uuidv4 } from 'uuid';
-import { FieldValue, serverTimestamp } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 import type { CleanupResult, Story } from '@/lib/types';
 import { extractBase64FromDataUri } from '@/lib/utils';
 
@@ -63,7 +63,7 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
     const storyDocRef = getAdminDb().collection('stories').doc(storyResult.storyId);
     await storyDocRef.set({
         ...storyResult.storyData,
-        publishedAt: serverTimestamp(),
+        publishedAt: FieldValue.serverTimestamp(),
         coverImageUrl: '' // Will be updated by the cover image action
     });
 

@@ -5,7 +5,7 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import type { CoinPackage, PurchaseResult, Story } from '@/lib/types';
 import { docToStory } from '@/lib/types';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
-import { serverTimestamp, arrayUnion } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 
 /**
@@ -116,12 +116,12 @@ export async function processCoinPurchase(userId: string, pkg: CoinPackage): Pro
       packageId: pkg.id,
       coins: pkg.coins,
       priceUSD: pkg.priceUSD,
-      purchasedAt: serverTimestamp(),
+      purchasedAt: FieldValue.serverTimestamp(),
     };
 
     await userRef.update({
       coins: newCoinBalance,
-      purchaseHistory: arrayUnion(purchaseRecord),
+      purchaseHistory: FieldValue.arrayUnion(purchaseRecord),
     });
     
     return { 
@@ -137,3 +137,4 @@ export async function processCoinPurchase(userId: string, pkg: CoinPackage): Pro
     };
   }
 }
+

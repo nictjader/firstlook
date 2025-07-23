@@ -5,7 +5,7 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { UserProfile, Purchase } from '@/lib/types';
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc, arrayUnion, arrayRemove, type DocumentData, Timestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, type DocumentData, Timestamp, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 
 const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
