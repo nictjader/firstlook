@@ -238,7 +238,7 @@ export async function removeTagsAction(): Promise<CleanupResult> {
 
 
 /**
- * Analyzes all stories in the database to provide pricing and content metrics.
+ * Analyzes all stories in the database to provide clear, actionable pricing and content metrics.
  */
 export async function analyzePricingMetricsAction(): Promise<PricingMetrics> {
     const db = getAdminDb();
@@ -248,40 +248,67 @@ export async function analyzePricingMetricsAction(): Promise<PricingMetrics> {
     if (snapshot.empty) {
         return {
             totalStories: 0,
-            premiumStories: 0,
+            totalUnlockableChapters: 0,
             totalWordCount: 0,
-            averageWordCount: 0,
+            avgWordCountPerChapter: 0,
             totalCoinCost: 0,
-            averageCoinCost: 0,
+            avgCoinCostPerPaidChapter: 0,
+            standaloneStories: 0,
+            multiPartSeriesCount: 0,
+            paidStandaloneStories: 0,
+            paidSeriesChapters: 0,
         };
     }
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
-
+    
     let totalWordCount = 0;
     let totalCoinCost = 0;
-    let premiumStories = 0;
+    let paidChaptersCount = 0;
+
+    let standaloneStories = 0;
+    let paidStandaloneStories = 0;
+    const series = new Map<string, { totalParts: number, paidParts: number, wordCount: number }>();
 
     stories.forEach(story => {
         totalWordCount += story.wordCount || 0;
-        if (story.isPremium) {
+        
+        if (story.isPremium && story.coinCost > 0) {
             totalCoinCost += story.coinCost || 0;
-            premiumStories++;
+            paidChaptersCount++;
+        }
+        
+        if (story.seriesId) {
+            if (!series.has(story.seriesId)) {
+                series.set(story.seriesId, { totalParts: 0, paidParts: 0, wordCount: 0 });
+            }
+            const currentSeries = series.get(story.seriesId)!;
+            currentSeries.totalParts++;
+            currentSeries.wordCount += story.wordCount || 0;
+            if (story.isPremium && story.coinCost > 0) {
+                currentSeries.paidParts++;
+            }
+        } else {
+            standaloneStories++;
+            if (story.isPremium && story.coinCost > 0) {
+                paidStandaloneStories++;
+            }
         }
     });
 
     const totalStories = stories.length;
-    const averageWordCount = totalStories > 0 ? totalWordCount / totalStories : 0;
-    const averageCoinCost = premiumStories > 0 ? totalCoinCost / premiumStories : 0;
-    
+    const paidSeriesChapters = Array.from(series.values()).reduce((acc, s) => acc + s.paidParts, 0);
+
     return {
         totalStories,
-        premiumStories,
+        totalUnlockableChapters: paidChaptersCount,
         totalWordCount,
-        averageWordCount,
+        avgWordCountPerChapter: totalStories > 0 ? Math.round(totalWordCount / totalStories) : 0,
         totalCoinCost,
-        averageCoinCost,
+        avgCoinCostPerPaidChapter: paidChaptersCount > 0 ? Math.round(totalCoinCost / paidChaptersCount) : 0,
+        standaloneStories,
+        multiPartSeriesCount: series.size,
+        paidStandaloneStories,
+        paidSeriesChapters,
     };
 }
-
-    

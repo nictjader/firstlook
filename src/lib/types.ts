@@ -181,11 +181,13 @@ export interface PurchaseResult {
 
 export interface PricingMetrics {
   totalStories: number;
-  premiumStories: number;
+  totalUnlockableChapters: number;
   totalWordCount: number;
-  averageWordCount: number;
+  avgWordCountPerChapter: number;
   totalCoinCost: number;
-  averageCoinCost: number;
+  avgCoinCostPerPaidChapter: number;
+  standaloneStories: number;
+  multiPartSeriesCount: number;
+  paidStandaloneStories: number;
+  paidSeriesChapters: number;
 }
-
-    

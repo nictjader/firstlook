@@ -3,18 +3,19 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, BarChart3 } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, BarChart3, Coins, FileText, Type } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzePricingMetricsAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
 import { type Story, type GeneratedStoryIdentifiers, type CleanupResult, type StoryCountBreakdown, type PricingMetrics } from '@/lib/types';
 import { getAllStories } from '@/app/actions/storyActions';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
+import { Separator } from '@/components/ui/separator';
 
 
 type Log = {
@@ -36,6 +37,22 @@ const StatusIcon = ({ status }: { status: Log['status'] }) => {
     case 'error': return <AlertCircle className="h-5 w-5 text-destructive" />;
   }
 };
+
+const MetricCard = ({ title, value, icon, description }: { title: string, value: string | number, icon: React.ElementType, description: string }) => {
+    const Icon = icon;
+    return (
+        <Card className="flex-1 min-w-[200px]">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+                <div className="text-2xl font-bold">{value}</div>
+                <p className="text-xs text-muted-foreground">{description}</p>
+            </CardContent>
+        </Card>
+    )
+}
 
 const GenerationLog = ({ logs }: { logs: Log[] }) => (
   <Card>
@@ -126,6 +143,7 @@ function AdminDashboardContent() {
   const handleCountStories = async () => {
     setIsCounting(true);
     setStoryCount(null);
+    setPricingMetrics(null);
     setCountError(null);
     try {
       const stories = await getAllStories();
@@ -145,6 +163,7 @@ function AdminDashboardContent() {
   const handleAnalyzePricing = async () => {
     setIsAnalyzingPricing(true);
     setPricingMetrics(null);
+    setStoryCount(null);
     setCountError(null);
     try {
       const metrics = await analyzePricingMetricsAction();
@@ -254,7 +273,7 @@ function AdminDashboardContent() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center"><Database className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
-            <p className="text-sm text-muted-foreground">Analyze and maintain the story database.</p>
+            <CardDescription>Analyze and maintain the story database.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
@@ -297,19 +316,68 @@ function AdminDashboardContent() {
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Pricing Analysis Complete</AlertTitle>
                     <AlertDescription>
-                        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
-                            <span className="font-semibold">Total Stories Analyzed:</span>
-                            <span>{pricingMetrics.totalStories}</span>
-                            <span className="font-semibold">Premium Stories:</span>
-                            <span>{pricingMetrics.premiumStories}</span>
-                            <span className="font-semibold">Average Word Count:</span>
-                            <span>{pricingMetrics.averageWordCount.toLocaleString()} words</span>
-                            <span className="font-semibold">Average Coin Cost:</span>
-                            <span>{pricingMetrics.averageCoinCost.toFixed(2)} coins</span>
-                            <span className="font-semibold">Total Word Count:</span>
-                            <span>{pricingMetrics.totalWordCount.toLocaleString()} words</span>
-                            <span className="font-semibold">Total Coin Cost to Unlock All:</span>
-                            <span>{pricingMetrics.totalCoinCost.toLocaleString()} coins</span>
+                        <div className="space-y-4 mt-4">
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <MetricCard 
+                                    title="Total Chapters" 
+                                    value={pricingMetrics.totalStories.toLocaleString()} 
+                                    icon={Book}
+                                    description="Total number of story parts in the DB."
+                                />
+                                <MetricCard 
+                                    title="Unlockable Chapters" 
+                                    value={pricingMetrics.totalUnlockableChapters.toLocaleString()} 
+                                    icon={Lock}
+                                    description="Total chapters that require payment."
+                                />
+                                <MetricCard 
+                                    title="Total Words" 
+                                    value={pricingMetrics.totalWordCount.toLocaleString()} 
+                                    icon={FileText}
+                                    description="Total word count of all chapters."
+                                />
+                            </div>
+                            <div className="grid gap-4 md:grid-cols-3">
+                                <MetricCard 
+                                    title="Avg. Words / Chapter" 
+                                    value={pricingMetrics.avgWordCountPerChapter.toLocaleString()} 
+                                    icon={Type}
+                                    description="Average length of a single chapter."
+                                />
+                               <MetricCard 
+                                    title="Avg. Cost / Paid Chapter" 
+                                    value={`${pricingMetrics.avgCoinCostPerPaidChapter} Coins`}
+                                    icon={Coins}
+                                    description="Average cost for a premium chapter."
+                                />
+                                <MetricCard 
+                                    title="Total Unlock Cost" 
+                                    value={`${pricingMetrics.totalCoinCost.toLocaleString()} Coins`}
+                                    icon={Coins}
+                                    description="Total coins to unlock all paid content."
+                                />
+                            </div>
+                             <Separator />
+                            <div className="grid gap-4 md:grid-cols-2">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center"><Layers className="mr-2 h-4 w-4 text-primary" />Standalone Stories</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="text-sm space-y-2">
+                                        <p>Total Standalone: <strong>{pricingMetrics.standaloneStories}</strong></p>
+                                        <p>Paid Standalone: <strong>{pricingMetrics.paidStandaloneStories}</strong></p>
+                                    </CardContent>
+                                </Card>
+                                <Card>
+                                     <CardHeader>
+                                        <CardTitle className="text-base flex items-center"><Library className="mr-2 h-4 w-4 text-primary" />Multi-Part Series</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="text-sm space-y-2">
+                                        <p>Total Series: <strong>{pricingMetrics.multiPartSeriesCount}</strong></p>
+                                        <p>Total Paid Chapters in Series: <strong>{pricingMetrics.paidSeriesChapters}</strong></p>
+                                    </CardContent>
+                                </Card>
+                            </div>
                         </div>
                     </AlertDescription>
                 </Alert>
@@ -390,5 +458,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
