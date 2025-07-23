@@ -41,13 +41,11 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   const [isLoadingUnlock, setIsLoadingUnlock] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(1);
-  
-  const NEW_PREMIUM_PRICE = 50;
 
   const isEffectivelyFree = useMemo(() => !story.isPremium || story.coinCost <= 0, [story.isPremium, story.coinCost]);
   const isUnlocked = useMemo(() => isEffectivelyFree || (userProfile?.unlockedStories.includes(story.storyId) ?? false), [story.storyId, userProfile, isEffectivelyFree]);
   const isFavorited = useMemo(() => userProfile?.favoriteStories.includes(story.storyId) ?? false, [story.storyId, userProfile]);
-  const hasSufficientCoins = useMemo(() => isEffectivelyFree || !userProfile ? true : userProfile.coins >= NEW_PREMIUM_PRICE, [story, userProfile, isEffectivelyFree, NEW_PREMIUM_PRICE]);
+  const hasSufficientCoins = useMemo(() => isEffectivelyFree || !userProfile ? true : userProfile.coins >= story.coinCost, [story, userProfile, isEffectivelyFree]);
 
   useEffect(() => {
     if (isUnlocked) {
@@ -71,7 +69,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     }
     setIsLoadingUnlock(true);
     try {
-      const newCoinBalance = userProfile.coins - NEW_PREMIUM_PRICE;
+      const newCoinBalance = userProfile.coins - story.coinCost;
       await updateUserProfile({ 
         coins: newCoinBalance,
         unlockedStories: [...userProfile.unlockedStories, story.storyId] 
@@ -110,7 +108,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         </div>
         <div className="flex-col items-center gap-4 bg-muted/50 p-6 rounded-b-lg text-center">
           <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
-          <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {NEW_PREMIUM_PRICE} coins.</p>
+          <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
           <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
             <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => setShowUnlockModal(true)}>
               <Lock className="mr-2 h-5 w-5"/>Unlock to Read
@@ -120,8 +118,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                     <DialogTitle>{hasSufficientCoins ? "Unlock Story?" : "Not Enough Coins"}</DialogTitle>
                     <DialogDescription>
                     {hasSufficientCoins
-                        ? `This will use ${NEW_PREMIUM_PRICE} coins from your balance to permanently unlock "${story.title}".`
-                        : `You need ${NEW_PREMIUM_PRICE} coins to read this story, but you only have ${userProfile?.coins ?? 0}. Please purchase more coins.`
+                        ? `This will use ${story.coinCost} coins from your balance to permanently unlock "${story.title}".`
+                        : `You need ${story.coinCost} coins to read this story, but you only have ${userProfile?.coins ?? 0}. Please purchase more coins.`
                     }
                     </DialogDescription>
                 </DialogHeader>
@@ -129,7 +127,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                     <Button variant="outline" onClick={() => setShowUnlockModal(false)} disabled={isLoadingUnlock}>Cancel</Button>
                     {hasSufficientCoins ? (
                     <Button onClick={handleUnlockStory} disabled={isLoadingUnlock} className="bg-accent hover:bg-accent/90">
-                        {isLoadingUnlock ? "Unlocking..." : `Yes, unlock for ${NEW_PREMIUM_PRICE} coins`}
+                        {isLoadingUnlock ? "Unlocking..." : `Yes, unlock for ${story.coinCost} coins`}
                     </Button>
                     ) : (
                     <Link href="/buy-coins">
@@ -263,3 +261,4 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   );
 }
 
+    
