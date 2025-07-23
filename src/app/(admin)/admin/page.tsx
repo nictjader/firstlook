@@ -3,16 +3,16 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzePricingMetricsAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
-import { type Story, type GeneratedStoryIdentifiers, type CleanupResult, type StoryCountBreakdown } from '@/lib/types';
+import { type Story, type GeneratedStoryIdentifiers, type CleanupResult, type StoryCountBreakdown, type PricingMetrics } from '@/lib/types';
 import { getAllStories } from '@/app/actions/storyActions';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 
@@ -116,6 +116,8 @@ function AdminDashboardContent() {
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
+  const [isAnalyzingPricing, setIsAnalyzingPricing] = useState(false);
+  const [pricingMetrics, setPricingMetrics] = useState<PricingMetrics | null>(null);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -139,6 +141,22 @@ function AdminDashboardContent() {
       setIsCounting(false);
     }
   };
+
+  const handleAnalyzePricing = async () => {
+    setIsAnalyzingPricing(true);
+    setPricingMetrics(null);
+    setCountError(null);
+    try {
+      const metrics = await analyzePricingMetricsAction();
+      setPricingMetrics(metrics);
+    } catch (error: any) {
+        console.error("Failed to analyze pricing:", error);
+        setCountError(error.message || "An unknown error occurred while analyzing pricing.");
+    } finally {
+        setIsAnalyzingPricing(false);
+    }
+  };
+
 
   const handleStandardizeGenres = async () => {
     setIsCleaning(true);
@@ -211,7 +229,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isCounting || isGenerating || isCleaning || isRemovingTags;
+  const isToolRunning = isCounting || isGenerating || isCleaning || isRemovingTags || isAnalyzingPricing;
 
   return (
     <>
@@ -252,6 +270,10 @@ function AdminDashboardContent() {
                     {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
                     {isRemovingTags ? 'Removing...' : 'Remove Orphaned Tags'}
                 </Button>
+                <Button onClick={handleAnalyzePricing} disabled={isToolRunning} variant="outline">
+                    {isAnalyzingPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
+                    {isAnalyzingPricing ? 'Analyzing...' : 'Analyze Pricing Metrics'}
+                </Button>
               </div>
 
               {cleanupResult && (
@@ -270,7 +292,31 @@ function AdminDashboardContent() {
                 </Alert>
               )}
 
-              {storyCount !== null && !countError && (
+              {pricingMetrics && (
+                <Alert variant="success" className="mt-4">
+                    <CheckCircle className="h-4 w-4" />
+                    <AlertTitle>Pricing Analysis Complete</AlertTitle>
+                    <AlertDescription>
+                        <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                            <span className="font-semibold">Total Stories Analyzed:</span>
+                            <span>{pricingMetrics.totalStories}</span>
+                            <span className="font-semibold">Premium Stories:</span>
+                            <span>{pricingMetrics.premiumStories}</span>
+                            <span className="font-semibold">Average Word Count:</span>
+                            <span>{pricingMetrics.averageWordCount.toLocaleString()} words</span>
+                            <span className="font-semibold">Average Coin Cost:</span>
+                            <span>{pricingMetrics.averageCoinCost.toFixed(2)} coins</span>
+                            <span className="font-semibold">Total Word Count:</span>
+                            <span>{pricingMetrics.totalWordCount.toLocaleString()} words</span>
+                            <span className="font-semibold">Total Coin Cost to Unlock All:</span>
+                            <span>{pricingMetrics.totalCoinCost.toLocaleString()} coins</span>
+                        </div>
+                    </AlertDescription>
+                </Alert>
+              )}
+
+
+              {storyCount !== null && !countError && !pricingMetrics && (
                  <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
@@ -344,3 +390,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    

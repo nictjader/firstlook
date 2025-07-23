@@ -8,9 +8,10 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { CleanupResult, Story } from '@/lib/types';
-import { extractBase64FromDataUri } from '@/lib/utils';
+import type { CleanupResult, Story, PricingMetrics } from '@/lib/types';
+import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
+import { docToStory } from '@/lib/types';
 
 
 /**
@@ -234,3 +235,53 @@ export async function removeTagsAction(): Promise<CleanupResult> {
         updated: updatedCount,
     };
 }
+
+
+/**
+ * Analyzes all stories in the database to provide pricing and content metrics.
+ */
+export async function analyzePricingMetricsAction(): Promise<PricingMetrics> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.get();
+
+    if (snapshot.empty) {
+        return {
+            totalStories: 0,
+            premiumStories: 0,
+            totalWordCount: 0,
+            averageWordCount: 0,
+            totalCoinCost: 0,
+            averageCoinCost: 0,
+        };
+    }
+
+    const stories = snapshot.docs.map(doc => docToStory(doc));
+
+    let totalWordCount = 0;
+    let totalCoinCost = 0;
+    let premiumStories = 0;
+
+    stories.forEach(story => {
+        totalWordCount += story.wordCount || 0;
+        if (story.isPremium) {
+            totalCoinCost += story.coinCost || 0;
+            premiumStories++;
+        }
+    });
+
+    const totalStories = stories.length;
+    const averageWordCount = totalStories > 0 ? totalWordCount / totalStories : 0;
+    const averageCoinCost = premiumStories > 0 ? totalCoinCost / premiumStories : 0;
+    
+    return {
+        totalStories,
+        premiumStories,
+        totalWordCount,
+        averageWordCount,
+        totalCoinCost,
+        averageCoinCost,
+    };
+}
+
+    

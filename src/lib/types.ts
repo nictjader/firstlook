@@ -178,3 +178,14 @@ export interface PurchaseResult {
   message: string;
   error?: string;
 }
+
+export interface PricingMetrics {
+  totalStories: number;
+  premiumStories: number;
+  totalWordCount: number;
+  averageWordCount: number;
+  totalCoinCost: number;
+  averageCoinCost: number;
+}
+
+    
