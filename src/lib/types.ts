@@ -77,7 +77,8 @@ function safeToISOString(timestamp: any): string {
 export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocumentSnapshot | DocumentData): Story {
     const data = doc.data();
     if (!data) {
-      throw new Error("Document data is missing.");
+      // In case of a DocumentData that is null/undefined or a snapshot with no data
+      throw new Error(`Document with id ${doc.id} has no data.`);
     }
     
     const storyId = String(doc.id);
@@ -153,5 +154,3 @@ export interface PurchaseResult {
   message: string;
   error?: string;
 }
-
-    

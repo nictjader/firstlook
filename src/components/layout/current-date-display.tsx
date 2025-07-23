@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 
 export default function CurrentDateDisplay() {
-  const [currentDate, setCurrentDate] = useState('');
+  const [currentDate, setCurrentDate] = useState<string | null>(null);
 
   useEffect(() => {
     // This code will only run on the client, after the component has mounted.
@@ -12,8 +12,8 @@ export default function CurrentDateDisplay() {
     setCurrentDate(new Date().toLocaleDateString());
   }, []); // Empty dependency array means this runs once on mount
 
+  // Render a placeholder or null on the server and initial client render.
   if (!currentDate) {
-    // Return a placeholder or null to ensure server and initial client render match.
     return null; 
   }
 

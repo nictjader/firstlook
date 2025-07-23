@@ -27,7 +27,7 @@ export default function Footer() {
         {year ? (
           <p>&copy; {year} FirstLook. All rights reserved.</p>
         ) : (
-          <p className="h-5">&nbsp;</p> 
+          <div className="h-5" /> // Use a div for placeholder to avoid layout shift
         )}
         <p className="mt-1">Unforgettable first encounters.</p>
       </div>

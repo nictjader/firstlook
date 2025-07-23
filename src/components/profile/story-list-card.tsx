@@ -11,6 +11,7 @@ import type { LucideIcon } from "lucide-react";
 import { BookOpen } from "lucide-react";
 import { collection, query, where, getDocs, documentId } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
+import type { QueryDocumentSnapshot } from 'firebase/firestore';
 
 interface StoryListCardProps {
   title: string;
@@ -31,7 +32,7 @@ async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
     const storiesRef = collection(db, 'stories');
     const q = query(storiesRef, where(documentId(), 'in', batchIds));
     const querySnapshot = await getDocs(q);
-    const batchStories = querySnapshot.docs.map(doc => docToStory({ ...doc.data(), id: doc.id }));
+    const batchStories = querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
     stories.push(...batchStories);
   }
 

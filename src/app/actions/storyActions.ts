@@ -9,7 +9,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 
 /**
- * Fetches all stories from the database, sorted logically with series grouped together.
+ * Fetches all stories from the database.
  * This is used for the main story list page.
  */
 export async function getAllStories(): Promise<Story[]> {
@@ -17,6 +17,7 @@ export async function getAllStories(): Promise<Story[]> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
+    // Fetch all stories, then the client-side logic will group and sort them.
     const documentSnapshots = await storiesRef.limit(200).get();
     
     if (documentSnapshots.empty) {
@@ -137,4 +138,3 @@ export async function processCoinPurchase(userId: string, pkg: CoinPackage): Pro
     };
   }
 }
-

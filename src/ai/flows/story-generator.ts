@@ -99,15 +99,6 @@ const StoryPromptInputSchema = StoryGenerationInputSchema.extend({
   potentialSeriesId: z.string(),
 });
 
-// This is the internal schema for the flow's output. The client will receive a simplified version.
-const InternalStoryGenerationOutputSchema = z.object({
-  storyId: z.string().describe('The unique ID for the generated story.'),
-  title: z.string().describe('The final title of the story.'),
-  success: z.boolean().describe('Whether the story generation was successful.'),
-  error: z.string().nullable().describe('Any error message if the generation failed.'),
-  storyData: z.custom<Omit<Story, 'publishedAt' | 'coverImageUrl'>>().optional(),
-});
-
 
 // Create a dedicated prompt object for story generation.
 const storyGenerationPrompt = ai.definePrompt({
@@ -152,7 +143,7 @@ const storyGenerationFlow = ai.defineFlow(
   {
     name: 'storyGenerationFlow',
     inputSchema: StoryGenerationInputSchema,
-    outputSchema: InternalStoryGenerationOutputSchema,
+    outputSchema: z.custom<StoryGenerationOutput>(),
   },
   async (seed) => {
     const storyId = uuidv4();
@@ -215,5 +206,3 @@ export async function generateStory(
 ): Promise<StoryGenerationOutput> {
   return storyGenerationFlow(seed);
 }
-
-    

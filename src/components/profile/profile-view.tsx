@@ -18,7 +18,6 @@ import { Separator } from '../ui/separator';
 import { capitalizeWords } from '@/lib/utils';
 import StoryListCard from './story-list-card';
 import PurchaseHistoryCard from './purchase-history-card';
-import { Timestamp } from 'firebase/firestore';
 
 
 export default function ProfileView() {

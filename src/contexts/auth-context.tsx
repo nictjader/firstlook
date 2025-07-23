@@ -5,7 +5,8 @@ import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
 import type { UserProfile, Purchase } from '@/lib/types';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, type DocumentData, Timestamp, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
+import type { DocumentData, Timestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 
 const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
@@ -24,13 +25,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 function safeToISOString(timestamp: any): string {
   if (!timestamp) return new Date().toISOString();
-  if (timestamp instanceof Timestamp) {
+  if (timestamp instanceof Date) { // Already a JS Date
+      return timestamp.toISOString();
+  }
+  if (timestamp && typeof timestamp.toDate === 'function') { // Firestore Timestamp
     return timestamp.toDate().toISOString();
   }
-  if (timestamp && typeof timestamp.seconds === 'number' && typeof timestamp.nanoseconds === 'number') {
-    return new Timestamp(timestamp.seconds, timestamp.nanoseconds).toDate().toISOString();
-  }
-  const date = new Date(timestamp);
+  const date = new Date(timestamp); // String or number
   if (!isNaN(date.getTime())) {
     return date.toISOString();
   }
@@ -38,8 +39,8 @@ function safeToISOString(timestamp: any): string {
   return new Date().toISOString();
 }
 
-function docToUserProfile(doc: DocumentData, userId: string): UserProfile {
-    const data = doc;
+function docToUserProfile(docData: DocumentData, userId: string): UserProfile {
+    const data = docData;
     return {
       userId: userId,
       email: data.email,
