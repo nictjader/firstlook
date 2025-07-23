@@ -1,3 +1,4 @@
+
 'use server';
 
 import { generateStory } from '@/ai/flows/story-generator';
@@ -321,7 +322,6 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     
     // Monetization metrics
     let totalWordCount = 0;
-    let totalCoinCost = 0;
     let paidChaptersCount = 0;
     let paidStandaloneStories = 0;
     const seriesData = new Map<string, { totalChapters: number, paidChapters: number }>();
@@ -332,7 +332,6 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         // Monetization
         totalWordCount += story.wordCount || 0;
         if (story.isPremium && story.coinCost > 0) {
-            totalCoinCost += story.coinCost;
             paidChaptersCount++;
         }
         
@@ -361,7 +360,11 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     seriesGenres.forEach((genre) => {
         storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     });
-
+    
+    // Correctly calculate totalCoinCost based on the new 50-coin model
+    const totalCoinCost = paidChaptersCount * 50;
+    const avgCoinCostPerPaidChapter = paidChaptersCount > 0 ? 50 : 0;
+    
     const multiPartSeriesCount = seriesGenres.size;
     const totalUniqueStories = standaloneStoriesCount + multiPartSeriesCount;
     const totalChapters = stories.length;
@@ -378,7 +381,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         totalWordCount,
         totalPaidChapters: paidChaptersCount,
         totalCoinCost,
-        avgCoinCostPerPaidChapter: paidChaptersCount > 0 ? Math.round(totalCoinCost / paidChaptersCount) : 0,
+        avgCoinCostPerPaidChapter,
         paidStandaloneStories,
         paidSeriesChapters,
         totalValueUSD: totalValueUSD,
