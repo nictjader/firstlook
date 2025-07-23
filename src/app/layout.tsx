@@ -18,9 +18,6 @@ export const metadata: Metadata = {
   title: 'FirstLook - Unforgettable first encounters.',
   description:
     'Discover captivating romance stories. Unlock premium content and immerse yourself in a world of passion and adventure.',
-  icons: {
-    icon: '/favicon.ico',
-  },
 };
 
 export default function RootLayout({
