@@ -135,6 +135,7 @@ export interface CoinPackage {
   priceUSD: number;
   description: string;
   stripePriceId?: string;
+  bestValue?: boolean;
 }
 
 // This is the output from the AI flow, which includes the full story data

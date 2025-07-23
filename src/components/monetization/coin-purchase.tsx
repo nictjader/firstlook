@@ -3,19 +3,20 @@
 
 import type { CoinPackage } from '@/lib/types';
 import { Button } from '@/components/ui/button';
-import { Gem, ShoppingCart, Loader2 } from 'lucide-react';
+import { Gem, ShoppingCart, Loader2, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { createCheckoutSession } from '@/app/actions/stripeActions';
+import { Badge } from '@/components/ui/badge';
 
 
 const coinPackages: CoinPackage[] = [
-  { id: 'cp_100', coins: 100, priceUSD: 1.99, description: 'A handful of sparks' },
-  { id: 'cp_275', coins: 275, priceUSD: 4.99, description: 'Unlock a few stories' },
-  { id: 'cp_500', coins: 500, priceUSD: 8.99, description: 'Best Value! Dive deeper' },
-  { id: 'cp_1200', coins: 1200, priceUSD: 19.99, description: 'For the avid reader' },
+  { id: 'cp_100', coins: 100, priceUSD: 1.99, description: 'Unlocks 2 Stories' },
+  { id: 'cp_275', coins: 275, priceUSD: 4.99, description: 'Unlocks 5 Stories' },
+  { id: 'cp_650', coins: 650, priceUSD: 9.99, description: 'Unlocks 13 Stories', bestValue: true },
+  { id: 'cp_1500', coins: 1500, priceUSD: 19.99, description: 'Unlocks 30 Stories' },
 ];
 
 export default function CoinPurchase() {
@@ -51,10 +52,16 @@ export default function CoinPurchase() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {coinPackages.map((pkg) => (
-        <div key={pkg.id} className="rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out">
+        <div key={pkg.id} className="rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out relative overflow-hidden">
+          {pkg.bestValue && (
+            <Badge className="absolute top-0 right-0 m-3 bg-accent text-accent-foreground flex items-center gap-1 text-sm py-1 px-3">
+              <Star className="h-4 w-4" />
+              Best Value
+            </Badge>
+          )}
           <div className="p-6 text-center bg-gradient-to-br from-primary/20 to-accent/20">
             <Gem className="h-12 w-12 text-primary mx-auto mb-3" />
-            <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight">{pkg.coins} Coins</h3>
+            <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight">{pkg.coins.toLocaleString()} Coins</h3>
             <p className="text-base text-muted-foreground">{pkg.description}</p>
           </div>
           <div className="flex-grow flex flex-col justify-center items-center p-6">
