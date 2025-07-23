@@ -1,5 +1,10 @@
-<svg width="1024" height="512" viewBox="0 0 1024 512" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="1024" height="512" fill="white"/>
-<path d="M248 352C232 344 160 288 128 240C72 160 80 72 144 32C184 8 232 32 248 56C264 32 312 8 352 32C416 72 424 160 368 240C336 288 264 344 248 352Z" fill="#D87093"/>
-<text fill="#4D3D47" xml:space="preserve" style="white-space: pre" font-family="Playfair Display" font-size="128" font-weight="bold" letter-spacing="0em"><tspan x="448" y="296.531">Siren</tspan></text>
+<svg width="280" height="64" viewBox="0 0 280 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&display=swap');
+  </style>
+</defs>
+<path d="M12 43.5C12 42.1193 13.1193 41 14.5 41H28" stroke="#D87093" stroke-width="2" stroke-linecap="round"/>
+<path d="M14 26L11 30V46H29V30L26 26H14Z" stroke="#D87093" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="44" y="44" font-family="'Playfair Display', serif" font-weight="700" font-size="36" fill="#D87093">FirstLook</text>
 </svg>
