@@ -87,7 +87,7 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
                     <div className="flex-grow">
                       <p className="font-semibold text-primary group-hover:underline">{story.title}</p>
                       {story.seriesTitle && (
-                         <p className="text-xs text-muted-foreground">{`Part ${story.partNumber} of ${story.seriesTitle}`}</p>
+                         <p className="text-xs text-muted-foreground">{`Chapter ${story.partNumber} of ${story.seriesTitle}`}</p>
                       )}
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground ml-4 opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -103,3 +103,5 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
     </Card>
   );
 }
+
+    

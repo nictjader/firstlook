@@ -174,7 +174,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                 {story.seriesTitle && story.partNumber && (
                   <p className="text-accent font-medium mt-1 flex items-center text-sm sm:text-base">
                     <Library className="w-4 h-4 mr-1.5" />
-                     Part {story.partNumber} of {story.seriesTitle}
+                     Chapter {story.partNumber} of {story.seriesTitle}
                   </p>
                 )}
             </div>
@@ -245,7 +245,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                             </Badge>
                         </div>
                         <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/80">Part {part.partNumber}</p>
+                            <p className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/80">Chapter {part.partNumber}</p>
                             <h3 className="text-lg font-headline font-bold leading-tight mt-1 line-clamp-2 h-[2.5em]">
                                 {part.title.replace(/ - Part \d+.*$/, '')}
                             </h3>
@@ -260,3 +260,5 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     </div>
   );
 }
+
+    

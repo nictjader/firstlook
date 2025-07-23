@@ -27,16 +27,16 @@ const StoryListSkeleton = () => (
 );
 
 /**
- * Groups stories by series. For any series, it only returns Part 1.
+ * Groups stories by series. For any series, it only returns Chapter 1.
  * Standalone stories are returned as-is.
  * The final list is sorted by publication date, with newest stories/series first.
  * @param stories The raw array of stories.
- * @returns A sorted array of stories with series represented only by their first part.
+ * @returns A sorted array of stories with series represented only by their first chapter.
  */
 function groupAndSortStories(stories: Story[]): Story[] {
   const processedStories = new Map<string, Story>();
 
-  // Sort stories to ensure Part 1 is processed first for series
+  // Sort stories to ensure Chapter 1 is processed first for series
   stories.sort((a, b) => {
     if (a.seriesId && b.seriesId && a.seriesId === b.seriesId) {
       return (a.partNumber || 0) - (b.partNumber || 0);
@@ -46,7 +46,7 @@ function groupAndSortStories(stories: Story[]): Story[] {
 
   stories.forEach(story => {
     if (story.seriesId) {
-      // If we haven't processed this series yet, add Part 1.
+      // If we haven't processed this series yet, add Chapter 1.
       if (!processedStories.has(story.seriesId)) {
         processedStories.set(story.seriesId, story);
       }
@@ -130,3 +130,5 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     </div>
   );
 }
+
+    

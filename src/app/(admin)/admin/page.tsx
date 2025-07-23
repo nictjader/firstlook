@@ -261,16 +261,16 @@ function AdminDashboardContent() {
                                 <h3 className="text-lg font-semibold mb-2 flex items-center"><Book className="mr-2 h-5 w-5 text-primary" />Content Composition</h3>
                                 <div className="grid gap-4 md:grid-cols-3">
                                     <MetricCard 
-                                        title="Total Chapters" 
-                                        value={analysisResult.totalStories.toLocaleString()} 
-                                        icon={BookText}
-                                        description="Total number of story parts in the DB."
-                                    />
-                                    <MetricCard 
                                         title="Total Unique Stories" 
                                         value={analysisResult.totalUniqueStories.toLocaleString()} 
                                         icon={Library}
-                                        description="Standalone stories + multi-part series."
+                                        description="Standalone stories + multi-chapter series."
+                                    />
+                                    <MetricCard 
+                                        title="Total Chapters" 
+                                        value={analysisResult.totalStories.toLocaleString()} 
+                                        icon={BookText}
+                                        description="Total number of story chapters in the DB."
                                     />
                                     <MetricCard 
                                         title="Total Words" 
@@ -286,7 +286,7 @@ function AdminDashboardContent() {
                                         </CardHeader>
                                         <CardContent className="text-sm space-y-2">
                                             <p>Standalone Stories: <strong>{analysisResult.standaloneStories}</strong></p>
-                                            <p>Multi-Part Series: <strong>{analysisResult.multiPartSeriesCount}</strong></p>
+                                            <p>Multi-Chapter Series: <strong>{analysisResult.multiPartSeriesCount}</strong></p>
                                         </CardContent>
                                     </Card>
                                     <Card>
@@ -324,7 +324,7 @@ function AdminDashboardContent() {
                                             <Separator />
                                             <div className="text-sm text-muted-foreground pt-2">
                                                 <p className="flex justify-between"><span>Standalone:</span> <strong>{analysisResult.paidStandaloneStories}</strong></p>
-                                                <p className="flex justify-between"><span>Series Parts:</span> <strong>{analysisResult.paidSeriesChapters}</strong></p>
+                                                <p className="flex justify-between"><span>Series Chapters:</span> <strong>{analysisResult.paidSeriesChapters}</strong></p>
                                             </div>
                                         </CardContent>
                                     </Card>
@@ -385,5 +385,7 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
 
     

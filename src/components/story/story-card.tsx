@@ -52,7 +52,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
           <div className='flex flex-col gap-2'>
             {isSeries ? (
               <Badge variant="secondary" className="flex items-center text-xs shadow-md w-fit">
-                Part 1 Free
+                Chapter 1 Free
               </Badge>
             ) : (
                <Badge variant={isFree ? 'secondary' : 'destructive'} className="flex items-center text-xs shadow-md w-fit">
@@ -64,7 +64,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
             {isSeries && (
               <Badge variant="outline" className="flex items-center text-xs shadow-md bg-black/50 text-white w-fit">
                 <Library className="w-3 h-3 mr-1" />
-                {totalPartsInSeries}-Part Series
+                {totalPartsInSeries}-Chapter Series
               </Badge>
             )}
           </div>
@@ -86,3 +86,5 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     </Link>
   );
 }
+
+    
