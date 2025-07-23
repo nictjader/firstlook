@@ -34,8 +34,7 @@ export default function AuthForm() {
     setLoading(true);
     
     const actionCodeSettings = {
-      // Use the production URL for the redirect, which is always allowlisted.
-      url: 'https://studio--siren-h2y45.us-central1.hosted.app/login',
+      url: window.location.href, // Use the current URL for the redirect
       handleCodeInApp: true,
     };
 
