@@ -18,6 +18,7 @@ import { Separator } from '../ui/separator';
 import { capitalizeWords } from '@/lib/utils';
 import StoryListCard from './story-list-card';
 import PurchaseHistoryCard from './purchase-history-card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 
 
 export default function ProfileView() {
@@ -83,50 +84,48 @@ export default function ProfileView() {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
-        <div className="p-6">
-          <div className="flex items-center space-x-3">
-            <UserCircle className="h-12 w-12 text-primary" />
+       <Card className="overflow-hidden shadow-lg">
+        <CardHeader className="bg-gradient-to-br from-primary/10 to-accent/10 p-6">
+          <div className="flex items-center space-x-4">
+            <UserCircle className="h-16 w-16 text-primary" />
             <div>
-              <h3 className="text-2xl font-headline font-semibold leading-none tracking-tight">
+              <CardTitle className="text-2xl font-headline">
                 {userProfile.displayName || userProfile.email || 'FirstLook User'}
-              </h3>
-              <p className="text-sm text-muted-foreground">Manage your account details and preferences.</p>
+              </CardTitle>
+              <CardDescription>Manage your account details and preferences.</CardDescription>
             </div>
           </div>
-        </div>
-        <div className="p-6 pt-0 space-y-6">
+        </CardHeader>
+        <CardContent className="p-6 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center"><Mail className="w-4 h-4 mr-2 text-muted-foreground"/>Email</Label>
+            <Label htmlFor="email" className="flex items-center text-sm font-semibold"><Mail className="w-4 h-4 mr-2 text-muted-foreground"/>Email</Label>
             <Input id="email" value={userProfile.email || 'No email provided'} readOnly disabled />
           </div>
 
           <div className="space-y-2">
-            <Label className="flex items-center"><Gem className="w-4 h-4 mr-2 text-yellow-500"/>Coin Balance</Label>
-            <div className="flex items-center justify-between p-3 bg-secondary/50 rounded-md">
-              <span className="text-xl font-semibold text-primary">{userProfile.coins} Coins</span>
-              <Link href="/buy-coins">
-                <Button variant="default" size="sm">Buy More Coins</Button>
-              </Link>
+            <Label className="flex items-center text-sm font-semibold"><Gem className="w-4 h-4 mr-2 text-yellow-500"/>Coin Balance</Label>
+            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
+              <span className="text-2xl font-bold text-primary">{userProfile.coins} Coins</span>
+              <Button asChild variant="default" size="sm">
+                 <Link href="/buy-coins">Buy More Coins</Link>
+              </Button>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm shadow-lg">
-        <div className="p-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h3 className="text-xl font-headline font-semibold leading-none tracking-tight">Reading Preferences</h3>
-              <p className="text-sm text-muted-foreground">Tell us what you love to read.</p>
-            </div>
-            <Button variant="ghost" size="icon" onClick={() => setIsEditingPreferences(!isEditingPreferences)}>
+      <Card className="shadow-lg">
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-xl font-headline flex items-center"><Heart className="w-5 h-5 mr-2 text-primary"/>Reading Preferences</CardTitle>
+            <CardDescription>Tell us what you love to read.</CardDescription>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => setIsEditingPreferences(!isEditingPreferences)}>
               {isEditingPreferences ? <Save className="w-5 h-5" /> : <Edit3 className="w-5 h-5" />}
               <span className="sr-only">{isEditingPreferences ? "Save Preferences" : "Edit Preferences"}</span>
             </Button>
-          </div>
-        </div>
-        <div className="p-6 pt-0">
+        </CardHeader>
+        <CardContent>
           {isEditingPreferences ? (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">Select your favorite subgenres:</p>
@@ -158,8 +157,8 @@ export default function ProfileView() {
               <p className="text-muted-foreground">You haven&apos;t set any preferences yet. Click edit to select your favorite subgenres.</p>
             )
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
       
       <StoryListCard 
         title="Favorite Stories" 
@@ -170,7 +169,7 @@ export default function ProfileView() {
 
       <StoryListCard 
         title="Reading History"
-        storyIds={[...userProfile.readStories].reverse()} // Show most recent first
+        storyIds={[...userProfile.readStories].reverse()} 
         icon={History}
         emptyMessage="You haven't read any stories yet. Start reading to build your history!"
       />
@@ -182,7 +181,7 @@ export default function ProfileView() {
       <Separator />
 
       <div className="text-center mt-8">
-        <Button variant="destructive" onClick={handleSignOut}>
+        <Button variant="outline" onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
       </div>
