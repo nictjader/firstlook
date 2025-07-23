@@ -38,12 +38,14 @@ function LoginContent() {
     signInWithEmailLink(auth, email, fullUrl)
       .then(() => {
         window.localStorage.removeItem('emailForSignIn');
+        // The AuthProvider will handle the redirect.
+        // We just need to show a success message.
         toast({ title: "Success!", description: "You are now signed in." });
         router.push('/');
       })
       .catch((err) => {
         console.error(err);
-        setErrorMessage("The sign-in link is invalid or has expired. Please try again.");
+        setErrorMessage("The sign-in link is invalid, has expired, or was already used. Please request a new link.");
         setIsVerifyingLink(false);
       });
   };
@@ -51,22 +53,21 @@ function LoginContent() {
   const handlePromptSubmit = () => {
     const email = emailInputRef.current?.value || null;
     setShowEmailPrompt(false);
+    setIsVerifyingLink(true);
     completeSignIn(email);
   };
 
   useEffect(() => {
-    if (isPotentialMagicLink) {
+    if (isPotentialMagicLink && isVerifyingLink) { // Only run this once
       const fullUrl = window.location.href;
       if (isSignInWithEmailLink(auth, fullUrl)) {
-        // Priority 1: Check for email in the URL
         let email = searchParams.get('email');
-        // Priority 2: Fallback to localStorage
         if (!email) {
             email = window.localStorage.getItem('emailForSignIn');
         }
         
         if (!email) {
-          // If still no email, show our custom dialog
+          setIsVerifyingLink(false);
           setShowEmailPrompt(true);
         } else {
           completeSignIn(email);
@@ -76,7 +77,7 @@ function LoginContent() {
         setIsVerifyingLink(false);
       }
     }
-  }, [isPotentialMagicLink, router, toast, searchParams]);
+  }, [isPotentialMagicLink, router, toast, searchParams, isVerifyingLink]);
 
 
   if (isVerifyingLink && !showEmailPrompt) {
@@ -121,7 +122,11 @@ function LoginContent() {
             <Input ref={emailInputRef} id="email-confirm" type="email" placeholder="you@example.com" />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => completeSignIn(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => {
+              setShowEmailPrompt(false);
+              setErrorMessage("Sign-in cancelled.");
+              setIsVerifyingLink(false);
+            }}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handlePromptSubmit}>Confirm</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
