@@ -55,23 +55,25 @@ export type Subgenre = (typeof ALL_SUBGENRES)[number];
 // This helper function robustly handles Timestamps from both client and server,
 // as well as already-serialized date strings.
 function safeToISOString(timestamp: any): string {
-  if (!timestamp) return new Date().toISOString();
-  if (timestamp instanceof Date) {
-      return timestamp.toISOString();
-  }
-  // Check for Firestore Timestamp-like objects (both client and admin SDKs)
-  if (timestamp && typeof timestamp.toDate === 'function') {
-      return timestamp.toDate().toISOString();
-  }
-  // Handle cases where it might already be a string
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
-      return date.toISOString();
+    if (!timestamp) return new Date().toISOString();
+    // Handle Firestore Timestamps (both client and admin)
+    if (typeof timestamp === 'object' && timestamp !== null && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toISOString();
     }
-  }
-  // Final fallback
-  return new Date().toISOString();
+    // Handle JS Date objects
+    if (timestamp instanceof Date) {
+        return timestamp.toISOString();
+    }
+    // Handle ISO date strings (pass them through)
+    if (typeof timestamp === 'string') {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+            return date.toISOString();
+        }
+    }
+    // Fallback for unexpected types
+    console.warn("Unsupported timestamp format:", timestamp);
+    return new Date().toISOString();
 }
 
 export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocumentSnapshot | DocumentData): Story {
@@ -104,6 +106,28 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       status: data.status || 'published',
     };
 }
+
+
+export function docToUserProfile(docData: DocumentData, userId: string): UserProfile {
+    const data = docData;
+    return {
+      userId: userId,
+      email: data.email,
+      displayName: data.displayName,
+      coins: data.coins || 0,
+      unlockedStories: data.unlockedStories || [],
+      readStories: data.readStories || [],
+      favoriteStories: data.favoriteStories || [],
+      purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => ({
+          ...p,
+          purchasedAt: safeToISOString(p.purchasedAt),
+      })),
+      preferences: data.preferences || { subgenres: [] },
+      createdAt: safeToISOString(data.createdAt),
+      lastLogin: safeToISOString(data.lastLogin),
+    };
+}
+
 
 export interface CoinPackage {
   id: string;
