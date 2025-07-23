@@ -314,13 +314,20 @@ function AdminDashboardContent() {
                             {/* Monetization Metrics */}
                             <div>
                                <h3 className="text-lg font-semibold mb-2 flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</h3>
-                               <div className="grid gap-4 md:grid-cols-3">
-                                    <MetricCard 
-                                        title="Paid Chapters" 
-                                        value={analysisResult.totalPaidChapters.toLocaleString()} 
-                                        icon={Lock}
-                                        description="Total chapters that require payment."
-                                    />
+                               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                    <Card className="lg:col-span-1">
+                                        <CardHeader>
+                                            <CardTitle className="text-base flex items-center"><Lock className="mr-2 h-4 w-4 text-primary" />Paid Chapters</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="space-y-2">
+                                            <p className="text-2xl font-bold">{analysisResult.totalPaidChapters.toLocaleString()}</p>
+                                            <Separator />
+                                            <div className="text-sm text-muted-foreground pt-2">
+                                                <p className="flex justify-between"><span>Standalone:</span> <strong>{analysisResult.paidStandaloneStories}</strong></p>
+                                                <p className="flex justify-between"><span>Series Parts:</span> <strong>{analysisResult.paidSeriesChapters}</strong></p>
+                                            </div>
+                                        </CardContent>
+                                    </Card>
                                     <MetricCard 
                                         title="Total Coin Cost" 
                                         value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
@@ -334,26 +341,7 @@ function AdminDashboardContent() {
                                         description="Average cost for a premium chapter."
                                     />
                                 </div>
-                                <div className="grid gap-4 md:grid-cols-2 mt-4">
-                                     <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-base flex items-center"><Layers className="mr-2 h-4 w-4 text-primary" />Paid Standalone</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="text-sm space-y-2">
-                                            <p>Total: <strong>{analysisResult.paidStandaloneStories}</strong></p>
-                                        </CardContent>
-                                    </Card>
-                                    <Card>
-                                        <CardHeader>
-                                            <CardTitle className="text-base flex items-center"><Library className="mr-2 h-4 w-4 text-primary" />Paid Series Chapters</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="text-sm space-y-2">
-                                           <p>Total: <strong>{analysisResult.paidSeriesChapters}</strong></p>
-                                        </CardContent>
-                                    </Card>
-                                </div>
                             </div>
-
                         </div>
                     </AlertDescription>
                 </Alert>
@@ -397,3 +385,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
