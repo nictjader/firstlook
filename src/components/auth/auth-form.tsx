@@ -33,13 +33,19 @@ export default function AuthForm() {
     e.preventDefault();
     setLoading(true);
     
+    // Create the continue URL and embed the email in it.
+    // This removes the dependency on localStorage.
+    const url = new URL(window.location.href);
+    url.searchParams.set('email', email);
+    
     const actionCodeSettings = {
-      url: window.location.href, // Use the current URL for the redirect
+      url: url.toString(),
       handleCodeInApp: true,
     };
 
     try {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      // We still save to localStorage as a fallback, but it's not the primary method.
       window.localStorage.setItem('emailForSignIn', email);
       setLinkSentTo(email); // Set state to show confirmation
     } catch (error: any) {

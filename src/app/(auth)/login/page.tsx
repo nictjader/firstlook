@@ -58,9 +58,15 @@ function LoginContent() {
     if (isPotentialMagicLink) {
       const fullUrl = window.location.href;
       if (isSignInWithEmailLink(auth, fullUrl)) {
-        let email = window.localStorage.getItem('emailForSignIn');
+        // Priority 1: Check for email in the URL
+        let email = searchParams.get('email');
+        // Priority 2: Fallback to localStorage
         if (!email) {
-          // Instead of window.prompt, show our custom dialog
+            email = window.localStorage.getItem('emailForSignIn');
+        }
+        
+        if (!email) {
+          // If still no email, show our custom dialog
           setShowEmailPrompt(true);
         } else {
           completeSignIn(email);
@@ -70,7 +76,7 @@ function LoginContent() {
         setIsVerifyingLink(false);
       }
     }
-  }, [isPotentialMagicLink, router, toast]);
+  }, [isPotentialMagicLink, router, toast, searchParams]);
 
 
   if (isVerifyingLink && !showEmailPrompt) {
