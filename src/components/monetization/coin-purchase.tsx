@@ -13,10 +13,10 @@ import { Badge } from '@/components/ui/badge';
 
 
 const coinPackages: CoinPackage[] = [
-  { id: 'cp_100', coins: 100, priceUSD: 1.99, description: 'Unlocks 2 Stories' },
-  { id: 'cp_275', coins: 275, priceUSD: 4.99, description: 'Unlocks 5 Stories' },
-  { id: 'cp_650', coins: 650, priceUSD: 9.99, description: 'Unlocks 13 Stories', bestValue: true },
-  { id: 'cp_1500', coins: 1500, priceUSD: 19.99, description: 'Unlocks 30 Stories' },
+  { id: 'cp_100', coins: 100, priceUSD: 2.49, description: 'Unlocks 2 Stories' },
+  { id: 'cp_275', coins: 275, priceUSD: 5.99, description: 'Unlocks 5 Stories' },
+  { id: 'cp_650', coins: 650, priceUSD: 12.99, description: 'Unlocks 13 Stories', bestValue: true },
+  { id: 'cp_1500', coins: 1500, priceUSD: 24.99, description: 'Unlocks 30 Stories' },
 ];
 
 export default function CoinPurchase() {
