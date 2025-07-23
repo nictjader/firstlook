@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
-import { processCoinPurchase } from '@/app/actions/storyActions';
+import { createCheckoutSession } from '@/app/actions/stripeActions';
 
 
 const coinPackages: CoinPackage[] = [
@@ -19,7 +19,7 @@ const coinPackages: CoinPackage[] = [
 ];
 
 export default function CoinPurchase() {
-  const { user, refreshUserProfile } = useAuth();
+  const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null);
@@ -34,31 +34,18 @@ export default function CoinPurchase() {
     setLoadingPackageId(pkg.id);
 
     try {
-      const result = await processCoinPurchase(user.uid, pkg);
-      if (result.success) {
-        await refreshUserProfile(); 
-        toast({
-            title: "Purchase Successful!",
-            description: result.message,
-            variant: "success",
-        });
-      } else {
-        toast({
-            title: "Purchase Failed",
-            description: result.message,
-            variant: "destructive",
-        });
-      }
-    } catch (error) {
-        console.error("Purchase processing error:", error);
+      // This will redirect the user to Stripe Checkout
+      await createCheckoutSession(pkg, user.uid);
+    } catch (error: any) {
+        console.error("Stripe checkout error:", error);
         toast({
             title: "An Error Occurred",
-            description: "Could not complete the purchase. Please try again later.",
+            description: error.message || "Could not initiate the purchase. Please try again later.",
             variant: "destructive",
         });
-    } finally {
         setLoadingPackageId(null);
     }
+    // The loading state will persist until the page redirects.
   };
 
   return (
@@ -71,12 +58,12 @@ export default function CoinPurchase() {
             <p className="text-base text-muted-foreground">{pkg.description}</p>
           </div>
           <div className="flex-grow flex flex-col justify-center items-center p-6">
-            <p className="text-4xl font-bold text-accent mb-4">${pkg.priceUSD.toFixed(2)}</p>
+            <p className="text-4xl font-bold text-accent">${pkg.priceUSD.toFixed(2)}</p>
           </div>
           <div className="p-6">
              <Button
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
-                  disabled={loadingPackageId === pkg.id}
+                  disabled={!!loadingPackageId}
                   onClick={() => handlePurchaseAttempt(pkg)}
                 >
                   {loadingPackageId === pkg.id ? (
@@ -84,7 +71,7 @@ export default function CoinPurchase() {
                   ) : (
                     <ShoppingCart className="w-5 h-5 mr-2" />
                   )}
-                  {loadingPackageId === pkg.id ? 'Processing...' : 'Purchase'}
+                  {loadingPackageId === pkg.id ? 'Redirecting...' : 'Purchase'}
               </Button>
           </div>
         </div>
