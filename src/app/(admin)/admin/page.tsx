@@ -287,19 +287,19 @@ function AdminDashboardContent() {
                                             title="Total Unique Stories" 
                                             value={analysisResult.totalUniqueStories.toLocaleString()} 
                                             icon={Library}
-                                            description="Standalone stories + series."
+                                            description="Standalone stories + multi-chapter series."
                                         />
                                         <MetricCard 
                                             title="Total Chapters" 
                                             value={analysisResult.totalChapters.toLocaleString()} 
                                             icon={BookText}
-                                            description="Total individual story chapters."
+                                            description="All individual story chapters combined."
                                         />
                                         <MetricCard 
                                             title="Total Words" 
                                             value={analysisResult.totalWordCount.toLocaleString()} 
                                             icon={FileText}
-                                            description="Across all story content."
+                                            description="Across all story content in the database."
                                         />
                                     </div>
                                     <Card>
@@ -351,15 +351,15 @@ function AdminDashboardContent() {
                                     </Card>
                                     <MetricCard 
                                         title="Total Library Value" 
-                                        value={`$${analysisResult.totalValueUSD.toLocaleString()}`}
+                                        value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
                                         icon={DollarSign}
-                                        description={`${analysisResult.totalCoinCost.toLocaleString()} Coins to unlock all paid content.`}
+                                        description={`~$${analysisResult.totalValueUSD.toLocaleString()} USD to unlock all paid content.`}
                                     />
                                     <MetricCard 
                                         title="Avg. Cost / Paid Chapter" 
-                                        value={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)}`}
+                                        value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
                                         icon={Type}
-                                        description={`${analysisResult.avgCoinCostPerPaidChapter} Coins. Based on the 50-coin premium price.`}
+                                        description={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)} USD, based on the new 50-coin premium price.`}
                                     />
                                 </CardContent>
                             </Card>
