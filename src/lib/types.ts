@@ -179,15 +179,19 @@ export interface PurchaseResult {
   error?: string;
 }
 
-export interface PricingMetrics {
+export interface DatabaseMetrics {
+  // Composition Metrics
   totalStories: number;
-  totalUnlockableChapters: number;
-  totalWordCount: number;
-  avgWordCountPerChapter: number;
-  totalCoinCost: number;
-  avgCoinCostPerPaidChapter: number;
+  totalUniqueStories: number;
   standaloneStories: number;
   multiPartSeriesCount: number;
+  storiesPerGenre: Record<string, number>;
+  totalWordCount: number;
+  
+  // Monetization Metrics
+  totalUnlockableChapters: number;
+  totalCoinCost: number;
+  avgCoinCostPerPaidChapter: number;
   paidStandaloneStories: number;
   paidSeriesChapters: number;
 }

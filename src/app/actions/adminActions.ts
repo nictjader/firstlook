@@ -8,7 +8,7 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { CleanupResult, Story, PricingMetrics } from '@/lib/types';
+import type { CleanupResult, Story, DatabaseMetrics } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
@@ -238,76 +238,96 @@ export async function removeTagsAction(): Promise<CleanupResult> {
 
 
 /**
- * Analyzes all stories in the database to provide clear, actionable pricing and content metrics.
+ * Analyzes all stories in the database to provide clear, actionable composition and pricing metrics.
  */
-export async function analyzePricingMetricsAction(): Promise<PricingMetrics> {
+export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.get();
 
+    const emptyMetrics: DatabaseMetrics = {
+        totalStories: 0,
+        totalUniqueStories: 0,
+        standaloneStories: 0,
+        multiPartSeriesCount: 0,
+        storiesPerGenre: {},
+        totalUnlockableChapters: 0,
+        totalWordCount: 0,
+        totalCoinCost: 0,
+        avgCoinCostPerPaidChapter: 0,
+        paidStandaloneStories: 0,
+        paidSeriesChapters: 0,
+    };
+
     if (snapshot.empty) {
-        return {
-            totalStories: 0,
-            totalUnlockableChapters: 0,
-            totalWordCount: 0,
-            avgWordCountPerChapter: 0,
-            totalCoinCost: 0,
-            avgCoinCostPerPaidChapter: 0,
-            standaloneStories: 0,
-            multiPartSeriesCount: 0,
-            paidStandaloneStories: 0,
-            paidSeriesChapters: 0,
-        };
+        return emptyMetrics;
     }
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
     
+    // Composition metrics
+    const storiesPerGenre: Record<string, number> = {};
+    const seriesGenres = new Map<string, string>(); // seriesId -> genre
+    let standaloneStoriesCount = 0;
+    
+    // Monetization metrics
     let totalWordCount = 0;
     let totalCoinCost = 0;
     let paidChaptersCount = 0;
-
-    let standaloneStories = 0;
     let paidStandaloneStories = 0;
-    const series = new Map<string, { totalParts: number, paidParts: number, wordCount: number }>();
+    const seriesData = new Map<string, { totalParts: number, paidParts: number }>();
 
     stories.forEach(story => {
+        const genre = story.subgenre || 'uncategorized';
+
+        // Monetization
         totalWordCount += story.wordCount || 0;
-        
         if (story.isPremium && story.coinCost > 0) {
-            totalCoinCost += story.coinCost || 0;
+            totalCoinCost += story.coinCost;
             paidChaptersCount++;
         }
         
+        // Composition & Monetization by type
         if (story.seriesId) {
-            if (!series.has(story.seriesId)) {
-                series.set(story.seriesId, { totalParts: 0, paidParts: 0, wordCount: 0 });
+            if (!seriesGenres.has(story.seriesId)) {
+                seriesGenres.set(story.seriesId, genre);
             }
-            const currentSeries = series.get(story.seriesId)!;
+            if (!seriesData.has(story.seriesId)) {
+                seriesData.set(story.seriesId, { totalParts: 0, paidParts: 0 });
+            }
+            const currentSeries = seriesData.get(story.seriesId)!;
             currentSeries.totalParts++;
-            currentSeries.wordCount += story.wordCount || 0;
             if (story.isPremium && story.coinCost > 0) {
                 currentSeries.paidParts++;
             }
         } else {
-            standaloneStories++;
+            standaloneStoriesCount++;
+            storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
             if (story.isPremium && story.coinCost > 0) {
                 paidStandaloneStories++;
             }
         }
     });
 
+    seriesGenres.forEach((genre) => {
+        storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
+    });
+
+    const multiPartSeriesCount = seriesGenres.size;
+    const totalUniqueStories = standaloneStoriesCount + multiPartSeriesCount;
     const totalStories = stories.length;
-    const paidSeriesChapters = Array.from(series.values()).reduce((acc, s) => acc + s.paidParts, 0);
+    const paidSeriesChapters = Array.from(seriesData.values()).reduce((acc, s) => acc + s.paidParts, 0);
 
     return {
         totalStories,
+        totalUniqueStories,
+        standaloneStories: standaloneStoriesCount,
+        multiPartSeriesCount,
+        storiesPerGenre,
         totalUnlockableChapters: paidChaptersCount,
         totalWordCount,
-        avgWordCountPerChapter: totalStories > 0 ? Math.round(totalWordCount / totalStories) : 0,
         totalCoinCost,
         avgCoinCostPerPaidChapter: paidChaptersCount > 0 ? Math.round(totalCoinCost / paidChaptersCount) : 0,
-        standaloneStories,
-        multiPartSeriesCount: series.size,
         paidStandaloneStories,
         paidSeriesChapters,
     };

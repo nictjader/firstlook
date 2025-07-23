@@ -3,17 +3,16 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, BarChart3, Coins, FileText, Type } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, BarChart3, Coins, FileText, Type, Lock, Search } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzePricingMetricsAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction } from '@/app/actions/adminActions';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
-import { type Story, type GeneratedStoryIdentifiers, type CleanupResult, type StoryCountBreakdown, type PricingMetrics } from '@/lib/types';
-import { getAllStories } from '@/app/actions/storyActions';
+import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetrics } from '@/lib/types';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 import { Separator } from '@/components/ui/separator';
 
@@ -88,91 +87,35 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
   </Card>
 );
 
-function analyzeStories(stories: Story[]): StoryCountBreakdown {
-  const storiesPerGenre: Record<string, number> = {};
-  const seriesGenres = new Map<string, string>(); // seriesId -> genre
-  let standaloneStories = 0;
-  
-  stories.forEach(story => {
-    const genre = story.subgenre || 'uncategorized';
-
-    if (story.seriesId) {
-      if (!seriesGenres.has(story.seriesId)) {
-        seriesGenres.set(story.seriesId, genre);
-      }
-    } else {
-      standaloneStories++;
-      storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
-    }
-  });
-
-  seriesGenres.forEach((genre) => {
-    storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
-  });
-
-  const multiPartSeriesCount = seriesGenres.size;
-  const totalUniqueStories = standaloneStories + multiPartSeriesCount;
-
-  return {
-    totalUniqueStories,
-    standaloneStories,
-    multiPartSeriesCount,
-    storiesPerGenre,
-  };
-}
-
 function AdminDashboardContent() {
   const { user } = useAuth();
   const [numStories, setNumStories] = useState(1);
   const [isGenerating, setIsGenerating] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
   const [completed, setCompleted] = useState(0);
-  const [storyCount, setStoryCount] = useState<StoryCountBreakdown | null>(null);
-  const [isCounting, setIsCounting] = useState(false);
-  const [countError, setCountError] = useState<string | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<DatabaseMetrics | null>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
-  const [isAnalyzingPricing, setIsAnalyzingPricing] = useState(false);
-  const [pricingMetrics, setPricingMetrics] = useState<PricingMetrics | null>(null);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
   };
 
-  const handleCountStories = async () => {
-    setIsCounting(true);
-    setStoryCount(null);
-    setPricingMetrics(null);
-    setCountError(null);
+  const handleAnalyzeDatabase = async () => {
+    setIsAnalyzing(true);
+    setAnalysisResult(null);
+    setAnalysisError(null);
     try {
-      const stories = await getAllStories();
-      if (!stories) {
-        throw new Error("The story fetch returned null or undefined.");
-      }
-      const counts = analyzeStories(stories);
-      setStoryCount(counts);
+      const result = await analyzeDatabaseAction();
+      setAnalysisResult(result);
     } catch (error: any) {
-      console.error("Failed to count stories:", error);
-      setCountError(error.message || "An unknown error occurred while analyzing the database.");
+      console.error("Failed to analyze database:", error);
+      setAnalysisError(error.message || "An unknown error occurred while analyzing the database.");
     } finally {
-      setIsCounting(false);
-    }
-  };
-
-  const handleAnalyzePricing = async () => {
-    setIsAnalyzingPricing(true);
-    setPricingMetrics(null);
-    setStoryCount(null);
-    setCountError(null);
-    try {
-      const metrics = await analyzePricingMetricsAction();
-      setPricingMetrics(metrics);
-    } catch (error: any) {
-        console.error("Failed to analyze pricing:", error);
-        setCountError(error.message || "An unknown error occurred while analyzing pricing.");
-    } finally {
-        setIsAnalyzingPricing(false);
+      setIsAnalyzing(false);
     }
   };
 
@@ -183,8 +126,8 @@ function AdminDashboardContent() {
     try {
       const result = await standardizeGenresAction();
       setCleanupResult(result);
-      if (result.success) {
-        await handleCountStories();
+      if (result.success && analysisResult) {
+        await handleAnalyzeDatabase();
       }
     } catch (error: any) {
         setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
@@ -248,7 +191,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isCounting || isGenerating || isCleaning || isRemovingTags || isAnalyzingPricing;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags;
 
   return (
     <>
@@ -277,9 +220,9 @@ function AdminDashboardContent() {
           </CardHeader>
           <CardContent className="space-y-4">
               <div className="flex flex-wrap gap-2">
-                <Button onClick={handleCountStories} disabled={isToolRunning}>
-                  {isCounting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BookText className="mr-2 h-4 w-4" />}
-                  {isCounting ? 'Analyzing...' : 'Analyze Story Database'}
+                <Button onClick={handleAnalyzeDatabase} disabled={isToolRunning}>
+                  {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze Database'}
                 </Button>
                 <Button onClick={handleStandardizeGenres} disabled={isToolRunning} variant="outline">
                     {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
@@ -288,10 +231,6 @@ function AdminDashboardContent() {
                 <Button onClick={handleRemoveTags} disabled={isToolRunning} variant="outline">
                     {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
                     {isRemovingTags ? 'Removing...' : 'Remove Orphaned Tags'}
-                </Button>
-                <Button onClick={handleAnalyzePricing} disabled={isToolRunning} variant="outline">
-                    {isAnalyzingPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
-                    {isAnalyzingPricing ? 'Analyzing...' : 'Analyze Pricing Metrics'}
                 </Button>
               </div>
 
@@ -303,119 +242,119 @@ function AdminDashboardContent() {
                 </Alert>
               )}
               
-              {countError && (
+              {analysisError && (
                  <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Analysis Failed</AlertTitle>
-                    <AlertDescription>{countError}</AlertDescription>
+                    <AlertDescription>{analysisError}</AlertDescription>
                 </Alert>
               )}
 
-              {pricingMetrics && (
+              {analysisResult && (
                 <Alert variant="success" className="mt-4">
-                    <CheckCircle className="h-4 w-4" />
-                    <AlertTitle>Pricing Analysis Complete</AlertTitle>
-                    <AlertDescription>
-                        <div className="space-y-4 mt-4">
-                            <div className="grid gap-4 md:grid-cols-3">
-                                <MetricCard 
-                                    title="Total Chapters" 
-                                    value={pricingMetrics.totalStories.toLocaleString()} 
-                                    icon={Book}
-                                    description="Total number of story parts in the DB."
-                                />
-                                <MetricCard 
-                                    title="Unlockable Chapters" 
-                                    value={pricingMetrics.totalUnlockableChapters.toLocaleString()} 
-                                    icon={Lock}
-                                    description="Total chapters that require payment."
-                                />
-                                <MetricCard 
-                                    title="Total Words" 
-                                    value={pricingMetrics.totalWordCount.toLocaleString()} 
-                                    icon={FileText}
-                                    description="Total word count of all chapters."
-                                />
-                            </div>
-                            <div className="grid gap-4 md:grid-cols-3">
-                                <MetricCard 
-                                    title="Avg. Words / Chapter" 
-                                    value={pricingMetrics.avgWordCountPerChapter.toLocaleString()} 
-                                    icon={Type}
-                                    description="Average length of a single chapter."
-                                />
-                               <MetricCard 
-                                    title="Avg. Cost / Paid Chapter" 
-                                    value={`${pricingMetrics.avgCoinCostPerPaidChapter} Coins`}
-                                    icon={Coins}
-                                    description="Average cost for a premium chapter."
-                                />
-                                <MetricCard 
-                                    title="Total Unlock Cost" 
-                                    value={`${pricingMetrics.totalCoinCost.toLocaleString()} Coins`}
-                                    icon={Coins}
-                                    description="Total coins to unlock all paid content."
-                                />
-                            </div>
-                             <Separator />
-                            <div className="grid gap-4 md:grid-cols-2">
-                                <Card>
-                                    <CardHeader>
-                                        <CardTitle className="text-base flex items-center"><Layers className="mr-2 h-4 w-4 text-primary" />Standalone Stories</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-sm space-y-2">
-                                        <p>Total Standalone: <strong>{pricingMetrics.standaloneStories}</strong></p>
-                                        <p>Paid Standalone: <strong>{pricingMetrics.paidStandaloneStories}</strong></p>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                     <CardHeader>
-                                        <CardTitle className="text-base flex items-center"><Library className="mr-2 h-4 w-4 text-primary" />Multi-Part Series</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-sm space-y-2">
-                                        <p>Total Series: <strong>{pricingMetrics.multiPartSeriesCount}</strong></p>
-                                        <p>Total Paid Chapters in Series: <strong>{pricingMetrics.paidSeriesChapters}</strong></p>
-                                    </CardContent>
-                                </Card>
-                            </div>
-                        </div>
-                    </AlertDescription>
-                </Alert>
-              )}
-
-
-              {storyCount !== null && !countError && !pricingMetrics && (
-                 <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
                     <AlertDescription>
-                      <div className="mt-2 space-y-4">
-                        <div className="flex items-center justify-between p-3 bg-green-500/10 rounded-md text-base">
-                          <div className="font-semibold flex items-center"><Book className="mr-2 h-5 w-5" />Total Unique Stories</div>
-                          <div className="font-bold text-xl">{storyCount.totalUniqueStories}</div>
+                        <div className="space-y-6 mt-4">
+                            {/* Composition Metrics */}
+                            <div>
+                                <h3 className="text-lg font-semibold mb-2 flex items-center"><Book className="mr-2 h-5 w-5 text-primary" />Content Composition</h3>
+                                <div className="grid gap-4 md:grid-cols-3">
+                                    <MetricCard 
+                                        title="Total Chapters" 
+                                        value={analysisResult.totalStories.toLocaleString()} 
+                                        icon={BookText}
+                                        description="Total number of story parts in the DB."
+                                    />
+                                    <MetricCard 
+                                        title="Total Unique Stories" 
+                                        value={analysisResult.totalUniqueStories.toLocaleString()} 
+                                        icon={Library}
+                                        description="Standalone stories + multi-part series."
+                                    />
+                                    <MetricCard 
+                                        title="Total Words" 
+                                        value={analysisResult.totalWordCount.toLocaleString()} 
+                                        icon={FileText}
+                                        description="Total word count of all chapters."
+                                    />
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-2 mt-4">
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-base flex items-center"><Layers className="mr-2 h-4 w-4 text-primary" />Story Types</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="text-sm space-y-2">
+                                            <p>Standalone Stories: <strong>{analysisResult.standaloneStories}</strong></p>
+                                            <p>Multi-Part Series: <strong>{analysisResult.multiPartSeriesCount}</strong></p>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-base flex items-center"><Tags className="mr-2 h-4 w-4 text-primary" />Genre Breakdown</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="text-sm space-y-1">
+                                            {Object.entries(analysisResult.storiesPerGenre).length > 0 ? (
+                                              Object.entries(analysisResult.storiesPerGenre).map(([genre, count]) => (
+                                                  <div key={genre} className="flex justify-between">
+                                                    <span>{capitalizeWords(genre)}:</span>
+                                                    <strong>{count}</strong>
+                                                  </div>
+                                              ))
+                                            ) : (
+                                              <p className="text-muted-foreground">No genre data.</p>
+                                            )}
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+                            
+                            <Separator />
+
+                            {/* Monetization Metrics */}
+                            <div>
+                               <h3 className="text-lg font-semibold mb-2 flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</h3>
+                               <div className="grid gap-4 md:grid-cols-3">
+                                    <MetricCard 
+                                        title="Unlockable Chapters" 
+                                        value={analysisResult.totalUnlockableChapters.toLocaleString()} 
+                                        icon={Lock}
+                                        description="Total chapters that require payment."
+                                    />
+                                    <MetricCard 
+                                        title="Total Unlock Cost" 
+                                        value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
+                                        icon={Coins}
+                                        description="Total coins to unlock all paid content."
+                                    />
+                                    <MetricCard 
+                                        title="Avg. Cost / Paid Chapter" 
+                                        value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
+                                        icon={Type}
+                                        description="Average cost for a premium chapter."
+                                    />
+                                </div>
+                                <div className="grid gap-4 md:grid-cols-2 mt-4">
+                                     <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-base flex items-center"><Layers className="mr-2 h-4 w-4 text-primary" />Paid Standalone</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="text-sm space-y-2">
+                                            <p>Total: <strong>{analysisResult.paidStandaloneStories}</strong></p>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardHeader>
+                                            <CardTitle className="text-base flex items-center"><Library className="mr-2 h-4 w-4 text-primary" />Paid Series Chapters</CardTitle>
+                                        </CardHeader>
+                                        <CardContent className="text-sm space-y-2">
+                                           <p>Total: <strong>{analysisResult.paidSeriesChapters}</strong></p>
+                                        </CardContent>
+                                    </Card>
+                                </div>
+                            </div>
+
                         </div>
-                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           <div className="p-3 bg-green-500/10 rounded-md space-y-2">
-                              <h4 className="font-semibold flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary"/>Story Types</h4>
-                              <div className="flex justify-between text-sm"><span>Standalone Stories:</span> <strong>{storyCount.standaloneStories}</strong></div>
-                              <div className="flex justify-between text-sm"><span>Multi-Part Stories:</span> <strong>{storyCount.multiPartSeriesCount}</strong></div>
-                           </div>
-                           <div className="p-3 bg-green-500/10 rounded-md">
-                                <h4 className="font-semibold flex items-center mb-2"><Library className="mr-2 h-4 w-4 text-primary"/>Genre Breakdown</h4>
-                                {Object.entries(storyCount.storiesPerGenre).length > 0 ? (
-                                  Object.entries(storyCount.storiesPerGenre).map(([genre, count]) => (
-                                      <div key={genre} className="flex justify-between text-sm">
-                                        <span>{capitalizeWords(genre)}:</span>
-                                        <strong>{count}</strong>
-                                      </div>
-                                  ))
-                                ) : (
-                                  <p className="text-sm text-muted-foreground">No genre data available.</p>
-                                )}
-                           </div>
-                        </div>
-                      </div>
                     </AlertDescription>
                 </Alert>
               )}
