@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, MailCheck, Loader2 } from 'lucide-react';
@@ -10,6 +10,9 @@ import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/header';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -20,6 +23,36 @@ function LoginContent() {
   const [isVerifyingLink, setIsVerifyingLink] = useState(isPotentialMagicLink);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // State for the custom email prompt dialog
+  const [showEmailPrompt, setShowEmailPrompt] = useState(false);
+  const emailInputRef = useRef<HTMLInputElement>(null);
+
+  const completeSignIn = (email: string | null) => {
+    if (!email) {
+      setErrorMessage("Email is required to complete the sign-in. Please try again.");
+      setIsVerifyingLink(false);
+      return;
+    }
+
+    const fullUrl = window.location.href;
+    signInWithEmailLink(auth, email, fullUrl)
+      .then(() => {
+        window.localStorage.removeItem('emailForSignIn');
+        toast({ title: "Success!", description: "You are now signed in." });
+        router.push('/');
+      })
+      .catch((err) => {
+        console.error(err);
+        setErrorMessage("The sign-in link is invalid or has expired. Please try again.");
+        setIsVerifyingLink(false);
+      });
+  };
+
+  const handlePromptSubmit = () => {
+    const email = emailInputRef.current?.value || null;
+    setShowEmailPrompt(false);
+    completeSignIn(email);
+  };
 
   useEffect(() => {
     if (isPotentialMagicLink) {
@@ -27,24 +60,10 @@ function LoginContent() {
       if (isSignInWithEmailLink(auth, fullUrl)) {
         let email = window.localStorage.getItem('emailForSignIn');
         if (!email) {
-          email = window.prompt('Please provide your email for confirmation');
-        }
-        
-        if (email) {
-          signInWithEmailLink(auth, email, fullUrl)
-            .then(() => {
-              window.localStorage.removeItem('emailForSignIn');
-              toast({ title: "Success!", description: "You are now signed in." });
-              router.push('/');
-            })
-            .catch((err) => {
-              console.error(err);
-              setErrorMessage("The sign-in link is invalid or has expired. Please try again.");
-              setIsVerifyingLink(false);
-            });
+          // Instead of window.prompt, show our custom dialog
+          setShowEmailPrompt(true);
         } else {
-          setErrorMessage("Email is required to complete the sign-in. Please try again.");
-          setIsVerifyingLink(false);
+          completeSignIn(email);
         }
       } else {
         setErrorMessage("The sign-in link is invalid or malformed. Please try again.");
@@ -54,7 +73,7 @@ function LoginContent() {
   }, [isPotentialMagicLink, router, toast]);
 
 
-  if (isVerifyingLink) {
+  if (isVerifyingLink && !showEmailPrompt) {
     return (
         <div className="flex flex-col items-center justify-center text-center">
             <MailCheck className="h-12 w-12 mx-auto text-primary" />
@@ -82,13 +101,35 @@ function LoginContent() {
 
 
   return (
-    <div className="w-full max-w-md">
-      <Link href="/" className="absolute top-4 left-4 inline-flex items-center text-sm text-primary hover:underline">
-        <ChevronLeft className="w-4 h-4 mr-1" />
-        Back to Home
-      </Link>
-      <AuthForm />
-    </div>
+    <>
+      <AlertDialog open={showEmailPrompt} onOpenChange={setShowEmailPrompt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Your Email</AlertDialogTitle>
+            <AlertDialogDescription>
+              To complete your sign-in, please provide the email address where you received the link. This helps us keep your account secure.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-4">
+            <Label htmlFor="email-confirm" className="sr-only">Email</Label>
+            <Input ref={emailInputRef} id="email-confirm" type="email" placeholder="you@example.com" />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => completeSignIn(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handlePromptSubmit}>Confirm</Aler
+tDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="w-full max-w-md">
+        <Link href="/" className="absolute top-4 left-4 inline-flex items-center text-sm text-primary hover:underline">
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Back to Home
+        </Link>
+        <AuthForm />
+      </div>
+    </>
   );
 }
 
