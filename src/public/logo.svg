@@ -1,0 +1,13 @@
+<svg width="250" height="70" viewBox="0 0 250 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <path d="M23.3333 19.8333H30.3333C33.6473 19.8333 36.3333 22.5193 36.3333 25.8333V47.5C36.3333 48.9804 35.2137 50.1667 33.8333 50.1667H23.3333" fill="#D87093"/>
+  <path d="M46.6667 19.8333H39.6667C36.3527 19.8333 33.6667 22.5193 33.6667 25.8333V47.5C33.6667 48.9804 34.7863 50.1667 36.1667 50.1667H46.6667" fill="#D87093"/>
+  <style>
+    .font-headline {
+      font-family: 'Playfair Display', serif;
+      font-weight: 700;
+      font-size: 36px;
+      fill: #D87093;
+    }
+  </style>
+  <text x="70" y="45" class="font-headline">FirstLook</text>
+</svg>
