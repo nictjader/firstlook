@@ -5,36 +5,22 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Gem, Mail, UserCircle, LogOut, CheckSquare, Square, Edit3, Save, History, Heart, ShoppingCart } from 'lucide-react';
+import { Gem, Mail, UserCircle, LogOut, History, Heart } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
-import { ALL_SUBGENRES, Subgenre } from '@/lib/types';
-import { useState, useEffect } from 'react';
 import { Separator } from '../ui/separator';
-import { capitalizeWords } from '@/lib/utils';
 import StoryListCard from './story-list-card';
 import PurchaseHistoryCard from './purchase-history-card';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 
 
 export default function ProfileView() {
-  const { user, userProfile, loading, updateUserProfile, refreshUserProfile } = useAuth();
+  const { user, userProfile, loading } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
-
-  const [isEditingPreferences, setIsEditingPreferences] = useState(false);
-  const [selectedSubgenres, setSelectedSubgenres] = useState<Subgenre[]>([]);
-  const [isSaving, setIsSaving] = useState(false);
-
-  useEffect(() => {
-    if (userProfile?.preferences.subgenres) {
-      setSelectedSubgenres(userProfile.preferences.subgenres as Subgenre[]);
-    }
-  }, [userProfile?.preferences.subgenres]);
 
   const handleSignOut = async () => {
     try {
@@ -44,28 +30,6 @@ export default function ProfileView() {
     } catch (error) {
       console.error('Error signing out:', error);
       toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
-    }
-  };
-
-  const toggleSubgenre = (subgenre: Subgenre) => {
-    setSelectedSubgenres(prev =>
-      prev.includes(subgenre) ? prev.filter(s => s !== subgenre) : [...prev, subgenre]
-    );
-  };
-
-  const handleSavePreferences = async () => {
-    if (!user || !userProfile) return;
-    setIsSaving(true);
-    try {
-      await updateUserProfile({ preferences: { subgenres: selectedSubgenres } });
-      await refreshUserProfile(); 
-      toast({ title: "Preferences Saved", description: "Your subgenre preferences have been updated." });
-      setIsEditingPreferences(false);
-    } catch (error) {
-      console.error("Error saving preferences:", error);
-      toast({ title: "Error", description: "Could not save preferences.", variant: "destructive" });
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -88,7 +52,7 @@ export default function ProfileView() {
               <CardTitle className="text-2xl font-headline">
                 {userProfile.displayName || userProfile.email || 'FirstLook User'}
               </CardTitle>
-              <CardDescription>Manage your account details and preferences.</CardDescription>
+              <CardDescription>Manage your account details.</CardDescription>
             </div>
           </div>
         </CardHeader>
@@ -107,52 +71,6 @@ export default function ProfileView() {
               </Button>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="shadow-lg">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-headline flex items-center"><Heart className="w-5 h-5 mr-2 text-primary"/>Reading Preferences</CardTitle>
-            <CardDescription>Tell us what you love to read.</CardDescription>
-          </div>
-          <Button variant="ghost" size="icon" onClick={() => setIsEditingPreferences(!isEditingPreferences)}>
-              {isEditingPreferences ? <Save className="w-5 h-5" /> : <Edit3 className="w-5 h-5" />}
-              <span className="sr-only">{isEditingPreferences ? "Save Preferences" : "Edit Preferences"}</span>
-            </Button>
-        </CardHeader>
-        <CardContent>
-          {isEditingPreferences ? (
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">Select your favorite subgenres:</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {ALL_SUBGENRES.map((subgenre: Subgenre) => (
-                  <Button
-                    key={subgenre}
-                    variant={selectedSubgenres.includes(subgenre) ? "default" : "outline"}
-                    onClick={() => toggleSubgenre(subgenre)}
-                    className="flex items-center justify-start space-x-2"
-                  >
-                    {selectedSubgenres.includes(subgenre) ? <CheckSquare className="w-4 h-4" /> : <Square className="w-4 h-4" />}
-                    <span>{capitalizeWords(subgenre)}</span>
-                  </Button>
-                ))}
-              </div>
-              <Button onClick={handleSavePreferences} disabled={isSaving} className="mt-4">
-                {isSaving ? "Saving..." : "Save Preferences"}
-              </Button>
-            </div>
-          ) : (
-            userProfile.preferences.subgenres.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {userProfile.preferences.subgenres.map(subgenre => (
-                  <Badge key={subgenre} variant="secondary" className="text-sm px-3 py-1">{capitalizeWords(subgenre)}</Badge>
-                ))}
-              </div>
-            ) : (
-              <p className="text-muted-foreground">You haven&apos;t set any preferences yet. Click edit to select your favorite subgenres.</p>
-            )
-          )}
         </CardContent>
       </Card>
       
