@@ -17,5 +17,4 @@ import { googleAI } from '@genkit-ai/googleai';
 // conflicting Firebase instance for telemetry.
 export const ai = genkit({
   plugins: [googleAI()],
-  enableTracingAndMetrics: false,
 });
