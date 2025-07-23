@@ -99,9 +99,6 @@ export default function ProfileView() {
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
       </div>
-      <div className="mt-8 text-center text-xs text-muted-foreground">
-        <p>User ID: {userProfile.userId}</p>
-      </div>
     </div>
   );
 }
