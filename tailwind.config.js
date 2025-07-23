@@ -1,3 +1,6 @@
+
+const { fontFamily } = require("tailwindcss/defaultTheme")
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
@@ -17,6 +20,10 @@ module.exports = {
       },
     },
     extend: {
+      fontFamily: {
+        // Use the system font stack for sans-serif text
+        sans: ["-apple-system", "BlinkMacSystemFont", '"Segoe UI"', "Roboto", '"Helvetica Neue"', "Arial", '"Noto Sans"', "sans-serif", '"Apple Color Emoji"', '"Segoe UI Emoji"', '"Segoe UI Symbol"', '"Noto Color Emoji"'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
