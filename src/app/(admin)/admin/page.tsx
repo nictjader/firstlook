@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -402,5 +401,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    

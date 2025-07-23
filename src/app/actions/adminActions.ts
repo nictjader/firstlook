@@ -1,4 +1,3 @@
-
 'use server';
 
 import { generateStory } from '@/ai/flows/story-generator';
@@ -430,6 +429,3 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         updated: updatedCount,
     };
 }
-
-
-    
