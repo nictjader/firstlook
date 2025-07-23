@@ -275,9 +275,8 @@ function AdminDashboardContent() {
                 <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
-                    <AlertDescription>
+                    <AlertDescription asChild>
                         <div className="space-y-6 mt-4">
-                            {/* Composition Metrics */}
                             <div>
                                 <h3 className="text-lg font-semibold mb-4 flex items-center"><Book className="mr-2 h-5 w-5 text-primary" />Content Composition</h3>
                                 <div className="grid gap-4 md:grid-cols-3 mb-4">
@@ -291,7 +290,7 @@ function AdminDashboardContent() {
                                         title="Total Chapters" 
                                         value={analysisResult.totalChapters.toLocaleString()} 
                                         icon={BookText}
-                                        description="Total individual story parts."
+                                        description="Total individual story chapters."
                                     />
                                     <MetricCard 
                                         title="Total Words" 
@@ -330,7 +329,6 @@ function AdminDashboardContent() {
                             
                             <Separator />
 
-                            {/* Monetization Metrics */}
                             <div>
                                <h3 className="text-lg font-semibold mb-2 flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</h3>
                                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
