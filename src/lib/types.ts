@@ -1,4 +1,5 @@
 
+
 import { type Timestamp as ClientTimestamp, type FieldValue, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 import { z } from 'zod';
@@ -12,12 +13,17 @@ export interface Purchase {
   purchasedAt: string;
 }
 
+export interface UnlockedStoryInfo {
+    storyId: string;
+    unlockedAt: string;
+}
+
 export interface UserProfile {
   userId: string;
   email: string | null;
   displayName?: string | null;
   coins: number;
-  unlockedStories: string[];
+  unlockedStories: UnlockedStoryInfo[];
   readStories: string[];
   favoriteStories: string[];
   purchaseHistory: Purchase[];
@@ -115,7 +121,13 @@ export function docToUserProfile(docData: DocumentData, userId: string): UserPro
       email: data.email,
       displayName: data.displayName,
       coins: data.coins || 0,
-      unlockedStories: data.unlockedStories || [],
+      unlockedStories: (data.unlockedStories || []).map((s: any): UnlockedStoryInfo => {
+          // Handle legacy format (array of strings)
+          if (typeof s === 'string') {
+              return { storyId: s, unlockedAt: new Date(0).toISOString() }; // Use epoch for old data
+          }
+          return { storyId: s.storyId, unlockedAt: safeToISOString(s.unlockedAt) };
+      }),
       readStories: data.readStories || [],
       favoriteStories: data.favoriteStories || [],
       purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => ({

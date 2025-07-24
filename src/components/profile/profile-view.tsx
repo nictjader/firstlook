@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
@@ -13,7 +14,7 @@ import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '../ui/separator';
 import StoryListCard from './story-list-card';
-import PurchaseHistoryCard from './purchase-history-card';
+import TransactionHistoryCard from './transaction-history-card';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useState } from 'react';
@@ -171,8 +172,9 @@ export default function ProfileView() {
         emptyMessage="You haven't read any stories yet. Start reading to build your history!"
       />
 
-      <PurchaseHistoryCard 
+      <TransactionHistoryCard 
         purchaseHistory={userProfile.purchaseHistory}
+        unlockedStories={userProfile.unlockedStories}
       />
 
       <Separator />

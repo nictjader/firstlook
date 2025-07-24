@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { Purchase } from "@/lib/types";

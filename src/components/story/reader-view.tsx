@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { Story } from '@/lib/types';
@@ -23,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/contexts/theme-context';
 import StoryCard from './story-card';
+import { arrayUnion } from 'firebase/firestore';
 
 const FONT_SIZES = [
   'text-base',     // 16px
@@ -44,7 +46,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(1);
 
   const isEffectivelyFree = useMemo(() => !story.isPremium || story.coinCost <= 0, [story.isPremium, story.coinCost]);
-  const isUnlocked = useMemo(() => isEffectivelyFree || (userProfile?.unlockedStories.includes(story.storyId) ?? false), [story.storyId, userProfile, isEffectivelyFree]);
+  const isUnlocked = useMemo(() => isEffectivelyFree || (userProfile?.unlockedStories.some(s => s.storyId === story.storyId) ?? false), [story.storyId, userProfile, isEffectivelyFree]);
   const isFavorited = useMemo(() => userProfile?.favoriteStories.includes(story.storyId) ?? false, [story.storyId, userProfile]);
   const hasSufficientCoins = useMemo(() => isEffectivelyFree || !userProfile ? true : userProfile.coins >= story.coinCost, [story, userProfile, isEffectivelyFree]);
 
@@ -71,9 +73,11 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     setIsLoadingUnlock(true);
     try {
       const newCoinBalance = userProfile.coins - story.coinCost;
+      const newUnlockRecord = { storyId: story.storyId, unlockedAt: new Date().toISOString() };
+      
       await updateUserProfile({ 
         coins: newCoinBalance,
-        unlockedStories: [...userProfile.unlockedStories, story.storyId] 
+        unlockedStories: arrayUnion(newUnlockRecord) as any // Use arrayUnion for atomicity
       });
       await refreshUserProfile();
       setShowUnlockModal(false);
