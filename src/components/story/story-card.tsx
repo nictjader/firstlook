@@ -69,16 +69,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
         
-        {isRead && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                <div className="flex flex-col items-center text-white">
-                    <CheckCircle className="h-12 w-12" />
-                    <p className="mt-2 font-semibold text-lg">Read</p>
-                </div>
-            </div>
-        )}
-
-
         {/* Top-aligned content: Badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
           <div className='flex flex-col gap-2'>
@@ -100,11 +90,19 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
               </Badge>
             )}
           </div>
-          {isFavorited && !isRead && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow-md">
-                <Heart className="w-4 h-4 text-red-500 fill-current" />
-            </div>
-          )}
+          <div className="flex flex-col items-end gap-2">
+            {isFavorited && (
+              <div className="bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow-md">
+                  <Heart className="w-4 h-4 text-red-500 fill-current" />
+              </div>
+            )}
+             {isRead && (
+                <Badge variant="success" className="flex items-center text-xs shadow-md w-fit bg-white/90 text-green-700">
+                    <CheckCircle className="w-3 h-3 mr-1" />
+                    Read
+                </Badge>
+            )}
+          </div>
         </div>
 
         {/* Bottom-aligned content: Title and Subgenre */}
@@ -118,5 +116,3 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     </Link>
   );
 }
-
-    
