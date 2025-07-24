@@ -113,8 +113,7 @@ function LoginContent() {
 
   if (errorMessage) {
       return (
-          <Alert variant="destructive" className="w-full">
-            <AlertCircle className="h-4 w-4" />
+          <Alert variant="destructive" className="w-full max-w-md">
             <AlertTitle>Sign-In Failed</AlertTitle>
             <AlertDescription>
               {errorMessage}
@@ -159,10 +158,6 @@ function LoginContent() {
             <AlertDescription>{infoMessage}</AlertDescription>
           </Alert>
         )}
-        <Link href="/" className="absolute top-4 left-4 inline-flex items-center text-sm text-primary hover:underline">
-          <ChevronLeft className="w-4 h-4 mr-1" />
-          Back to Home
-        </Link>
         <AuthForm />
       </div>
     </>
@@ -179,7 +174,11 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col min-h-screen bg-gradient-to-br from-background to-secondary">
       <Header />
-      <main className="flex-grow flex flex-col items-center justify-center p-4">
+      <main className="flex-grow flex flex-col items-center justify-center p-4 relative">
+        <Link href="/" className="absolute top-4 left-4 inline-flex items-center text-sm font-medium text-primary hover:bg-accent hover:text-accent-foreground h-9 px-3 rounded-md">
+          <ChevronLeft className="w-4 h-4 mr-1" />
+          Back to Home
+        </Link>
         <Suspense fallback={loadingFallback}>
           <LoginContent />
         </Suspense>
