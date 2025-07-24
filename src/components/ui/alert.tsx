@@ -6,13 +6,13 @@ import { cn } from "@/lib/utils"
 import { AlertCircle, CheckCircle, Info } from "lucide-react"
 
 const alertVariants = cva(
-  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground shadow-lg bg-background/80 backdrop-blur-sm",
+  "relative w-full rounded-lg border p-4 [&>svg~*]:pl-7 [&>svg+div]:translate-y-[-3px] [&>svg]:absolute [&>svg]:left-4 [&>svg]:top-4 [&>svg]:text-foreground",
   {
     variants: {
       variant: {
         default: "text-foreground border-border/40",
         destructive:
-          "border-destructive/50 text-destructive [&>svg]:text-destructive",
+          "border-destructive/50 text-destructive dark:border-destructive [&>svg]:text-destructive",
         success: 
           "border-green-500/50 text-green-700 dark:text-green-500 [&>svg]:text-green-500",
         warning:

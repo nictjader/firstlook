@@ -16,11 +16,11 @@ import { CheckCircle, AlertTriangle, Info } from 'lucide-react';
 const ToastIcon = ({ variant }: { variant?: 'default' | 'destructive' | 'success' | null }) => {
     switch (variant) {
         case 'success':
-            return <CheckCircle className="h-6 w-6 text-current" />;
+            return <CheckCircle className="h-6 w-6 text-green-500" />;
         case 'destructive':
-            return <AlertTriangle className="h-6 w-6 text-current" />;
+            return <AlertTriangle className="h-6 w-6 text-destructive" />;
         default:
-            return <Info className="h-6 w-6 text-current" />;
+            return <Info className="h-6 w-6 text-foreground" />;
     }
 }
 
@@ -33,11 +33,14 @@ export function Toaster() {
         const icon = <ToastIcon variant={variant} />;
         return (
           <Toast key={id} variant={variant} {...props}>
-            <div className="grid gap-1 flex-grow">
-              {title && <ToastTitle>{title}</ToastTitle>}
-              {description && (
-                <ToastDescription>{description}</ToastDescription>
-              )}
+             <div className="flex items-start space-x-3">
+              <div className="flex-shrink-0">{icon}</div>
+              <div className="grid gap-1 flex-grow">
+                {title && <ToastTitle>{title}</ToastTitle>}
+                {description && (
+                  <ToastDescription>{description}</ToastDescription>
+                )}
+              </div>
             </div>
             {action}
             <ToastClose />
