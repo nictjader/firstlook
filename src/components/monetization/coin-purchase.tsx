@@ -60,12 +60,12 @@ export default function CoinPurchase() {
               Best Value
             </Badge>
           )}
-          <CardHeader className="text-center bg-gradient-to-br from-primary/20 to-accent/20">
+          <CardHeader className="text-center bg-gradient-to-br from-primary/20 to-accent/20 py-8">
             <Gem className="h-12 w-12 text-primary mx-auto mb-3" />
             <CardTitle className="text-3xl font-headline leading-none tracking-tight">{pkg.coins.toLocaleString()} Coins</CardTitle>
             <CardDescription className="text-base">{pkg.description}</CardDescription>
           </CardHeader>
-          <CardContent className="flex-grow flex flex-col justify-center items-center">
+          <CardContent className="flex-grow flex flex-col justify-center items-center py-8">
             <p className="text-4xl font-bold text-accent">${pkg.priceUSD.toFixed(2)}</p>
           </CardContent>
           <CardFooter>
