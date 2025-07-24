@@ -87,8 +87,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
   const handleFavoriteClick = () => {
     if (!user) {
-      toast({ title: "Please Sign In", description: "You need to be signed in to favorite stories.", variant: "destructive" });
-      router.push('/login');
+      router.push('/login?reason=favorite');
       return;
     }
     toggleFavoriteStory(story.storyId);
@@ -239,7 +238,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
-                             <Badge variant={part.coinCost > 0 ? 'destructive' : 'secondary'} className="flex items-center text-xs shadow-md w-fit">
+                             <Badge variant={part.coinCost > 0 ? 'premium' : 'secondary'} className="flex items-center text-xs shadow-md w-fit">
                                 {part.coinCost > 0 && <Lock className="w-3 h-3 mr-1" />}
                                 {part.coinCost > 0 ? 'Premium' : 'Free'}
                             </Badge>
