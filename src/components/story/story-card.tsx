@@ -15,16 +15,6 @@ type StoryCardProps = {
   isPriority?: boolean;
 };
 
-const StoryCardSkeleton = () => (
-    <div className="space-y-2">
-        <Skeleton className="aspect-[2/3] w-full rounded-lg" />
-        <div className="space-y-2">
-            <Skeleton className="h-4 w-1/2" />
-            <Skeleton className="h-5 w-3/4" />
-        </div>
-    </div>
-)
-
 export default function StoryCard({ story, isPriority = false }: StoryCardProps) {
   const { title, coverImageUrl, coinCost, storyId, subgenre } = story;
   const { user, userProfile, toggleFavoriteStory, loading: authLoading } = useAuth();
@@ -67,10 +57,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const isPremium = coinCost > 0;
   const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
-
-  if (authLoading && !userProfile) {
-      return <StoryCardSkeleton />;
-  }
 
   return (
     <div className="space-y-2">
