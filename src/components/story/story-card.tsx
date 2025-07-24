@@ -5,9 +5,9 @@ import type { Story } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { Lock, Heart, Library } from 'lucide-react';
+import { Lock, Heart, Library, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { capitalizeWords } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
@@ -16,14 +16,36 @@ type StoryCardProps = {
   isPriority?: boolean;
 };
 
+const LOCAL_STORAGE_READ_KEY = 'siren_read_stories';
+
 export default function StoryCard({ story, isPriority = false }: StoryCardProps) {
   const { title, coverImageUrl, coinCost, storyId, subgenre, seriesId, totalPartsInSeries, partNumber } = story;
-  const { userProfile } = useAuth();
-  
+  const { user, userProfile } = useAuth();
+  const [isRead, setIsRead] = useState(false);
+
   const isFavorited = useMemo(() => {
     if (!userProfile) return false;
     return userProfile.favoriteStories?.includes(storyId) ?? false;
   }, [userProfile, storyId]);
+
+  useEffect(() => {
+    // This effect runs on the client and determines the read status.
+    if (user && userProfile) {
+      // User is logged in, check their profile.
+      setIsRead(userProfile.readStories?.includes(storyId) ?? false);
+    } else if (!user) {
+      // User is logged out, check local storage.
+      try {
+        const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
+        const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
+        setIsRead(localReadStories.includes(storyId));
+      } catch (error) {
+        // If local storage is unavailable or fails, default to not read.
+        setIsRead(false);
+      }
+    }
+  }, [user, userProfile, storyId]);
+
 
   const isFree = coinCost <= 0;
   const isSeries = seriesId && totalPartsInSeries && totalPartsInSeries > 1;
@@ -46,6 +68,16 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
         />
         {/* Gradient overlay for text readability */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+        
+        {isRead && (
+            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                <div className="flex flex-col items-center text-white">
+                    <CheckCircle className="h-12 w-12" />
+                    <p className="mt-2 font-semibold text-lg">Read</p>
+                </div>
+            </div>
+        )}
+
 
         {/* Top-aligned content: Badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
@@ -68,7 +100,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
               </Badge>
             )}
           </div>
-          {isFavorited && (
+          {isFavorited && !isRead && (
             <div className="bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow-md">
                 <Heart className="w-4 h-4 text-red-500 fill-current" />
             </div>
