@@ -17,8 +17,8 @@ interface StoryListProps {
 }
 
 const StoryListSkeleton = () => (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
-        {Array.from({ length: 10 }).map((_, i) => (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
+        {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex flex-col space-y-3">
                 <Skeleton className="h-[45vw] sm:h-[30vw] md:h-[25vw] lg:h-[20vw] w-full rounded-xl" />
             </div>
@@ -123,12 +123,10 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
       {filteredStories.map((story, index) => (
         <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
       ))}
     </div>
   );
 }
-
-    
