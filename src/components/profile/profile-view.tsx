@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Gem, Mail, UserCircle, LogOut, History, Heart, Loader2, RefreshCw } from 'lucide-react';
+import { Gem, Mail, UserCircle, LogOut, History, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut, verifyBeforeUpdateEmail } from 'firebase/auth';
@@ -18,9 +18,6 @@ import TransactionHistoryCard from './transaction-history-card';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useState } from 'react';
-import { resetUserAccountAction } from '@/app/actions/userActions';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogContent, AlertDialogDescription, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-
 
 export default function ProfileView() {
   const { user, userProfile, loading, refreshUserProfile } = useAuth();
@@ -29,7 +26,6 @@ export default function ProfileView() {
   const [newEmail, setNewEmail] = useState('');
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
-  const [isResetting, setIsResetting] = useState(false);
 
 
   const handleSignOut = async () => {
@@ -40,28 +36,6 @@ export default function ProfileView() {
     } catch (error) {
       console.error('Error signing out:', error);
       toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
-    }
-  };
-
-  const handleResetAccount = async () => {
-    if (!user) return;
-    setIsResetting(true);
-    try {
-      await resetUserAccountAction(user.uid);
-      await refreshUserProfile(); // Refresh the user profile from the client
-      toast({
-        variant: 'success',
-        title: 'Account Reset Successful',
-        description: 'Your coin balance and history have been reset.',
-      });
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Reset Failed',
-        description: error.message || 'Could not reset your account. Please try again.',
-      });
-    } finally {
-      setIsResetting(false);
     }
   };
 
@@ -204,30 +178,7 @@ export default function ProfileView() {
 
       <Separator />
 
-      <div className="text-center mt-8 space-x-2">
-         <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive">
-              <RefreshCw className="mr-2 h-4 w-4" /> Reset Account
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete all your reading history, favorites, and purchase history, and reset your coin balance to 250.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isResetting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleResetAccount} disabled={isResetting}>
-                {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Yes, reset my account
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
+      <div className="text-center mt-8">
         <Button variant="outline" onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" /> Sign Out
         </Button>
