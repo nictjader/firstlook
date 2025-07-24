@@ -4,14 +4,11 @@
 import { useState, useEffect } from "react";
 import Link from 'next/link';
 import type { Story } from "@/lib/types";
-import { docToStory } from "@/lib/types";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LucideIcon } from "lucide-react";
 import { BookOpen, ChevronRight } from "lucide-react";
-import { collection, query, where, getDocs, documentId } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
-import type { QueryDocumentSnapshot } from 'firebase/firestore';
+import { getStoriesByIds } from "@/app/actions/storyActions.client";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 
 interface StoryListCardProps {
@@ -19,28 +16,6 @@ interface StoryListCardProps {
   storyIds: string[];
   icon: LucideIcon;
   emptyMessage: string;
-}
-
-async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
-  if (!storyIds || storyIds.length === 0) {
-    return [];
-  }
-  const stories: Story[] = [];
-
-  const MAX_IDS_PER_QUERY = 30;
-  for (let i = 0; i < storyIds.length; i += MAX_IDS_PER_QUERY) {
-    const batchIds = storyIds.slice(i, i + MAX_IDS_PER_QUERY);
-    const storiesRef = collection(db, 'stories');
-    const q = query(storiesRef, where(documentId(), 'in', batchIds));
-    const querySnapshot = await getDocs(q);
-    const batchStories = querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
-    stories.push(...batchStories);
-  }
-
-  const storyMap = new Map(stories.map(s => [s.storyId, s]));
-  const orderedStories = storyIds.map(id => storyMap.get(id)).filter((s): s is Story => !!s);
-
-  return orderedStories;
 }
 
 export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessage }: StoryListCardProps) {

@@ -7,7 +7,7 @@ import { Gem, ShoppingCart, BookLock, History } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { useState, useEffect } from "react";
-import { getStoriesByIds } from "../story/story-list-card";
+import { getStoriesByIds } from "@/app/actions/storyActions.client";
 import { Skeleton } from "../ui/skeleton";
 import Link from "next/link";
 
