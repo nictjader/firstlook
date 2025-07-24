@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, Coins, FileText, Type, Lock, Search, DollarSign, BarChart3 } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, Coins, FileText, Type, Lock, Search, DollarSign } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,6 +15,7 @@ import { capitalizeWords } from '@/lib/utils';
 import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetrics } from '@/lib/types';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 import { Separator } from '@/components/ui/separator';
+import MetricCard from '@/components/admin/metric-card';
 
 
 type Log = {
@@ -36,22 +37,6 @@ const StatusIcon = ({ status }: { status: Log['status'] }) => {
     case 'error': return <AlertCircle className="h-5 w-5 text-destructive" />;
   }
 };
-
-const MetricCard = ({ title, value, icon, description }: { title: string, value: string | number, icon: React.ElementType, description: string }) => {
-    const Icon = icon;
-    return (
-        <Card className="flex-1 min-w-[200px]">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
-                <p className="text-xs text-muted-foreground">{description}</p>
-            </CardContent>
-        </Card>
-    )
-}
 
 const GenerationLog = ({ logs }: { logs: Log[] }) => (
   <Card>
