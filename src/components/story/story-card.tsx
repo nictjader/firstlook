@@ -51,6 +51,11 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
 
+  const statusText = [
+    !isFree ? 'Premium' : null,
+    isRead ? 'Read' : null,
+  ].filter(Boolean).join(' · ');
+
   return (
     <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="group flex flex-col h-full">
       <div className="w-full bg-muted aspect-[2/3] relative overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
@@ -75,38 +80,14 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
            {title.replace(/ - Part \d+$/, '')}
         </h3>
       </div>
-      <div className="flex justify-end items-center mt-2 text-muted-foreground h-5 gap-2">
-        {isRead && (
-          <Tooltip text="Read">
-            <CheckCircle className="w-4 h-4 text-green-600" />
-          </Tooltip>
+      <div className="flex justify-between items-center mt-2 text-muted-foreground h-5 gap-2">
+        <p className="text-xs font-medium">{statusText}</p>
+        {user && (
+            <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
+                <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
+            </button>
         )}
-        {!isFree && (
-          <Tooltip text="Premium">
-            <Lock className="w-4 h-4" />
-          </Tooltip>
-        )}
-         {user && (
-            <Tooltip text={isFavorited ? "Unfavorite" : "Favorite"}>
-              <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
-                 <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
-              </button>
-            </Tooltip>
-          )}
       </div>
     </Link>
   );
 }
-
-const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
-  <div className="relative group flex items-center">
-    {children}
-    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-      {text}
-      <svg className="absolute text-gray-800 h-2 w-full left-0 top-full" x="0px" y="0px" viewBox="0 0 255 255">
-        <polygon className="fill-current" points="0,0 127.5,127.5 255,0"/>
-      </svg>
-    </div>
-  </div>
-);
-
