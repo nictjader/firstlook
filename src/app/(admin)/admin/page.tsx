@@ -56,7 +56,7 @@ const MetricCard = ({ title, value, icon, description }: { title: string, value:
 const GenerationLog = ({ logs }: { logs: Log[] }) => (
   <Card>
     <CardHeader>
-      <CardTitle className="flex items-center"><BookText className="mr-2 h-5 w-5" /> Generation Log</CardTitle>
+      <CardTitle className="flex items-center text-xl"><BookText className="mr-2 h-5 w-5" /> Generation Log</CardTitle>
       <p className="text-sm text-muted-foreground">A real-time log of the story generation process.</p>
     </CardHeader>
     <CardContent>
@@ -233,7 +233,7 @@ function AdminDashboardContent() {
         
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center"><Database className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
+            <CardTitle className="flex items-center text-xl"><Database className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
             <CardDescription>Analyze and maintain the story database.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -373,7 +373,7 @@ function AdminDashboardContent() {
         
         <Card>
            <CardHeader>
-            <CardTitle className="flex items-center"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
+            <CardTitle className="flex items-center text-xl"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
             <p className="text-sm text-muted-foreground">
               Generate new stories from the unused seeds in your library.
             </p>
@@ -407,5 +407,7 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
 
     

@@ -54,7 +54,7 @@ export default function CoinPurchase() {
       {coinPackages.map((pkg) => (
         <div key={pkg.id} className="rounded-lg border bg-card text-card-foreground shadow-sm flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out relative overflow-hidden">
           {pkg.bestValue && (
-            <Badge variant="accent" className="absolute top-0 right-0 m-3 flex items-center gap-1 text-sm py-1 px-3">
+            <Badge variant="premium" className="absolute top-0 right-0 m-3 flex items-center gap-1 text-sm py-1 px-3">
               <Star className="h-4 w-4" />
               Best Value
             </Badge>
@@ -86,3 +86,5 @@ export default function CoinPurchase() {
     </div>
   );
 }
+
+    
