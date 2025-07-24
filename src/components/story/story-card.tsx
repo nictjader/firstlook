@@ -8,41 +8,59 @@ import { Heart, Lock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMemo, useState, useEffect } from 'react';
 import { capitalizeWords } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type StoryCardProps = {
   story: Story;
   isPriority?: boolean;
 };
 
-const LOCAL_STORAGE_READ_KEY = 'siren_read_stories';
+const StoryCardSkeleton = () => (
+    <div className="space-y-2">
+        <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+        <div className="space-y-2">
+            <Skeleton className="h-4 w-1/2" />
+            <Skeleton className="h-5 w-3/4" />
+        </div>
+    </div>
+)
 
 export default function StoryCard({ story, isPriority = false }: StoryCardProps) {
   const { title, coverImageUrl, coinCost, storyId, subgenre } = story;
-  const { user, userProfile, toggleFavoriteStory } = useAuth();
+  const { user, userProfile, toggleFavoriteStory, loading: authLoading } = useAuth();
   const [isRead, setIsRead] = useState(false);
 
   const isFavorited = useMemo(() => {
-    if (!userProfile) return false;
+    if (authLoading || !userProfile) return false;
     return userProfile.favoriteStories?.includes(storyId) ?? false;
-  }, [userProfile, storyId]);
-
+  }, [authLoading, userProfile, storyId]);
+  
   useEffect(() => {
+    if (authLoading) return; // Wait for auth to finish loading
+
     if (user && userProfile) {
       setIsRead(userProfile.readStories?.includes(storyId) ?? false);
     } else if (typeof window !== 'undefined') {
       try {
-        const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
+        const localReadJson = localStorage.getItem('siren_read_stories');
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
         setIsRead(localReadStories.includes(storyId));
       } catch (error) {
+        console.error("Failed to parse read stories from localStorage", error);
         setIsRead(false);
       }
     }
-  }, [user, userProfile, storyId]);
+  }, [user, userProfile, storyId, authLoading]);
+
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault(); 
     e.stopPropagation();
+    if (!user) {
+        // Optionally, you can prompt the user to log in
+        console.log("User must be logged in to favorite a story.");
+        return;
+    }
     toggleFavoriteStory(storyId);
   }
 
@@ -50,9 +68,13 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
 
+  if (authLoading && !userProfile) {
+      return <StoryCardSkeleton />;
+  }
+
   return (
-    <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="group">
-      <div className="space-y-2">
+    <div className="space-y-2">
+       <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="group block">
         <div className="w-full bg-muted aspect-[2/3] relative overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
           <Image
             src={coverImageUrl || placeholderImage}
@@ -71,7 +93,8 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
               </h3>
           </div>
         </div>
-        <div className="flex justify-end items-center text-muted-foreground h-5 gap-3">
+      </Link>
+      <div className="flex justify-end items-center text-muted-foreground h-5 gap-3 px-1">
           {isPremium && <Lock className="w-4 h-4" />}
           {isRead && <CheckCircle2 className="w-4 h-4 text-primary" />}
           {user && (
@@ -80,7 +103,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
               </button>
           )}
         </div>
-      </div>
-    </Link>
+    </div>
   );
 }
