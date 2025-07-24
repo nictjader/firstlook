@@ -4,45 +4,64 @@
 import { redirect } from 'next/navigation';
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
-import type { CoinPackage } from '@/lib/types';
+import type { CoinPackage, UserProfile } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
+import { docToUserProfile } from '@/lib/types';
 
 // Initialize Stripe with the secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+
+async function getOrCreateStripeCustomer(userId: string): Promise<string> {
+    const db = getAdminDb();
+    const userRef = db.collection('users').doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+        throw new Error('User profile not found in the database.');
+    }
+    
+    const userProfile = docToUserProfile(userDoc.data()!, userId);
+
+    if (userProfile.stripeCustomerId) {
+        // Return existing customer ID
+        return userProfile.stripeCustomerId;
+    }
+
+    // Create a new Stripe customer
+    const customer = await stripe.customers.create({
+        email: userProfile.email || undefined, // Stripe allows creating customers without an email
+        name: userProfile.displayName || undefined,
+        metadata: {
+            firebaseUID: userId,
+        },
+    });
+
+    // Save the new customer ID to the user's profile in Firestore
+    await userRef.update({
+        stripeCustomerId: customer.id,
+    });
+
+    return customer.id;
+}
+
 
 export async function createCheckoutSession(pkg: CoinPackage, userId: string) {
   if (!userId) {
     throw new Error('User is not authenticated.');
   }
-
-  const db = getAdminDb();
-  const userDoc = await db.collection('users').doc(userId).get();
-  if (!userDoc.exists) {
-    throw new Error('User profile not found in the database.');
-  }
-  
-  const userEmail = userDoc.data()?.email;
-  if (!userEmail) {
-    console.warn(`User ${userId} is missing an email address.`);
-  }
   
   const checkout_url = headers().get('origin') || process.env.NEXT_PUBLIC_URL!;
 
   try {
-    const customer = await stripe.customers.create({
-        email: userEmail,
-        metadata: {
-            userId: userId,
-        }
-    });
+    const customerId = await getOrCreateStripeCustomer(userId);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      customer: customer.id,
+      customer: customerId,
       metadata: {
         userId: userId,
         packageId: pkg.id,
-        coins: String(pkg.coins), // Stripe metadata values must be strings
+        coins: String(pkg.coins),
       },
       line_items: [
         {

@@ -30,6 +30,7 @@ export interface UserProfile {
   preferences: {
     subgenres: Subgenre[];
   };
+  stripeCustomerId?: string; // Add this line
   createdAt: string;
   lastLogin: string;
 }
@@ -135,6 +136,7 @@ export function docToUserProfile(docData: DocumentData, userId: string): UserPro
           purchasedAt: safeToISOString(p.purchasedAt),
       })),
       preferences: data.preferences || { subgenres: [] },
+      stripeCustomerId: data.stripeCustomerId,
       createdAt: safeToISOString(data.createdAt),
       lastLogin: safeToISOString(data.lastLogin),
     };
