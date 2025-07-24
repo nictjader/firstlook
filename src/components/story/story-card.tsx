@@ -71,25 +71,19 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
         
         {/* Top-aligned content: Badges */}
         <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
-          <div className='flex flex-col gap-2'>
-            {isSeries ? (
-              <Badge variant="secondary" className="flex items-center text-xs shadow-md w-fit">
-                Chapter 1 Free
-              </Badge>
-            ) : (
-               <Badge variant={isFree ? 'secondary' : 'destructive'} className="flex items-center text-xs shadow-md w-fit">
-                {!isFree && <Lock className="w-3 h-3 mr-1" />}
-                {isFree ? 'Free' : 'Premium'}
-              </Badge>
-            )}
-
-            {isSeries && (
-              <Badge variant="outline" className="flex items-center text-xs shadow-md bg-black/50 text-white w-fit">
-                <Library className="w-3 h-3 mr-1" />
-                {totalPartsInSeries}-Chapter Series
-              </Badge>
-            )}
-          </div>
+            <div className='flex flex-col gap-2'>
+                 {isSeries ? (
+                    <Badge variant="outline" className="flex items-center text-xs shadow-md bg-black/50 text-white w-fit">
+                        <Library className="w-3 h-3 mr-1" />
+                        Series
+                    </Badge>
+                ) : (
+                    <Badge variant={isFree ? 'secondary' : 'destructive'} className="flex items-center text-xs shadow-md w-fit">
+                        {!isFree && <Lock className="w-3 h-3 mr-1" />}
+                        {isFree ? 'Free' : 'Premium'}
+                    </Badge>
+                )}
+            </div>
           <div className="flex flex-col items-end gap-2">
             {isFavorited && (
               <div className="bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow-md">
@@ -116,3 +110,4 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     </Link>
   );
 }
+
