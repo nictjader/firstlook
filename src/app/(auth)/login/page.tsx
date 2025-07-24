@@ -14,6 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -94,13 +95,19 @@ function LoginContent() {
 
   if (isVerifyingLink && !showEmailPrompt) {
     return (
-        <div className="flex flex-col items-center justify-center text-center">
-            <MailCheck className="h-12 w-12 mx-auto text-primary" />
-            <h2 className="mt-4 text-2xl font-semibold leading-none tracking-tight text-primary">Verifying Link...</h2>
-            <p className="mt-2 text-sm text-muted-foreground">
-                Please wait while we securely sign you in.
-            </p>
-        </div>
+        <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-2xl text-primary font-semibold tracking-tight flex items-center justify-center">
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                  Verifying Link...
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">
+                    Please wait while we securely sign you in. This may take a moment.
+                </p>
+            </CardContent>
+        </Card>
     );
   }
 
