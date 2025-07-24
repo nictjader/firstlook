@@ -12,14 +12,7 @@ import type { CleanupResult, Story, DatabaseMetrics, CoinPackage } from '@/lib/t
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
-
-// Hardcode coin packages here to avoid importing a client component in a server action.
-const coinPackages: CoinPackage[] = [
-  { id: 'cp_100', coins: 100, priceUSD: 2.49, description: 'Unlocks 2 stories' },
-  { id: 'cp_275', coins: 275, priceUSD: 5.99, description: 'Unlocks 5 stories' },
-  { id: 'cp_650', coins: 650, priceUSD: 12.99, description: 'Unlocks 13 Stories', bestValue: true },
-  { id: 'cp_1500', coins: 1500, priceUSD: 24.99, description: 'Unlocks 30 Stories' },
-];
+import { COIN_PACKAGES, PREMIUM_STORY_COST } from '@/lib/config';
 
 const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
 
@@ -263,7 +256,7 @@ function calculateMinimumCost(totalCoinsNeeded: number): number {
     }
 
     // Sort packages by coins to handle cases where buying a larger package is cheaper.
-    const sortedPackages = [...coinPackages].sort((a, b) => a.coins - b.coins);
+    const sortedPackages = [...COIN_PACKAGES].sort((a, b) => a.coins - b.coins);
 
     // dp[i] will be storing the minimum cost to get 'i' coins.
     // Initialize with a value larger than any possible cost.
@@ -368,8 +361,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     });
     
     // Correctly calculate totalCoinCost based on the new 50-coin model
-    const totalCoinCost = paidChaptersCount * 50;
-    const avgCoinCostPerPaidChapter = paidChaptersCount > 0 ? 50 : 0;
+    const totalCoinCost = paidChaptersCount * PREMIUM_STORY_COST;
+    const avgCoinCostPerPaidChapter = paidChaptersCount > 0 ? PREMIUM_STORY_COST : 0;
     
     const multiPartSeriesCount = seriesGenres.size;
     const totalUniqueStories = standaloneStoriesCount + multiPartSeriesCount;
@@ -410,15 +403,14 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
 
     const batch = db.batch();
     let updatedCount = 0;
-    const NEW_PREMIUM_PRICE = 50;
 
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
         
         // Update price only for stories that are premium (cost > 0) and don't already have the new price
-        if (story.isPremium && story.coinCost > 0 && story.coinCost !== NEW_PREMIUM_PRICE) {
+        if (story.isPremium && story.coinCost > 0 && story.coinCost !== PREMIUM_STORY_COST) {
             const storyRef = db.collection('stories').doc(doc.id);
-            batch.update(storyRef, { coinCost: NEW_PREMIUM_PRICE });
+            batch.update(storyRef, { coinCost: PREMIUM_STORY_COST });
             updatedCount++;
         }
     });
@@ -428,7 +420,7 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     }
     
     const message = updatedCount > 0 
-        ? `Successfully checked ${snapshot.size} stories and updated the price of ${updatedCount} premium stories to ${NEW_PREMIUM_PRICE} coins.`
+        ? `Successfully checked ${snapshot.size} stories and updated the price of ${updatedCount} premium stories to ${PREMIUM_STORY_COST} coins.`
         : `Checked ${snapshot.size} stories. All premium stories already have the standard price.`;
 
     return {

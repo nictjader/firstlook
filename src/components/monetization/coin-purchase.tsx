@@ -11,14 +11,8 @@ import { useState } from 'react';
 import { createCheckoutSession } from '@/app/actions/stripeActions';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { COIN_PACKAGES } from '@/lib/config';
 
-
-const coinPackages: CoinPackage[] = [
-  { id: 'cp_100', coins: 100, priceUSD: 2.49, description: 'Unlocks 2 Stories' },
-  { id: 'cp_275', coins: 275, priceUSD: 5.99, description: 'Unlocks 5 Stories' },
-  { id: 'cp_650', coins: 650, priceUSD: 12.99, description: 'Unlocks 13 Stories', bestValue: true },
-  { id: 'cp_1500', coins: 1500, priceUSD: 24.99, description: 'Unlocks 30 Stories' },
-];
 
 export default function CoinPurchase() {
   const { user } = useAuth();
@@ -52,7 +46,7 @@ export default function CoinPurchase() {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {coinPackages.map((pkg) => (
+      {COIN_PACKAGES.map((pkg) => (
         <Card key={pkg.id} className="flex flex-col shadow-lg hover:shadow-xl transition-shadow duration-300 ease-in-out relative overflow-hidden">
           {pkg.bestValue && (
             <Badge variant="accent" className="absolute top-0 right-0 m-3 flex items-center gap-1 text-sm py-1 px-3 z-10">

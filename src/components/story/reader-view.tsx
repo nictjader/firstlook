@@ -33,6 +33,8 @@ const FONT_SIZES = [
   'text-3xl',    // 30px
 ];
 
+const DEFAULT_FONT_SIZE_INDEX = 1;
+
 // --- Main View Component ---
 export default function ReaderView({ story, seriesParts }: { story: Story; seriesParts: Story[] }) {
   const { user, userProfile, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead } = useAuth();
@@ -42,7 +44,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
   const [isLoadingUnlock, setIsLoadingUnlock] = useState(false);
   const [showUnlockModal, setShowUnlockModal] = useState(false);
-  const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(1);
+  const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(DEFAULT_FONT_SIZE_INDEX);
 
   const isEffectivelyFree = useMemo(() => !story.isPremium || story.coinCost <= 0, [story.isPremium, story.coinCost]);
   const isUnlockedByUser = useMemo(() => userProfile?.unlockedStories.some(s => s.storyId === story.storyId) ?? false, [story.storyId, userProfile]);
