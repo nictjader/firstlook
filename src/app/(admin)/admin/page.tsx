@@ -3,7 +3,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Type } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -287,7 +287,7 @@ function AdminDashboardContent() {
                                     <MetricCard 
                                         title="Avg. Cost / Paid Chapter" 
                                         value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
-                                        icon={Type}
+                                        icon={Coins}
                                         description={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)} USD, based on the new 50-coin premium price.`}
                                     />
                                 </CardContent>
@@ -336,3 +336,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
