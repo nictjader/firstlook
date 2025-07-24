@@ -96,7 +96,7 @@ function LoginContent() {
     return (
         <div className="flex flex-col items-center justify-center text-center">
             <MailCheck className="h-12 w-12 mx-auto text-primary" />
-            <h2 className="mt-4 text-2xl font-semibold leading-none tracking-tight">Verifying Link...</h2>
+            <h2 className="mt-4 text-2xl font-semibold leading-none tracking-tight text-primary">Verifying Link...</h2>
             <p className="mt-2 text-sm text-muted-foreground">
                 Please wait while we securely sign you in.
             </p>
