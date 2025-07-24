@@ -35,6 +35,12 @@ function LoginContent() {
         description: "You need to create an account to favorite stories.",
         variant: 'default',
       });
+    } else if (reason === 'purchase') {
+      toast({
+        title: "Please Sign In",
+        description: "You need to create an account to purchase coins.",
+        variant: 'default',
+      });
     }
   }, [searchParams, toast]);
 
@@ -58,7 +64,16 @@ function LoginContent() {
           title: "Success!", 
           description: "You are now signed in." 
         });
-        router.push('/');
+        
+        const redirectUrl = searchParams.get('redirect');
+        const packageId = searchParams.get('packageId');
+
+        if (redirectUrl) {
+          const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
+          router.push(finalUrl);
+        } else {
+          router.push('/');
+        }
       })
       .catch((err) => {
         console.error(err);

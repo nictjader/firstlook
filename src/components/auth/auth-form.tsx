@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
 import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Mail, Chrome, MailCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
@@ -20,6 +20,7 @@ export default function AuthForm() {
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +61,16 @@ export default function AuthForm() {
     try {
         await signInWithPopup(auth, provider);
         toast({ variant: "success", title: "Success!", description: "You are now signed in." });
-        router.push('/');
+        
+        const redirectUrl = searchParams.get('redirect');
+        const packageId = searchParams.get('packageId');
+
+        if (redirectUrl) {
+          const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
+          router.push(finalUrl);
+        } else {
+          router.push('/');
+        }
     } catch (error: any) {
         console.error(error);
         toast({

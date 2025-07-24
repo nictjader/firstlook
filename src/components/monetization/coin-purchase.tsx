@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Gem, ShoppingCart, Loader2, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { createCheckoutSession } from '@/app/actions/stripeActions';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -15,33 +15,52 @@ import { COIN_PACKAGES } from '@/lib/config';
 
 
 export default function CoinPurchase() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null);
 
-  const handlePurchaseAttempt = async (pkg: CoinPackage) => {
-     if (!user) {
-      toast({ title: "Authentication Required", description: "Please sign in to purchase coins.", variant: "destructive" });
-      router.push('/login');
-      return;
+  useEffect(() => {
+    // This effect runs after a user signs in and is redirected back.
+    // It automatically triggers the purchase they originally intended.
+    if (!authLoading && user) {
+      const packageIdToPurchase = searchParams.get('packageId');
+      if (packageIdToPurchase) {
+        const pkg = COIN_PACKAGES.find(p => p.id === packageIdToPurchase);
+        if (pkg) {
+          handlePurchase(pkg);
+          
+          // Clean the URL to avoid re-triggering on refresh
+          const newUrl = window.location.pathname;
+          window.history.replaceState({...window.history.state, as: newUrl, url: newUrl}, '', newUrl);
+        }
+      }
     }
+  }, [authLoading, user, searchParams]);
 
+  const handlePurchase = async (pkg: CoinPackage) => {
+    if (!user) return; // Should be handled by the click handler, but for safety
     setLoadingPackageId(pkg.id);
-
     try {
-      // This will redirect the user to Stripe Checkout
       await createCheckoutSession(pkg, user.uid);
     } catch (error: any) {
-        console.error("Stripe checkout error:", error);
-        toast({
-            title: "Purchase Error",
-            description: error.message || "Could not initiate the purchase. Please try again later.",
-            variant: "destructive",
-        });
-        setLoadingPackageId(null);
+      console.error("Stripe checkout error:", error);
+      toast({
+        title: "Purchase Error",
+        description: error.message || "Could not initiate the purchase. Please try again later.",
+        variant: "destructive",
+      });
+      setLoadingPackageId(null);
     }
-    // The loading state will persist until the page redirects.
+  };
+
+  const handlePurchaseAttempt = (pkg: CoinPackage) => {
+     if (!user) {
+      router.push(`/login?reason=purchase&redirect=/buy-coins&packageId=${pkg.id}`);
+      return;
+    }
+    handlePurchase(pkg);
   };
 
   return (
@@ -65,7 +84,7 @@ export default function CoinPurchase() {
           <CardFooter>
              <Button
                   className="w-full bg-accent hover:bg-accent/90 text-accent-foreground text-lg py-6"
-                  disabled={!!loadingPackageId}
+                  disabled={!!loadingPackageId || authLoading}
                   onClick={() => handlePurchaseAttempt(pkg)}
                 >
                   {loadingPackageId === pkg.id ? (
