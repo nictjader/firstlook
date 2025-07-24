@@ -9,16 +9,27 @@ import { FieldValue } from 'firebase-admin/firestore';
 
 
 /**
- * Fetches all stories from the database.
- * This is used for the main story list page.
+ * Fetches all stories from the database for the main story list.
+ * This version is optimized for performance by only selecting the fields
+ * necessary for the story cards on the homepage, avoiding fetching the
+ * large 'content' field for every story.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    // Fetch all stories, then the client-side logic will group and sort them.
-    const documentSnapshots = await storiesRef.limit(200).get();
+    // Select only the fields needed for the story cards to improve performance.
+    const documentSnapshots = await storiesRef.select(
+        'title', 
+        'coverImageUrl', 
+        'coinCost', 
+        'subgenre', 
+        'publishedAt',
+        'seriesId',
+        'partNumber',
+        'isPremium' // Ensure isPremium is fetched
+    ).get();
     
     if (documentSnapshots.empty) {
       return [];
@@ -35,7 +46,7 @@ export async function getAllStories(): Promise<Story[]> {
 }
 
 /**
- * Fetches a single story by its ID.
+ * Fetches a single story by its ID, including its full content.
  * @param storyId The ID of the story to fetch.
  * @returns The story object or null if not found.
  */

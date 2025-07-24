@@ -125,7 +125,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
       {filteredStories.map((story, index) => (
-        <StoryCard key={story.storyId} story={story} isPriority={index < 4} />
+        <StoryCard key={story.storyId} story={story} isPriority={index < 8} />
       ))}
     </div>
   );
