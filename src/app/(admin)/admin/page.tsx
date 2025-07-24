@@ -57,9 +57,10 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
   <Card>
     <CardHeader>
       <CardTitle className="flex items-center text-xl"><BookText className="mr-2 h-5 w-5" /> Generation Log</CardTitle>
-      <p className="text-sm text-muted-foreground">A real-time log of the story generation process.</p>
+      <CardDescription>A real-time log of the story generation process.</CardDescription>
     </CardHeader>
-    <CardContent>
+    <Separator />
+    <CardContent className="pt-6">
       <div className="space-y-3">
         {logs.map((log) => (
           <div key={log.id} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md">
@@ -236,7 +237,8 @@ function AdminDashboardContent() {
             <CardTitle className="flex items-center text-xl"><Database className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
             <CardDescription>Analyze and maintain the story database.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <Separator/>
+          <CardContent className="pt-6">
               <div className="flex flex-wrap gap-2">
                 <Button onClick={handleAnalyzeDatabase} disabled={isToolRunning}>
                   {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
@@ -374,12 +376,13 @@ function AdminDashboardContent() {
         <Card>
            <CardHeader>
             <CardTitle className="flex items-center text-xl"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <CardDescription>
               Generate new stories from the unused seeds in your library.
-            </p>
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
+          <Separator/>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
               <Label htmlFor="num-stories">Number of Stories to Generate</Label>
               <Input
                 id="num-stories"
@@ -391,7 +394,7 @@ function AdminDashboardContent() {
                 disabled={isGenerating}
               />
             </div>
-             <Button onClick={handleGenerate} disabled={isToolRunning || !user} className="w-full">
+             <Button onClick={handleGenerate} disabled={isToolRunning || !user} className="w-full mt-4">
               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Bot className="mr-2 h-4 w-4" />}
               {isGenerating ? `Generating ${completed}/${numStories}...` : `Generate ${numStories} ${numStories > 1 ? 'Stories' : 'Story'}`}
             </Button>
@@ -407,7 +410,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
-
-    
