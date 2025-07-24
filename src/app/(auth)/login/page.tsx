@@ -13,7 +13,6 @@ import Header from '@/components/layout/header';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 
 function LoginContent() {
@@ -23,8 +22,6 @@ function LoginContent() {
 
   const isPotentialMagicLink = searchParams.has('apiKey') && searchParams.has('oobCode');
   const [isVerifyingLink, setIsVerifyingLink] = useState(isPotentialMagicLink);
-  const [infoMessage, setInfoMessage] = useState<string | null>(null);
-
 
   // State for the custom email prompt dialog
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
@@ -33,9 +30,13 @@ function LoginContent() {
   useEffect(() => {
     const reason = searchParams.get('reason');
     if (reason === 'favorite') {
-      setInfoMessage("You need to create an account to favorite stories.");
+      toast({
+        title: "Please Sign In",
+        description: "You need to create an account to favorite stories.",
+        variant: 'default',
+      });
     }
-  }, [searchParams]);
+  }, [searchParams, toast]);
 
   const completeSignIn = (email: string | null) => {
     if (!email) {
@@ -148,12 +149,6 @@ function LoginContent() {
       </AlertDialog>
 
       <div className="w-full max-w-md space-y-4">
-         {infoMessage && (
-          <Alert variant="warning">
-            <AlertTitle>Please Sign In</AlertTitle>
-            <AlertDescription>{infoMessage}</AlertDescription>
-          </Alert>
-        )}
         <AuthForm />
       </div>
     </>
