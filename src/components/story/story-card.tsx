@@ -8,6 +8,7 @@ import { Lock, Heart, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMemo, useState, useEffect } from 'react';
 import { capitalizeWords } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 type StoryCardProps = {
   story: Story;
@@ -29,7 +30,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   useEffect(() => {
     if (user && userProfile) {
       setIsRead(userProfile.readStories?.includes(storyId) ?? false);
-    } else if (!user) {
+    } else if (typeof window !== 'undefined') {
       try {
         const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
@@ -62,6 +63,11 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
           data-ai-hint="romance book cover"
           priority={isPriority}
         />
+        {isFavorited && (
+          <Badge className="absolute top-2 right-2 bg-white text-primary hover:bg-white/90 shadow-lg">
+            Favorite
+          </Badge>
+        )}
       </div>
       <div className="flex-grow pt-3">
         <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{subgenreText}</p>
@@ -69,22 +75,20 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
            {title.replace(/ - Part \d+$/, '')}
         </h3>
       </div>
-      <div className="flex justify-between items-center mt-2 text-muted-foreground h-5">
-        <div className="flex items-center gap-2">
-            {isRead && (
-              <Tooltip text="Read">
-                <CheckCircle className="w-4 h-4 text-green-600" />
-              </Tooltip>
-            )}
-            {!isFree && (
-              <Tooltip text="Premium">
-                <Lock className="w-4 h-4" />
-              </Tooltip>
-            )}
-        </div>
+      <div className="flex justify-end items-center mt-2 text-muted-foreground h-5 gap-2">
+        {isRead && (
+          <Tooltip text="Read">
+            <CheckCircle className="w-4 h-4 text-green-600" />
+          </Tooltip>
+        )}
+        {!isFree && (
+          <Tooltip text="Premium">
+            <Lock className="w-4 h-4" />
+          </Tooltip>
+        )}
          {user && (
             <Tooltip text={isFavorited ? "Unfavorite" : "Favorite"}>
-              <button onClick={handleFavoriteClick} className="p-1 rounded-full hover:bg-secondary">
+              <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
                  <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
               </button>
             </Tooltip>
@@ -105,3 +109,4 @@ const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }
     </div>
   </div>
 );
+
