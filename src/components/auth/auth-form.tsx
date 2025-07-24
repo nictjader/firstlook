@@ -8,7 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
 import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { BookOpen, Loader2, Mail, MailCheck, Chrome } from 'lucide-react';
+import { Loader2, Mail, Chrome, MailCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import Logo from '@/components/layout/logo';
@@ -36,6 +36,11 @@ export default function AuthForm() {
     try {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
+      toast({
+        variant: "success",
+        title: "Check Your Inbox!",
+        description: `A secure sign-in link has been sent to ${email}.`,
+      });
       setLinkSentTo(email);
     } catch (error: any) {
       console.error(error);
@@ -86,15 +91,14 @@ export default function AuthForm() {
       <CardContent className="flex flex-col gap-4">
         {linkSentTo ? (
           <div className="space-y-4 text-center">
-            <Alert variant="success">
-                <MailCheck className="h-4 w-4" />
-                <AlertTitle>Check Your Inbox!</AlertTitle>
-                <AlertDescription>
-                   A secure sign-in link has been sent to <span className="font-semibold">{linkSentTo}</span>.
-                   Click the link in the email to sign in.
-                </AlertDescription>
-            </Alert>
-            <Button variant="link" onClick={resetForm}>Use a different email</Button>
+             <div className="text-center space-y-2">
+                <MailCheck className="h-8 w-8 text-green-500 mx-auto" />
+                <p className="text-muted-foreground">
+                   A sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
+                   Click the link in the email to complete your sign-in.
+                </p>
+            </div>
+            <Button variant="link" onClick={resetForm} disabled={loading}>Use a different email</Button>
           </div>
         ) : (
           <div className="space-y-4">
