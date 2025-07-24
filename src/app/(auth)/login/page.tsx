@@ -114,6 +114,7 @@ function LoginContent() {
   if (errorMessage) {
       return (
           <Alert variant="destructive" className="w-full">
+            <AlertCircle className="h-4 w-4" />
             <AlertTitle>Sign-In Failed</AlertTitle>
             <AlertDescription>
               {errorMessage}
@@ -153,7 +154,7 @@ function LoginContent() {
 
       <div className="w-full max-w-md space-y-4">
          {infoMessage && (
-          <Alert>
+          <Alert variant="warning">
             <AlertTitle>Please Sign In</AlertTitle>
             <AlertDescription>{infoMessage}</AlertDescription>
           </Alert>

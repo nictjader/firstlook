@@ -37,6 +37,7 @@ const Alert = React.forwardRef<
   >
     {variant === 'success' && <CheckCircle className="h-4 w-4" />}
     {variant === 'warning' && <AlertCircle className="h-4 w-4" />}
+    {variant === 'destructive' && <AlertCircle className="h-4 w-4" />}
     {(!variant || variant === 'default') && <Info className="h-4 w-4" />}
     {children}
   </div>
