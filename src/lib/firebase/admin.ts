@@ -10,21 +10,21 @@ const ADMIN_APP_NAME = 'firebase-admin-app-siren-singleton';
 
 function initializeAdmin() {
   const adminApps = getAdminApps();
+  const projectId = 'siren-h2y45';
+  
   if (adminApps.some(app => app.name === ADMIN_APP_NAME)) {
     adminApp = getAdminApp(ADMIN_APP_NAME);
-    adminDb = getFirestore(adminApp);
-    return;
+  } else {
+    // When running in a Google Cloud environment (like App Hosting),
+    // the SDK will automatically find the default credentials.
+    const appOptions: AppOptions = {
+      projectId: projectId,
+    };
+    adminApp = initializeAdminApp(appOptions, ADMIN_APP_NAME);
   }
 
-  // When running in a Google Cloud environment (like App Hosting),
-  // the SDK will automatically find the default credentials.
-  // Explicitly setting the projectId ensures it connects to the correct database,
-  // which is especially helpful for local development with ADC.
-  const appOptions: AppOptions = {
-    projectId: 'siren-h2y45',
-  };
-
-  adminApp = initializeAdminApp(appOptions, ADMIN_APP_NAME);
+  // Explicitly passing the projectId to getFirestore can resolve
+  // connection issues in environments with complex permission setups.
   adminDb = getFirestore(adminApp);
 }
 
