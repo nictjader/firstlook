@@ -35,7 +35,7 @@ export async function createCheckoutSession(pkg: CoinPackage, userId: string) {
       metadata: {
         userId: userId,
         packageId: pkg.id,
-        coins: pkg.coins,
+        coins: String(pkg.coins), // Stripe metadata values must be strings
       },
       line_items: [
         {
