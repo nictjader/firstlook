@@ -1,42 +1,22 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
 import Link from 'next/link';
 import type { Story } from "@/lib/types";
-import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, ChevronRight } from "lucide-react";
-import { getStoriesByIds } from "@/app/actions/storyActions.client";
+import { ChevronRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 
 interface StoryListCardProps {
   title: string;
-  storyIds: string[];
+  stories: Story[];
+  isLoading: boolean;
   icon: LucideIcon;
   emptyMessage: string;
 }
 
-export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessage }: StoryListCardProps) {
-  const [stories, setStories] = useState<Story[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchStoryDetails = async () => {
-      if (storyIds.length > 0) {
-        setIsLoading(true);
-        const fetchedStories = await getStoriesByIds(storyIds);
-        setStories(fetchedStories);
-        setIsLoading(false);
-      } else {
-        setStories([]);
-        setIsLoading(false);
-      }
-    };
-    fetchStoryDetails();
-  }, [storyIds]);
-
+export default function StoryListCard({ title, stories, isLoading, icon: Icon, emptyMessage }: StoryListCardProps) {
   return (
     <Card className="shadow-lg">
        <CardHeader>
@@ -88,5 +68,3 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
     </Card>
   );
 }
-
-    

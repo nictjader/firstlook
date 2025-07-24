@@ -3,13 +3,10 @@
 
 import type { Purchase, UnlockedStoryInfo, Story } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Gem, ShoppingCart, BookLock, History } from "lucide-react";
-import { Badge } from "../ui/badge";
+import { Gem, BookLock, History } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { useState, useEffect } from "react";
-import { getStoriesByIds } from "@/app/actions/storyActions.client";
 import { Skeleton } from "../ui/skeleton";
-import Link from "next/link";
 
 type Transaction = {
   date: string;
@@ -23,16 +20,15 @@ type Transaction = {
 interface TransactionHistoryCardProps {
   purchaseHistory: Purchase[];
   unlockedStories: UnlockedStoryInfo[];
+  storiesMap: Map<string, Story>;
+  isLoading: boolean;
 }
 
-export default function TransactionHistoryCard({ purchaseHistory, unlockedStories }: TransactionHistoryCardProps) {
+export default function TransactionHistoryCard({ purchaseHistory, unlockedStories, storiesMap, isLoading }: TransactionHistoryCardProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const generateTransactions = async () => {
-      setIsLoading(true);
-      
+    const generateTransactions = () => {
       const purchaseTransactions: Transaction[] = (purchaseHistory || []).map(p => ({
         date: p.purchasedAt,
         type: 'purchase',
@@ -42,35 +38,28 @@ export default function TransactionHistoryCard({ purchaseHistory, unlockedStorie
         icon: Gem
       }));
 
-      let unlockTransactions: Transaction[] = [];
-      const storyIdsToFetch = unlockedStories.map(s => s.storyId);
-
-      if (storyIdsToFetch.length > 0) {
-        const fetchedStories = await getStoriesByIds(storyIdsToFetch);
-        const storiesMap = new Map(fetchedStories.map(s => [s.storyId, s]));
-
-        unlockTransactions = unlockedStories.map(unlocked => {
-          const story = storiesMap.get(unlocked.storyId);
-          return {
-            date: unlocked.unlockedAt,
-            type: 'unlock',
-            description: story ? `Unlocked: ${story.title}` : 'Unlocked Story',
-            amount: `-${story?.coinCost ?? 50}`,
-            amountColor: "text-red-600 dark:text-red-500",
-            icon: BookLock
-          };
-        });
-      }
+      const unlockTransactions: Transaction[] = (unlockedStories || []).map(unlocked => {
+        const story = storiesMap.get(unlocked.storyId);
+        return {
+          date: unlocked.unlockedAt,
+          type: 'unlock',
+          description: story ? `Unlocked: ${story.title}` : `Unlocked Story ID: ${unlocked.storyId}`,
+          amount: `-${story?.coinCost ?? 50}`,
+          amountColor: "text-red-600 dark:text-red-500",
+          icon: BookLock
+        };
+      });
 
       const allTransactions = [...purchaseTransactions, ...unlockTransactions];
       allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setTransactions(allTransactions);
-      setIsLoading(false);
     };
 
-    generateTransactions();
-  }, [purchaseHistory, unlockedStories]);
+    if (!isLoading) {
+      generateTransactions();
+    }
+  }, [purchaseHistory, unlockedStories, storiesMap, isLoading]);
 
   return (
     <Card className="shadow-lg">
@@ -135,4 +124,3 @@ export default function TransactionHistoryCard({ purchaseHistory, unlockedStorie
     </Card>
   );
 }
-

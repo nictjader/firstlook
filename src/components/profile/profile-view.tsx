@@ -17,15 +17,44 @@ import StoryListCard from './story-list-card';
 import TransactionHistoryCard from './transaction-history-card';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { type Story } from '@/lib/types';
+import { getStoriesByIds } from '@/app/actions/storyActions.client';
+import { Skeleton } from '../ui/skeleton';
 
 export default function ProfileView() {
-  const { user, userProfile, loading, refreshUserProfile } = useAuth();
+  const { user, userProfile, loading: authLoading, refreshUserProfile } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
   const [newEmail, setNewEmail] = useState('');
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [storiesMap, setStoriesMap] = useState<Map<string, Story>>(new Map());
+  const [isLoadingStories, setIsLoadingStories] = useState(true);
+
+  useEffect(() => {
+    const fetchAllStoryDetails = async () => {
+      if (!userProfile) return;
+
+      setIsLoadingStories(true);
+      const favoriteIds = userProfile.favoriteStories || [];
+      const readIds = userProfile.readStories || [];
+      const unlockedIds = (userProfile.unlockedStories || []).map(s => s.storyId);
+      
+      const allUniqueStoryIds = [...new Set([...favoriteIds, ...readIds, ...unlockedIds])];
+
+      if (allUniqueStoryIds.length > 0) {
+        const fetchedStories = await getStoriesByIds(allUniqueStoryIds);
+        const newStoriesMap = new Map(fetchedStories.map(s => [s.storyId, s]));
+        setStoriesMap(newStoriesMap);
+      }
+      setIsLoadingStories(false);
+    };
+    
+    if (!authLoading && userProfile) {
+        fetchAllStoryDetails();
+    }
+  }, [userProfile, authLoading]);
 
 
   const handleSignOut = async () => {
@@ -75,14 +104,23 @@ export default function ProfileView() {
   };
 
 
-  if (loading) {
-    return <p>Loading profile...</p>;
+  if (authLoading) {
+    return (
+        <div className="space-y-8">
+            <Skeleton className="h-56 w-full" />
+            <Skeleton className="h-48 w-full" />
+            <Skeleton className="h-48 w-full" />
+        </div>
+    );
   }
 
   if (!user || !userProfile) {
     router.push('/login');
     return <p>Redirecting to login...</p>;
   }
+
+  const favoriteStories = (userProfile.favoriteStories || []).map(id => storiesMap.get(id)).filter((s): s is Story => !!s);
+  const readStories = ([...userProfile.readStories] || []).reverse().map(id => storiesMap.get(id)).filter((s): s is Story => !!s);
 
   return (
     <div className="space-y-8">
@@ -159,14 +197,16 @@ export default function ProfileView() {
       
       <StoryListCard 
         title="Favorite Stories" 
-        storyIds={userProfile.favoriteStories}
+        stories={favoriteStories}
+        isLoading={isLoadingStories}
         icon={Heart}
         emptyMessage="You haven't favorited any stories yet. Tap the heart on a story page to add it here!"
       />
 
       <StoryListCard 
         title="Reading History"
-        storyIds={[...userProfile.readStories].reverse()} 
+        stories={readStories}
+        isLoading={isLoadingStories}
         icon={History}
         emptyMessage="You haven't read any stories yet. Start reading to build your history!"
       />
@@ -174,6 +214,8 @@ export default function ProfileView() {
       <TransactionHistoryCard 
         purchaseHistory={userProfile.purchaseHistory}
         unlockedStories={userProfile.unlockedStories}
+        storiesMap={storiesMap}
+        isLoading={isLoadingStories}
       />
 
       <Separator />
