@@ -163,7 +163,7 @@ function AdminDashboardContent() {
         
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center text-xl"><Database className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
+            <CardTitle className="flex items-center text-xl"><Book className="mr-2 h-5 w-5" /> Database Tools</CardTitle>
             <CardDescription>Analyze and maintain the story database.</CardDescription>
           </CardHeader>
           <Separator/>
