@@ -80,8 +80,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         unlockedStories: arrayUnion(newUnlockRecord) as any // Use arrayUnion for atomicity
       });
       await refreshUserProfile();
-      setShowUnlockModal(false);
       toast({ variant: "success", title: "Story Unlocked!", description: `You can now read "${story.title}".` });
+      setShowUnlockModal(false);
     } catch (error) {
       console.error("Error unlocking story:", error);
       toast({ title: "Unlock Failed", description: "Could not unlock the story. Please try again.", variant: "destructive" });
@@ -126,9 +126,9 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
             <div className="flex-grow">
                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{subgenreText}</p>
-                  <div className="flex items-center gap-x-2">
-                    {story.isPremium && <Badge variant="premium">Premium</Badge>}
-                    {isUnlockedByUser && story.isPremium && (
+                   <div className="flex items-center gap-x-2 text-muted-foreground">
+                    {story.isPremium && <Lock className="h-4 w-4" />}
+                    {story.isPremium && isUnlockedByUser && (
                       <Badge variant="premium"><CheckCircle className="h-3.5 w-3.5 mr-1"/> Unlocked</Badge>
                     )}
                   </div>
