@@ -22,6 +22,7 @@ import { capitalizeWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/contexts/theme-context';
+import StoryCard from './story-card';
 
 const FONT_SIZES = [
   'text-base',     // 16px
@@ -226,31 +227,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
           <div className="p-6 pt-0">
              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {otherParts.map(part => (
-                <Link key={part.storyId} href={`/stories/${part.storyId}`} className="block group overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
-                    <div className="w-full bg-muted aspect-[2/3] relative">
-                         <Image
-                            src={part.coverImageUrl || placeholderImage}
-                            alt={`Cover for ${part.title}`}
-                            fill
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                            className="object-cover object-center group-hover:scale-105 transition-transform duration-300"
-                            data-ai-hint="romance book cover"
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                        <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
-                             <Badge variant={part.coinCost > 0 ? 'premium' : 'secondary'} className="flex items-center text-xs shadow-md w-fit">
-                                {part.coinCost > 0 && <Lock className="w-3 h-3 mr-1" />}
-                                {part.coinCost > 0 ? 'Premium' : 'Free'}
-                            </Badge>
-                        </div>
-                        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                            <p className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/80">Chapter {part.partNumber}</p>
-                            <h3 className="text-lg font-headline font-bold leading-tight mt-1 line-clamp-2 h-[2.5em]">
-                                {part.title.replace(/ - Part \d+.*$/, '')}
-                            </h3>
-                        </div>
-                    </div>
-                </Link>
+                <StoryCard key={part.storyId} story={part} />
               ))}
             </div>
           </div>
@@ -259,3 +236,5 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     </div>
   );
 }
+
+    
