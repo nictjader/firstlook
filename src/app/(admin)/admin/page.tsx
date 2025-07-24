@@ -202,99 +202,97 @@ function AdminDashboardContent() {
               )}
 
               {analysisResult && (
-                <Alert variant="success" className="mt-4">
-                    <AlertTitle>Database Analysis Complete</AlertTitle>
-                    <AlertDescription>
-                         <div className="space-y-6 mt-4">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex items-center"><Book className="mr-2 h-5 w-5 text-primary" />Content Composition</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="grid gap-4 md:grid-cols-3">
-                                        <MetricCard 
-                                            title="Total Unique Stories" 
-                                            value={analysisResult.totalUniqueStories.toLocaleString()} 
-                                            icon={Library}
-                                            description="Standalone stories + multi-chapter series."
-                                        />
-                                        <MetricCard 
-                                            title="Total Chapters" 
-                                            value={analysisResult.totalChapters.toLocaleString()} 
-                                            icon={BookText}
-                                            description="All individual story chapters combined."
-                                        />
-                                        <MetricCard 
-                                            title="Total Words" 
-                                            value={analysisResult.totalWordCount.toLocaleString()} 
-                                            icon={FileText}
-                                            description="Across all story content in the database."
-                                        />
+                <div className="mt-6 space-y-4">
+                    <h2 className="text-2xl font-headline font-semibold text-primary">Database Analysis Complete</h2>
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center"><Book className="mr-2 h-5 w-5 text-primary" />Content Composition</CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="grid gap-4 md:grid-cols-3">
+                                    <MetricCard 
+                                        title="Total Unique Stories" 
+                                        value={analysisResult.totalUniqueStories.toLocaleString()} 
+                                        icon={Library}
+                                        description="Standalone stories + multi-chapter series."
+                                    />
+                                    <MetricCard 
+                                        title="Total Chapters" 
+                                        value={analysisResult.totalChapters.toLocaleString()} 
+                                        icon={BookText}
+                                        description="All individual story chapters combined."
+                                    />
+                                    <MetricCard 
+                                        title="Total Words" 
+                                        value={analysisResult.totalWordCount.toLocaleString()} 
+                                        icon={FileText}
+                                        description="Across all story content in the database."
+                                    />
+                                </div>
+                                <Card>
+                                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-border">
+                                    <div className="p-2">
+                                      <h4 className="font-semibold text-base flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary" />Story Types</h4>
+                                      <div className="text-sm space-y-2">
+                                        <p className="flex justify-between"><span>Standalone Stories:</span> <strong>{analysisResult.standaloneStories}</strong></p>
+                                        <p className="flex justify-between"><span>Multi-Chapter Series:</span> <strong>{analysisResult.multiPartSeriesCount}</strong></p>
+                                      </div>
                                     </div>
-                                    <Card>
-                                      <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-border">
-                                        <div className="p-2">
-                                          <h4 className="font-semibold text-base flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary" />Story Types</h4>
-                                          <div className="text-sm space-y-2">
-                                            <p className="flex justify-between"><span>Standalone Stories:</span> <strong>{analysisResult.standaloneStories}</strong></p>
-                                            <p className="flex justify-between"><span>Multi-Chapter Series:</span> <strong>{analysisResult.multiPartSeriesCount}</strong></p>
-                                          </div>
-                                        </div>
-                                        <div className="p-2 pt-4 md:pt-2 md:pl-4">
-                                          <h4 className="font-semibold text-base flex items-center mb-2"><Tags className="mr-2 h-4 w-4 text-primary" />Genre Breakdown</h4>
-                                          <div className="text-sm space-y-1">
-                                            {Object.entries(analysisResult.storiesPerGenre).length > 0 ? (
-                                              Object.entries(analysisResult.storiesPerGenre).map(([genre, count]) => (
-                                                <div key={genre} className="flex justify-between">
-                                                  <span>{capitalizeWords(genre)}:</span>
-                                                  <strong>{count}</strong>
-                                                </div>
-                                              ))
-                                            ) : (
-                                              <p className="text-muted-foreground">No genre data.</p>
-                                            )}
-                                          </div>
-                                        </div>
-                                      </CardContent>
-                                    </Card>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="text-lg flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</CardTitle>
-                                </CardHeader>
-                                <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                                     <Card className="lg:col-span-1">
-                                        <CardHeader>
-                                            <CardTitle className="text-base flex items-center"><Lock className="mr-2 h-4 w-4 text-primary" />Paid Chapters</CardTitle>
-                                        </CardHeader>
-                                        <CardContent className="space-y-2">
-                                            <p className="text-2xl font-bold">{analysisResult.totalPaidChapters.toLocaleString()}</p>
-                                            <Separator />
-                                            <div className="text-sm text-muted-foreground pt-2">
-                                                <p className="flex justify-between"><span>Standalone:</span> <strong>{analysisResult.paidStandaloneStories}</strong></p>
-                                                <p className="flex justify-between"><span>Series Chapters:</span> <strong>{analysisResult.paidSeriesChapters}</strong></p>
+                                    <div className="p-2 pt-4 md:pt-2 md:pl-4">
+                                      <h4 className="font-semibold text-base flex items-center mb-2"><Tags className="mr-2 h-4 w-4 text-primary" />Genre Breakdown</h4>
+                                      <div className="text-sm space-y-1">
+                                        {Object.entries(analysisResult.storiesPerGenre).length > 0 ? (
+                                          Object.entries(analysisResult.storiesPerGenre).map(([genre, count]) => (
+                                            <div key={genre} className="flex justify-between">
+                                              <span>{capitalizeWords(genre)}:</span>
+                                              <strong>{count}</strong>
                                             </div>
-                                        </CardContent>
-                                    </Card>
-                                    <MetricCard 
-                                        title="Total Library Value" 
-                                        value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
-                                        icon={DollarSign}
-                                        description={`~$${analysisResult.totalValueUSD.toLocaleString()} USD to unlock all paid content.`}
-                                    />
-                                    <MetricCard 
-                                        title="Avg. Cost / Paid Chapter" 
-                                        value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
-                                        icon={Coins}
-                                        description={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)} USD, based on the new 50-coin premium price.`}
-                                    />
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </AlertDescription>
-                </Alert>
+                                          ))
+                                        ) : (
+                                          <p className="text-muted-foreground">No genre data.</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  </CardContent>
+                                </Card>
+                            </CardContent>
+                        </Card>
+
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center"><Coins className="mr-2 h-5 w-5 text-primary" />Monetization Metrics</CardTitle>
+                            </CardHeader>
+                            <CardContent className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                                 <Card className="lg:col-span-1">
+                                    <CardHeader>
+                                        <CardTitle className="text-base flex items-center"><Lock className="mr-2 h-4 w-4 text-primary" />Paid Chapters</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-2">
+                                        <p className="text-2xl font-bold">{analysisResult.totalPaidChapters.toLocaleString()}</p>
+                                        <Separator />
+                                        <div className="text-sm text-muted-foreground pt-2">
+                                            <p className="flex justify-between"><span>Standalone:</span> <strong>{analysisResult.paidStandaloneStories}</strong></p>
+                                            <p className="flex justify-between"><span>Series Chapters:</span> <strong>{analysisResult.paidSeriesChapters}</strong></p>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                                <MetricCard 
+                                    title="Total Library Value" 
+                                    value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
+                                    icon={DollarSign}
+                                    description={`~$${analysisResult.totalValueUSD.toLocaleString()} USD to unlock all paid content.`}
+                                />
+                                <MetricCard 
+                                    title="Avg. Cost / Paid Chapter" 
+                                    value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
+                                    icon={Coins}
+                                    description={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)} USD, based on the new 50-coin premium price.`}
+                                />
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
               )}
            </CardContent>
         </Card>
