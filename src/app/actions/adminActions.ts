@@ -21,6 +21,8 @@ const coinPackages: CoinPackage[] = [
   { id: 'cp_1500', coins: 1500, priceUSD: 24.99, description: 'Unlocks 30 Stories' },
 ];
 
+const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
+
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -104,7 +106,10 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
 export async function generateAndUploadCoverImageAction(storyId: string, prompt: string): Promise<string> {
     if (!prompt) {
         console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
-        return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=No+Prompt';
+        const placeholder = `${PLACEHOLDER_IMAGE_URL}?text=No+Prompt`;
+        const db = getAdminDb();
+        await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
+        return placeholder;
     }
     
     try {
@@ -149,13 +154,14 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
 
     } catch (error) {
         console.error(`Failed to generate or upload cover image for ${storyId}. Using placeholder.`, error);
+        const placeholder = `${PLACEHOLDER_IMAGE_URL}?text=Image+Failed`;
         const db = getAdminDb();
         try {
-            await db.collection('stories').doc(storyId).update({ coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed' });
+            await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
         } catch (dbError) {
             console.error(`Failed to update story ${storyId} with placeholder URL.`, dbError);
         }
-        return 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Image+Failed';
+        return placeholder;
     }
 }
 
@@ -432,3 +438,5 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         updated: updatedCount,
     };
 }
+
+    
