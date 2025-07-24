@@ -101,6 +101,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   if (!story) return <p>Story not found.</p>;
   
   const otherParts = seriesParts.filter(part => part.storyId !== story.storyId);
+  const subgenreText = capitalizeWords(story.subgenre).replace(" Romance", "");
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
@@ -122,8 +123,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         <div className="p-6">
           <div className="flex justify-between items-start gap-4">
             <div className="flex-grow">
-               <div className="flex flex-wrap items-center gap-2 mb-2">
-                  <Badge variant="outline" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
+               <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{subgenreText}</p>
                   {isUnlocked && story.isPremium && (
                      <Badge variant="premium" className="px-3 py-1 text-sm gap-1.5 items-center"><CheckCircle className="h-3.5 w-3.5"/> Unlocked</Badge>
                   )}
