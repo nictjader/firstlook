@@ -126,9 +126,12 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
             <div className="flex-grow">
                <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mb-2">
                   <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{subgenreText}</p>
-                  {isUnlockedByUser && story.isPremium && (
-                     <Badge variant="premium"><CheckCircle className="h-3.5 w-3.5 mr-1"/> Unlocked</Badge>
-                  )}
+                  <div className="flex items-center gap-x-2">
+                    {story.isPremium && <Badge variant="premium">Premium</Badge>}
+                    {isUnlockedByUser && story.isPremium && (
+                      <Badge variant="premium"><CheckCircle className="h-3.5 w-3.5 mr-1"/> Unlocked</Badge>
+                    )}
+                  </div>
                </div>
                <h3 className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold leading-none tracking-tight text-primary !mb-2">{story.title}</h3>
                 {story.seriesTitle && story.partNumber && (
