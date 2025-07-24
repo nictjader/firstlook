@@ -9,6 +9,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { useMemo, useState, useEffect } from 'react';
 import { capitalizeWords } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useRouter } from 'next/navigation';
+import { useToast } from '@/hooks/use-toast';
 
 type StoryCardProps = {
   story: Story;
@@ -19,6 +21,8 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const { title, coverImageUrl, coinCost, storyId, subgenre } = story;
   const { user, userProfile, toggleFavoriteStory, loading: authLoading } = useAuth();
   const [isRead, setIsRead] = useState(false);
+  const router = useRouter();
+  const { toast } = useToast();
 
   const isFavorited = useMemo(() => {
     if (authLoading || !userProfile) return false;
@@ -26,7 +30,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   }, [authLoading, userProfile, storyId]);
   
   useEffect(() => {
-    if (authLoading) return; // Wait for auth to finish loading
+    if (authLoading) return;
 
     if (user && userProfile) {
       setIsRead(userProfile.readStories?.includes(storyId) ?? false);
@@ -47,8 +51,12 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     e.preventDefault(); 
     e.stopPropagation();
     if (!user) {
-        // Optionally, you can prompt the user to log in
-        console.log("User must be logged in to favorite a story.");
+        toast({
+          title: "Please Sign In",
+          description: "You need to create an account to favorite stories.",
+          variant: "destructive"
+        });
+        router.push('/login');
         return;
     }
     toggleFavoriteStory(storyId);
@@ -83,11 +91,9 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
       <div className="flex justify-end items-center text-muted-foreground h-5 gap-3 px-1">
           {isPremium && <Lock className="w-4 h-4" />}
           {isRead && <CheckCircle2 className="w-4 h-4 text-primary" />}
-          {user && (
-              <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
-                  <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
-              </button>
-          )}
+          <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
+              <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
+          </button>
         </div>
     </div>
   );
