@@ -275,7 +275,7 @@ function AdminDashboardContent() {
                 <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
-                    <AlertDescription asChild>
+                    <AlertDescription>
                          <div className="space-y-6 mt-4">
                             <Card>
                                 <CardHeader>
@@ -406,5 +406,7 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
 
     
