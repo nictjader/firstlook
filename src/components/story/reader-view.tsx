@@ -96,10 +96,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
       return;
     }
     toggleFavoriteStory(story.storyId);
-    toast({
-        variant: 'success',
-        title: isFavorited ? 'Removed from Favorites' : 'Added to Favorites',
-    });
   };
 
   const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=FirstLook';
@@ -178,6 +174,9 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         <div className="p-6">
           <div className="flex justify-between items-start gap-4">
             <div className="flex-grow">
+               <div className="flex flex-wrap items-center gap-2 mb-2">
+                  <Badge variant="outline" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
+               </div>
                <h3 className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold leading-none tracking-tight text-primary !mb-2">{story.title}</h3>
                 {story.seriesTitle && story.partNumber && (
                   <p className="text-accent font-medium mt-1 flex items-center text-sm sm:text-base">
