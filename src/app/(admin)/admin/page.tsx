@@ -3,12 +3,11 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText, Database, Book, Layers, Library, Wrench, Tags, Coins, FileText, Type, Lock, Search, DollarSign } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Type } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
-import Link from 'next/link';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -16,64 +15,7 @@ import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetric
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
-
-
-type Log = {
-    id: number;
-    status: 'pending' | 'generating' | 'imaging' | 'success' | 'error';
-    message: string;
-    title?: string;
-    storyId?: string;
-    error?: string;
-};
-
-const StatusIcon = ({ status }: { status: Log['status'] }) => {
-  switch (status) {
-    case 'pending': return <Bot className="h-5 w-5 text-muted-foreground" />;
-    case 'generating':
-    case 'imaging': 
-        return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
-    case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
-    case 'error': return <AlertCircle className="h-5 w-5 text-destructive" />;
-  }
-};
-
-const GenerationLog = ({ logs }: { logs: Log[] }) => (
-  <Card>
-    <CardHeader>
-      <CardTitle className="flex items-center text-xl"><BookText className="mr-2 h-5 w-5" /> Generation Log</CardTitle>
-      <CardDescription>A real-time log of the story generation process.</CardDescription>
-    </CardHeader>
-    <Separator />
-    <CardContent className="pt-6 space-y-4">
-        {logs.map((log) => (
-            <Card key={log.id} className="bg-muted/50">
-              <CardContent className="p-4">
-                <div className="flex items-start space-x-3">
-                    <StatusIcon status={log.status} />
-                    <div className="flex-1">
-                        <p className="font-semibold text-sm">{log.message}</p>
-                        {log.status === 'success' && log.title && (
-                            <p className="text-xs text-primary font-medium">Successfully generated: "{log.title}"</p>
-                        )}
-                        {log.error && (
-                            <p className="text-xs text-destructive">Error: {log.error}</p>
-                        )}
-                    </div>
-                    {log.status === 'success' && log.storyId && (
-                    <Button asChild variant="outline" size="sm">
-                        <Link href={`/stories/${log.storyId}`} target="_blank">
-                        View <ArrowRight className="ml-2 h-4 w-4" />
-                        </Link>
-                    </Button>
-                    )}
-                </div>
-              </CardContent>
-            </Card>
-        ))}
-    </CardContent>
-  </Card>
-);
+import GenerationLog, { type Log } from '@/components/admin/generation-log';
 
 function AdminDashboardContent() {
   const { user } = useAuth();
@@ -201,6 +143,7 @@ function AdminDashboardContent() {
   return (
     <>
       <Alert variant="warning" className="mb-6">
+        <AlertCircle className="h-4 w-4"/>
         <AlertTitle>Admin Section</AlertTitle>
         <AlertDescription>This area is for administrative purposes only. Changes made here directly affect the live database.</AlertDescription>
       </Alert>
@@ -393,5 +336,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
