@@ -60,30 +60,32 @@ const GenerationLog = ({ logs }: { logs: Log[] }) => (
       <CardDescription>A real-time log of the story generation process.</CardDescription>
     </CardHeader>
     <Separator />
-    <CardContent className="pt-6">
-      <div className="space-y-3">
+    <CardContent className="pt-6 space-y-4">
         {logs.map((log) => (
-          <div key={log.id} className="flex items-start space-x-3 p-3 bg-muted/50 rounded-md">
-            <StatusIcon status={log.status} />
-            <div className="flex-1">
-              <p className="font-semibold text-sm">{log.message}</p>
-              {log.status === 'success' && log.title && (
-                 <p className="text-xs text-primary font-medium">Successfully generated: "{log.title}"</p>
-              )}
-              {log.error && (
-                 <p className="text-xs text-destructive">Error: {log.error}</p>
-              )}
-            </div>
-            {log.status === 'success' && log.storyId && (
-              <Button asChild variant="outline" size="sm">
-                <Link href={`/stories/${log.storyId}`} target="_blank">
-                  View <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            )}
-          </div>
+            <Card key={log.id} className="bg-muted/50">
+              <CardContent className="p-4">
+                <div className="flex items-start space-x-3">
+                    <StatusIcon status={log.status} />
+                    <div className="flex-1">
+                        <p className="font-semibold text-sm">{log.message}</p>
+                        {log.status === 'success' && log.title && (
+                            <p className="text-xs text-primary font-medium">Successfully generated: "{log.title}"</p>
+                        )}
+                        {log.error && (
+                            <p className="text-xs text-destructive">Error: {log.error}</p>
+                        )}
+                    </div>
+                    {log.status === 'success' && log.storyId && (
+                    <Button asChild variant="outline" size="sm">
+                        <Link href={`/stories/${log.storyId}`} target="_blank">
+                        View <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                    </Button>
+                    )}
+                </div>
+              </CardContent>
+            </Card>
         ))}
-      </div>
     </CardContent>
   </Card>
 );
@@ -410,3 +412,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
