@@ -110,7 +110,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
      <div className="space-y-4">
         <div className="px-6 pt-6">
             <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
+                <Badge variant="outline" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
             </div>
             <p className="text-base text-muted-foreground prose dark:prose-invert max-w-none mt-4">{story.previewText}</p>
         </div>
