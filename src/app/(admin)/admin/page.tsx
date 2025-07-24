@@ -275,7 +275,7 @@ function AdminDashboardContent() {
                 <Alert variant="success" className="mt-4">
                     <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
-                    <AlertDescription>
+                    <AlertDescription asChild>
                          <div className="space-y-6 mt-4">
                             <Card>
                                 <CardHeader>
