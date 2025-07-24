@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import type { Story } from '@/lib/types';
@@ -100,57 +99,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
   const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=FirstLook';
   if (!story) return <p>Story not found.</p>;
-
-  // This is the content that shows as a preview or a paywall when the story is locked
-  const LockedContent = () => (
-     <div className="space-y-4">
-        <div className="px-6 pt-6">
-            <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
-            </div>
-            <p className="text-base text-muted-foreground prose dark:prose-invert max-w-none mt-4">{story.previewText}</p>
-        </div>
-        <div className="flex-col items-center gap-4 bg-muted/50 p-6 rounded-b-lg text-center">
-          <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
-          <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
-          <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
-            <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => setShowUnlockModal(true)}>
-              <Lock className="mr-2 h-5 w-5"/>Unlock to Read
-            </Button>
-            <DialogContent>
-                <DialogHeader>
-                    <DialogTitle>{hasSufficientCoins ? "Unlock Story?" : "Not Enough Coins"}</DialogTitle>
-                    <DialogDescription>
-                    {hasSufficientCoins
-                        ? `This will use ${story.coinCost} coins from your balance to permanently unlock "${story.title}".`
-                        : `You need ${story.coinCost} coins to read this story, but you only have ${userProfile?.coins ?? 0}. Please purchase more coins.`
-                    }
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowUnlockModal(false)} disabled={isLoadingUnlock}>Cancel</Button>
-                    {hasSufficientCoins ? (
-                    <Button onClick={handleUnlockStory} disabled={isLoadingUnlock} className="bg-accent hover:bg-accent/90">
-                        {isLoadingUnlock ? "Unlocking..." : `Yes, unlock for ${story.coinCost} coins`}
-                    </Button>
-                    ) : (
-                    <Link href="/buy-coins">
-                        <Button className="bg-accent hover:bg-accent/90" onClick={() => setShowUnlockModal(false)}>
-                        Buy Coins
-                        </Button>
-                    </Link>
-                    )}
-                </DialogFooter>
-            </DialogContent>
-          </Dialog>
-           {!user && (
-             <p className="text-sm mt-2 text-muted-foreground">
-                Already have an account? <Link href="/login" className="text-primary hover:underline font-semibold">Sign In</Link>
-             </p>
-           )}
-        </div>
-      </div>
-  );
   
   const otherParts = seriesParts.filter(part => part.storyId !== story.storyId);
 
@@ -176,6 +124,9 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
             <div className="flex-grow">
                <div className="flex flex-wrap items-center gap-2 mb-2">
                   <Badge variant="outline" className="px-3 py-1 text-sm">{capitalizeWords(story.subgenre)}</Badge>
+                  {isUnlocked && story.isPremium && (
+                     <Badge variant="premium" className="px-3 py-1 text-sm gap-1.5 items-center"><CheckCircle className="h-3.5 w-3.5"/> Unlocked</Badge>
+                  )}
                </div>
                <h3 className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold leading-none tracking-tight text-primary !mb-2">{story.title}</h3>
                 {story.seriesTitle && story.partNumber && (
@@ -217,7 +168,51 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
             </div>
           </>
         ) : (
-          <LockedContent />
+          <div className="relative">
+              <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-96 overflow-hidden">
+                <p>{story.previewText}</p>
+              </div>
+              <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-card to-transparent" />
+              <div className="absolute bottom-0 left-0 right-0 p-6 flex flex-col items-center justify-center text-center z-10">
+                  <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
+                  <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
+                  <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
+                      <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => setShowUnlockModal(true)}>
+                          <Lock className="mr-2 h-5 w-5"/>Unlock to Read
+                      </Button>
+                      <DialogContent>
+                          <DialogHeader>
+                              <DialogTitle>{hasSufficientCoins ? "Unlock Story?" : "Not Enough Coins"}</DialogTitle>
+                              <DialogDescription>
+                              {hasSufficientCoins
+                                  ? `This will use ${story.coinCost} coins from your balance to permanently unlock "${story.title}".`
+                                  : `You need ${story.coinCost} coins to read this story, but you only have ${userProfile?.coins ?? 0}. Please purchase more coins.`
+                              }
+                              </DialogDescription>
+                          </DialogHeader>
+                          <DialogFooter>
+                              <Button variant="outline" onClick={() => setShowUnlockModal(false)} disabled={isLoadingUnlock}>Cancel</Button>
+                              {hasSufficientCoins ? (
+                              <Button onClick={handleUnlockStory} disabled={isLoadingUnlock} className="bg-accent hover:bg-accent/90">
+                                  {isLoadingUnlock ? "Unlocking..." : `Yes, unlock for ${story.coinCost} coins`}
+                              </Button>
+                              ) : (
+                              <Link href="/buy-coins">
+                                  <Button className="bg-accent hover:bg-accent/90" onClick={() => setShowUnlockModal(false)}>
+                                  Buy Coins
+                                  </Button>
+                              </Link>
+                              )}
+                          </DialogFooter>
+                      </DialogContent>
+                  </Dialog>
+                  {!user && (
+                    <p className="text-sm mt-2 text-muted-foreground">
+                        Already have an account? <Link href="/login" className="text-primary hover:underline font-semibold">Sign In</Link>
+                    </p>
+                  )}
+              </div>
+          </div>
         )}
 
       </div>
@@ -243,5 +238,3 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     </div>
   );
 }
-
-    
