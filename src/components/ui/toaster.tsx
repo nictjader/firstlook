@@ -18,7 +18,7 @@ const ToastIcon = ({ variant }: { variant?: 'default' | 'destructive' | 'success
         case 'success':
             return <CheckCircle className="h-6 w-6 text-current" />;
         case 'destructive':
-            return null;
+            return <AlertTriangle className="h-6 w-6 text-current" />;
         default:
             return <Info className="h-6 w-6 text-current" />;
     }
@@ -33,7 +33,6 @@ export function Toaster() {
         const icon = <ToastIcon variant={variant} />;
         return (
           <Toast key={id} variant={variant} {...props}>
-            {icon && <div className="flex-shrink-0">{icon}</div>}
             <div className="grid gap-1 flex-grow">
               {title && <ToastTitle>{title}</ToastTitle>}
               {description && (

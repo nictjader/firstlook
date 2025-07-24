@@ -216,7 +216,6 @@ function AdminDashboardContent() {
   return (
     <>
       <Alert variant="warning" className="mb-6">
-        <AlertCircle className="h-4 w-4" />
         <AlertTitle>Admin Section</AlertTitle>
         <AlertDescription>This area is for administrative purposes only. Changes made here directly affect the live database.</AlertDescription>
       </Alert>
@@ -262,7 +261,6 @@ function AdminDashboardContent() {
 
               {cleanupResult && (
                 <Alert variant={cleanupResult.success ? 'success' : 'destructive'} className="mt-4">
-                  <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{cleanupResult.success ? 'Operation Complete' : 'Operation Failed'}</AlertTitle>
                   <AlertDescription>{cleanupResult.message}</AlertDescription>
                 </Alert>
@@ -270,7 +268,6 @@ function AdminDashboardContent() {
               
               {analysisError && (
                  <Alert variant="destructive" className="mt-4">
-                    <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Analysis Failed</AlertTitle>
                     <AlertDescription>{analysisError}</AlertDescription>
                 </Alert>
@@ -278,7 +275,6 @@ function AdminDashboardContent() {
 
               {analysisResult && (
                 <Alert variant="success" className="mt-4">
-                    <CheckCircle className="h-4 w-4" />
                     <AlertTitle>Database Analysis Complete</AlertTitle>
                     <AlertDescription>
                          <div className="space-y-6 mt-4">
