@@ -126,7 +126,7 @@ export default function AuthForm() {
               />
               <Button 
                 type="submit"
-                variant="secondary" 
+                variant="outline" 
                 className="w-full h-12 text-base"
                 disabled={loading}
               >
