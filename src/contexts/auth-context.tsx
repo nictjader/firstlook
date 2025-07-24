@@ -6,7 +6,6 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import { onAuthStateChanged } from 'firebase/auth';
 import type { UserProfile } from '@/lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
-import type { DocumentData } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import { docToUserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
