@@ -213,7 +213,7 @@ function AdminDashboardContent() {
   return (
     <>
       <Alert variant="warning" className="mb-6">
-        <AlertTriangle className="h-4 w-4" />
+        <AlertCircle className="h-4 w-4" />
         <AlertTitle>Admin Section</AlertTitle>
         <AlertDescription>This area is for administrative purposes only. Changes made here directly affect the live database.</AlertDescription>
       </Alert>
@@ -407,3 +407,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
