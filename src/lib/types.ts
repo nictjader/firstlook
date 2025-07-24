@@ -85,20 +85,20 @@ function safeToISOString(timestamp: any): string {
 export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocumentSnapshot | DocumentData): Story {
     const data = doc.data();
     if (!data) {
-      // In case of a DocumentData that is null/undefined or a snapshot with no data
       throw new Error(`Document with id ${doc.id} has no data.`);
     }
     
     const storyId = String(doc.id);
+    const isSeriesStory = !!data.seriesId && typeof data.partNumber === 'number';
 
     return {
       storyId: storyId,
       title: data.title || 'Untitled',
       characterNames: data.characterNames || [],
-      seriesId: data.seriesId || undefined,
-      seriesTitle: data.seriesTitle || undefined,
-      partNumber: data.partNumber || undefined,
-      totalPartsInSeries: data.totalPartsInSeries || undefined,
+      seriesId: isSeriesStory ? data.seriesId : undefined,
+      seriesTitle: isSeriesStory ? data.seriesTitle : undefined,
+      partNumber: isSeriesStory ? data.partNumber : undefined,
+      totalPartsInSeries: isSeriesStory ? data.totalPartsInSeries : undefined,
       isPremium: data.isPremium || false,
       coinCost: data.coinCost || 0,
       content: data.content || '',
