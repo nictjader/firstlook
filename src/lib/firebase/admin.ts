@@ -1,3 +1,4 @@
+
 // THIS FILE IS FOR SERVER-SIDE FIREBASE INIT ONLY
 
 import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, getApp as getAdminApp, type AppOptions } from 'firebase-admin/app';
@@ -10,7 +11,7 @@ const ADMIN_APP_NAME = 'firebase-admin-app-siren-singleton';
 
 function initializeAdmin() {
   const adminApps = getAdminApps();
-  const projectId = 'siren-h2y45';
+  const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || 'siren-h2y45';
   
   if (adminApps.some(app => app.name === ADMIN_APP_NAME)) {
     adminApp = getAdminApp(ADMIN_APP_NAME);

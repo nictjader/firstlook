@@ -15,7 +15,7 @@ import { COIN_PACKAGES } from '@/lib/config';
 
 
 export default function CoinPurchase() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,7 +24,7 @@ export default function CoinPurchase() {
   useEffect(() => {
     // This effect runs after a user signs in and is redirected back.
     // It automatically triggers the purchase they originally intended.
-    if (!authLoading && user) {
+    if (!authLoading && user && userProfile) {
       const packageIdToPurchase = searchParams.get('packageId');
       if (packageIdToPurchase) {
         const pkg = COIN_PACKAGES.find(p => p.id === packageIdToPurchase);
@@ -37,13 +37,13 @@ export default function CoinPurchase() {
         }
       }
     }
-  }, [authLoading, user, searchParams]);
+  }, [authLoading, user, userProfile, searchParams]);
 
   const handlePurchase = async (pkg: CoinPackage) => {
-    if (!user) return; // Should be handled by the click handler, but for safety
+    if (!user || !userProfile) return; // Should be handled by the click handler, but for safety
     setLoadingPackageId(pkg.id);
     try {
-      await createCheckoutSession(pkg, user.uid);
+      await createCheckoutSession(pkg, user.uid, userProfile);
     } catch (error: any) {
       console.error("Stripe checkout error:", error);
       toast({
@@ -56,7 +56,7 @@ export default function CoinPurchase() {
   };
 
   const handlePurchaseAttempt = (pkg: CoinPackage) => {
-     if (!user) {
+     if (!user || !userProfile) {
       router.push(`/login?reason=purchase&redirect=/buy-coins&packageId=${pkg.id}`);
       return;
     }

@@ -64,4 +64,5 @@ export async function POST(req: Request) {
     }
   }
 
-  return NextResponse
+  return NextResponse.json({ received: true });
+}

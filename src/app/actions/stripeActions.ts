@@ -13,16 +13,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20',
 });
 
-async function getOrCreateStripeCustomer(userId: string): Promise<string> {
+async function getOrCreateStripeCustomer(userId: string, userProfile: UserProfile): Promise<string> {
     const db = getAdminDb();
     const userRef = db.collection('users').doc(userId);
-    const userDoc = await userRef.get();
-
-    if (!userDoc.exists) {
-        throw new Error('User profile not found in the database.');
-    }
-    
-    const userProfile = docToUserProfile(userDoc.data()!, userId);
 
     if (userProfile.stripeCustomerId) {
         // Return existing customer ID
@@ -47,15 +40,15 @@ async function getOrCreateStripeCustomer(userId: string): Promise<string> {
 }
 
 
-export async function createCheckoutSession(pkg: CoinPackage, userId: string) {
-  if (!userId) {
+export async function createCheckoutSession(pkg: CoinPackage, userId: string, userProfile: UserProfile) {
+  if (!userId || !userProfile) {
     throw new Error('User is not authenticated.');
   }
   
   const checkout_url = headers().get('origin') || process.env.NEXT_PUBLIC_URL!;
 
   try {
-    const customerId = await getOrCreateStripeCustomer(userId);
+    const customerId = await getOrCreateStripeCustomer(userId, userProfile);
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
