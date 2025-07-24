@@ -49,20 +49,31 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     e.preventDefault(); 
     e.stopPropagation();
     if (!user) {
-        toast({
-          title: "Please Sign In",
-          description: "You need to create an account to favorite stories.",
-          variant: "destructive"
-        });
-        router.push('/login');
+        router.push('/login?reason=favorite');
         return;
     }
     toggleFavoriteStory(storyId);
+    toast({
+        variant: 'success',
+        title: isFavorited ? 'Removed from Favorites' : 'Added to Favorites',
+    });
   }
 
   const isPremium = coinCost > 0;
   const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
+
+  if (authLoading) {
+    return (
+      <div className="space-y-2">
+        <Skeleton className="w-full bg-muted aspect-[2/3] rounded-lg" />
+        <div className="flex justify-end items-center h-5 gap-3 px-1">
+          <Skeleton className="w-5 h-5 rounded-full" />
+        </div>
+      </div>
+    )
+  }
+
 
   return (
     <div className="space-y-2">

@@ -23,10 +23,19 @@ function LoginContent() {
   const isPotentialMagicLink = searchParams.has('apiKey') && searchParams.has('oobCode');
   const [isVerifyingLink, setIsVerifyingLink] = useState(isPotentialMagicLink);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [infoMessage, setInfoMessage] = useState<string | null>(null);
+
 
   // State for the custom email prompt dialog
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const reason = searchParams.get('reason');
+    if (reason === 'favorite') {
+      setInfoMessage("You need to create an account to favorite stories.");
+    }
+  }, [searchParams]);
 
   const completeSignIn = (email: string | null) => {
     if (!email) {
@@ -136,7 +145,14 @@ function LoginContent() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-md space-y-4">
+         {infoMessage && (
+          <Alert variant="warning">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Please Sign In</AlertTitle>
+            <AlertDescription>{infoMessage}</AlertDescription>
+          </Alert>
+        )}
         <Link href="/" className="absolute top-4 left-4 inline-flex items-center text-sm text-primary hover:underline">
           <ChevronLeft className="w-4 h-4 mr-1" />
           Back to Home
