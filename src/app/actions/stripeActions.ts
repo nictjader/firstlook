@@ -18,10 +18,14 @@ export async function createCheckoutSession(pkg: CoinPackage, userId: string) {
   const db = getAdminDb();
   const userDoc = await db.collection('users').doc(userId).get();
   if (!userDoc.exists) {
-    throw new Error('User profile not found.');
+    throw new Error('User profile not found in the database.');
   }
   
   const userEmail = userDoc.data()?.email;
+  if (!userEmail) {
+    console.warn(`User ${userId} is missing an email address.`);
+  }
+  
   const checkout_url = headers().get('origin') || process.env.NEXT_PUBLIC_URL!;
 
   try {
@@ -58,6 +62,6 @@ export async function createCheckoutSession(pkg: CoinPackage, userId: string) {
     }
   } catch (error) {
     console.error('Error creating Stripe checkout session:', error);
-    throw new Error('Could not create checkout session.');
+    throw new Error('Could not create checkout session. Please try again later.');
   }
 }

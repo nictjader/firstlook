@@ -40,7 +40,7 @@ export default function CoinPurchase() {
     } catch (error: any) {
         console.error("Stripe checkout error:", error);
         toast({
-            title: "An Error Occurred",
+            title: "Purchase Error",
             description: error.message || "Could not initiate the purchase. Please try again later.",
             variant: "destructive",
         });
