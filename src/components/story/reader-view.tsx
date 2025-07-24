@@ -76,7 +76,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
       });
       await refreshUserProfile();
       setShowUnlockModal(false);
-      toast({ title: "Story Unlocked!", description: `You can now read "${story.title}".` });
+      toast({ variant: "success", title: "Story Unlocked!", description: `You can now read "${story.title}".` });
     } catch (error) {
       console.error("Error unlocking story:", error);
       toast({ title: "Unlock Failed", description: "Could not unlock the story. Please try again.", variant: "destructive" });
@@ -260,5 +260,3 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     </div>
   );
 }
-
-    

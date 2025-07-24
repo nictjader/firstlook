@@ -4,7 +4,7 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
-import { ChevronLeft, MailCheck, Loader2 } from 'lucide-react';
+import { ChevronLeft, MailCheck, Loader2, AlertCircle } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
@@ -13,6 +13,7 @@ import Header from '@/components/layout/header';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -38,9 +39,11 @@ function LoginContent() {
     signInWithEmailLink(auth, email, fullUrl)
       .then(() => {
         window.localStorage.removeItem('emailForSignIn');
-        // The AuthProvider will handle the redirect.
-        // We just need to show a success message.
-        toast({ title: "Success!", description: "You are now signed in." });
+        toast({ 
+          variant: "success",
+          title: "Success!", 
+          description: "You are now signed in." 
+        });
         router.push('/');
       })
       .catch((err) => {
@@ -94,15 +97,16 @@ function LoginContent() {
 
   if (errorMessage) {
       return (
-           <div className="text-center">
-                <h2 className="text-2xl font-semibold leading-none tracking-tight text-destructive">Sign-In Failed</h2>
-                <div className="mt-2">
-                    <p>{errorMessage}</p>
-                    <Link href="/login" className="text-primary hover:underline mt-4 block">
-                        Return to Login
-                    </Link>
-                </div>
-           </div>
+          <Alert variant="destructive" className="w-full">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Sign-In Failed</AlertTitle>
+            <AlertDescription>
+              {errorMessage}
+               <Link href="/login" className="text-destructive-foreground hover:underline font-semibold mt-2 block">
+                Return to Login &rarr;
+              </Link>
+            </AlertDescription>
+          </Alert>
       );
   }
 

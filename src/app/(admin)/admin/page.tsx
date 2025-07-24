@@ -212,10 +212,11 @@ function AdminDashboardContent() {
 
   return (
     <>
-      <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6" role="alert">
-        <p className="font-bold">Admin Section</p>
-        <p>This area is for administrative purposes only.</p>
-      </div>
+      <Alert variant="warning" className="mb-6">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Admin Section</AlertTitle>
+        <AlertDescription>This area is for administrative purposes only. Changes made here directly affect the live database.</AlertDescription>
+      </Alert>
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-3xl font-headline font-bold text-primary text-center">Admin Dashboard</h1>
 
@@ -256,7 +257,7 @@ function AdminDashboardContent() {
               </div>
 
               {cleanupResult && (
-                <Alert variant={cleanupResult.success ? 'success' : 'destructive'}>
+                <Alert variant={cleanupResult.success ? 'success' : 'destructive'} className="mt-4">
                   <AlertCircle className="h-4 w-4" />
                   <AlertTitle>{cleanupResult.success ? 'Operation Complete' : 'Operation Failed'}</AlertTitle>
                   <AlertDescription>{cleanupResult.message}</AlertDescription>
@@ -264,7 +265,7 @@ function AdminDashboardContent() {
               )}
               
               {analysisError && (
-                 <Alert variant="destructive">
+                 <Alert variant="destructive" className="mt-4">
                     <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Analysis Failed</AlertTitle>
                     <AlertDescription>{analysisError}</AlertDescription>
@@ -406,7 +407,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    
-
-    

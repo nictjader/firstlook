@@ -34,8 +34,6 @@ export default function AuthForm() {
     e.preventDefault();
     setLoading(true);
     
-    // Create the continue URL and embed the email in it.
-    // This removes the dependency on localStorage.
     const url = new URL(window.location.href);
     url.searchParams.set('email', email);
     
@@ -46,9 +44,8 @@ export default function AuthForm() {
 
     try {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      // We still save to localStorage as a fallback, but it's not the primary method.
       window.localStorage.setItem('emailForSignIn', email);
-      setLinkSentTo(email); // Set state to show confirmation
+      setLinkSentTo(email);
     } catch (error: any) {
       console.error(error);
       toast({
@@ -66,7 +63,7 @@ export default function AuthForm() {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
-        toast({ title: "Success!", description: "You are now signed in." });
+        toast({ variant: "success", title: "Success!", description: "You are now signed in." });
         router.push('/');
     } catch (error: any) {
         console.error(error);
@@ -98,11 +95,11 @@ export default function AuthForm() {
       <div className="p-6 pt-0 flex flex-col gap-4">
         {linkSentTo ? (
           <div className="space-y-4 text-center">
-            <Alert variant="default" className="text-left">
+            <Alert variant="success">
                 <MailCheck className="h-4 w-4" />
                 <AlertTitle>Check Your Inbox!</AlertTitle>
                 <AlertDescription>
-                   A secure sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
+                   A secure sign-in link has been sent to <span className="font-semibold">{linkSentTo}</span>.
                    Click the link in the email to sign in.
                 </AlertDescription>
             </Alert>

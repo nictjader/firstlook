@@ -30,8 +30,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   }, [authLoading, userProfile, storyId]);
   
   useEffect(() => {
-    if (authLoading) return;
-
     if (user && userProfile) {
       setIsRead(userProfile.readStories?.includes(storyId) ?? false);
     } else if (typeof window !== 'undefined') {
