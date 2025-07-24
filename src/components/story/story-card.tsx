@@ -53,10 +53,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
         return;
     }
     toggleFavoriteStory(storyId);
-    toast({
-        variant: 'success',
-        title: isFavorited ? 'Removed from Favorites' : 'Added to Favorites',
-    });
   }
 
   const isPremium = coinCost > 0;

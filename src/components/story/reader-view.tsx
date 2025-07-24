@@ -96,6 +96,10 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
       return;
     }
     toggleFavoriteStory(story.storyId);
+    toast({
+        variant: 'success',
+        title: isFavorited ? 'Removed from Favorites' : 'Added to Favorites',
+    });
   };
 
   const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=FirstLook';

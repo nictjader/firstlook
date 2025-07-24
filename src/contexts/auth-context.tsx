@@ -9,6 +9,8 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestam
 import type { DocumentData } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import { docToUserProfile } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
 
 const LOCAL_STORAGE_READ_KEY = 'siren_read_stories';
 
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
@@ -102,8 +105,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, { 
                 lastLogin: serverTimestamp(),
-                // Also update email in Firestore if it has changed in Auth
-                email: user.email 
+                // Also update email and name in Firestore if they have changed in Auth
+                email: user.email,
+                displayName: user.displayName 
             });
             // Refetch after update to get the latest data
             profile = await fetchUserProfile(user.uid);
@@ -161,10 +165,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   : [...prevProfile.favoriteStories, storyId];
               return { ...prevProfile, favoriteStories: newFavorites };
           });
+           toast({
+              variant: 'success',
+              title: isFavorited ? 'Removed from Favorites' : 'Added to Favorites',
+           });
       } else {
           console.warn("User not logged in, cannot favorite story.");
       }
-  }, [user, userProfile]);
+  }, [user, userProfile, toast]);
 
   const markStoryAsRead = useCallback((storyId: string) => {
     if (user && userProfile) {
