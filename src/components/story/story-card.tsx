@@ -4,7 +4,7 @@
 import type { Story } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Lock, Heart, CheckCircle } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMemo, useState, useEffect } from 'react';
 import { capitalizeWords } from '@/lib/utils';
@@ -80,7 +80,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
            {title.replace(/ - Part \d+$/, '')}
         </h3>
       </div>
-      <div className="flex justify-between items-center mt-2 text-muted-foreground h-5 gap-2">
+      <div className="flex justify-between items-center mt-1 text-muted-foreground h-5 gap-2">
         <p className="text-xs font-medium">{statusText}</p>
         {user && (
             <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
