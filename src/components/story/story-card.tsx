@@ -20,7 +20,7 @@ const LOCAL_STORAGE_READ_KEY = 'siren_read_stories';
 
 export default function StoryCard({ story, isPriority = false }: StoryCardProps) {
   const { title, coverImageUrl, coinCost, storyId, subgenre, seriesId, totalPartsInSeries, partNumber } = story;
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, toggleFavoriteStory } = useAuth();
   const [isRead, setIsRead] = useState(false);
 
   const isFavorited = useMemo(() => {
@@ -29,23 +29,24 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   }, [userProfile, storyId]);
 
   useEffect(() => {
-    // This effect runs on the client and determines the read status.
     if (user && userProfile) {
-      // User is logged in, check their profile.
       setIsRead(userProfile.readStories?.includes(storyId) ?? false);
     } else if (!user) {
-      // User is logged out, check local storage.
       try {
         const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
         setIsRead(localReadStories.includes(storyId));
       } catch (error) {
-        // If local storage is unavailable or fails, default to not read.
         setIsRead(false);
       }
     }
   }, [user, userProfile, storyId]);
 
+  const handleFavoriteClick = (e: React.MouseEvent) => {
+    e.preventDefault(); // Prevent link navigation
+    e.stopPropagation(); // Stop event bubbling
+    toggleFavoriteStory(storyId);
+  }
 
   const isFree = coinCost <= 0;
   const isSeries = seriesId && totalPartsInSeries && totalPartsInSeries > 1;
@@ -53,10 +54,14 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
   
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
+
+  const statusText = isSeries 
+    ? (isFree ? 'Free Series - Part 1' : 'Premium Series') 
+    : (isFree ? 'Free Standalone' : 'Premium Standalone');
   
   return (
-    <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="block group overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
-      <div className="w-full bg-muted aspect-[2/3] relative">
+    <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="group flex flex-col h-full">
+      <div className="w-full bg-muted aspect-[2/3] relative overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
         <Image
           src={coverImageUrl || placeholderImage}
           alt={title || "Story cover"}
@@ -66,48 +71,53 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
           data-ai-hint="romance book cover"
           priority={isPriority}
         />
-        {/* Gradient overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        
-        {/* Top-aligned content: Badges */}
-        <div className="absolute top-3 left-3 right-3 flex justify-between items-start">
-            <div className='flex flex-col gap-2'>
-                 {isSeries ? (
-                    <Badge variant="outline" className="flex items-center text-xs shadow-md bg-black/50 text-white w-fit">
-                        <Library className="w-3 h-3 mr-1" />
-                        Series
-                    </Badge>
-                ) : (
-                    <Badge variant={isFree ? 'secondary' : 'destructive'} className="flex items-center text-xs shadow-md w-fit">
-                        {!isFree && <Lock className="w-3 h-3 mr-1" />}
-                        {isFree ? 'Free' : 'Premium'}
-                    </Badge>
-                )}
-            </div>
-          <div className="flex flex-col items-end gap-2">
-            {isFavorited && (
-              <div className="bg-white/80 backdrop-blur-sm rounded-full p-1.5 shadow-md">
-                  <Heart className="w-4 h-4 text-red-500 fill-current" />
-              </div>
-            )}
-             {isRead && (
-                <Badge variant="success" className="flex items-center text-xs shadow-md w-fit bg-white/90 text-green-700">
-                    <CheckCircle className="w-3 h-3 mr-1" />
-                    Read
-                </Badge>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom-aligned content: Title and Subgenre */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          <p className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/80">{subgenreText}</p>
-          <h3 className="text-lg font-headline font-bold leading-tight mt-1 line-clamp-2 h-[2.5em]">
+      </div>
+       <div className="flex-grow flex flex-col justify-between pt-3">
+        <div>
+           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{subgenreText}</p>
+          <h3 className="text-base font-headline font-bold leading-tight mt-1 group-hover:text-primary transition-colors">
              {title.replace(/ - Part \d+$/, '')}
           </h3>
+        </div>
+        <div className="flex justify-between items-center mt-2 text-muted-foreground">
+          <div className="flex items-center gap-2">
+            {isRead && (
+              <Tooltip text="Read">
+                <CheckCircle className="w-4 h-4 text-green-600" />
+              </Tooltip>
+            )}
+            {!isFree && (
+              <Tooltip text="Premium">
+                <Lock className="w-4 h-4" />
+              </Tooltip>
+            )}
+             {isSeries && (
+              <Tooltip text="Series">
+                <Library className="w-4 h-4" />
+              </Tooltip>
+            )}
+          </div>
+          {user && (
+            <Tooltip text={isFavorited ? "Unfavorite" : "Favorite"}>
+              <button onClick={handleFavoriteClick} className="p-1 rounded-full hover:bg-secondary">
+                 <Heart className={`w-4 h-4 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
+              </button>
+            </Tooltip>
+          )}
         </div>
       </div>
     </Link>
   );
 }
 
+const Tooltip = ({ children, text }: { children: React.ReactNode, text: string }) => (
+  <div className="relative group flex items-center">
+    {children}
+    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+      {text}
+      <svg className="absolute text-gray-800 h-2 w-full left-0 top-full" x="0px" y="0px" viewBox="0 0 255 255">
+        <polygon className="fill-current" points="0,0 127.5,127.5 255,0"/>
+      </svg>
+    </div>
+  </div>
+);
