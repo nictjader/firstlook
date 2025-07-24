@@ -92,7 +92,7 @@ export default function ProfileView() {
             <UserCircle className="h-16 w-16 text-primary" />
             <div>
               <CardTitle className="text-2xl font-headline">
-                {userProfile.displayName || userProfile.email || 'Siren User'}
+                {userProfile.displayName || userProfile.email || 'FirstLook User'}
               </CardTitle>
               <CardDescription>Manage your account details.</CardDescription>
             </div>
