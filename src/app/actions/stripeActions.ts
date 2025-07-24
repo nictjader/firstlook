@@ -8,8 +8,10 @@ import type { CoinPackage, UserProfile } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { docToUserProfile } from '@/lib/types';
 
-// Initialize Stripe with the secret key
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+// Initialize Stripe with the secret key and a specific API version
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: '2024-06-20',
+});
 
 async function getOrCreateStripeCustomer(userId: string): Promise<string> {
     const db = getAdminDb();
@@ -88,6 +90,6 @@ export async function createCheckoutSession(pkg: CoinPackage, userId: string) {
     }
   } catch (error) {
     console.error('Error creating Stripe checkout session:', error);
-    throw new Error('Could not create checkout session. Please try again later.');
+    throw new Error('Could not create checkout session.');
   }
 }
