@@ -72,7 +72,17 @@ export default function StoryListCard({ title, storyIds, icon: Icon, emptyMessag
             </ul>
           </div>
         ) : (
-          <p className="text-muted-foreground text-center py-4">{emptyMessage}</p>
+           <div className="w-full text-center py-8 col-span-full space-y-3">
+            <div className="mx-auto bg-secondary rounded-full p-4 w-fit">
+                <Icon className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-1">
+                <h3 className="text-xl font-semibold tracking-tight">No {title} Found</h3>
+                <p className="text-muted-foreground max-w-md mx-auto text-sm">
+                   {emptyMessage}
+                </p>
+            </div>
+          </div>
         )}
       </CardContent>
     </Card>
