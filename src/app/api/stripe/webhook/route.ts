@@ -6,7 +6,7 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: '2025-04-30.basil',
+    apiVersion: process.env.STRIPE_API_VERSION as Stripe.ApiVersion,
 });
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 

@@ -6,11 +6,10 @@ import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import type { CoinPackage, UserProfile } from '@/lib/types';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { docToUserProfile } from '@/lib/types';
 
-// Initialize Stripe with the secret key and a specific API version
+// Initialize Stripe with the secret key and a specific API version from env variables
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-04-30.basil',
+  apiVersion: process.env.STRIPE_API_VERSION as Stripe.ApiVersion,
 });
 
 async function getOrCreateStripeCustomer(userId: string, userProfile: UserProfile): Promise<string> {
