@@ -4,7 +4,7 @@
 import { useEffect, useState, Suspense, useRef } from 'react';
 import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
-import { ChevronLeft, MailCheck, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
@@ -23,7 +23,6 @@ function LoginContent() {
 
   const isPotentialMagicLink = searchParams.has('apiKey') && searchParams.has('oobCode');
   const [isVerifyingLink, setIsVerifyingLink] = useState(isPotentialMagicLink);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
 
 
@@ -40,7 +39,11 @@ function LoginContent() {
 
   const completeSignIn = (email: string | null) => {
     if (!email) {
-      setErrorMessage("Email is required to complete the sign-in. Please try again.");
+      toast({
+        variant: "destructive",
+        title: "Sign-In Failed",
+        description: "Email is required to complete the sign-in. Please try again.",
+      });
       setIsVerifyingLink(false);
       return;
     }
@@ -58,7 +61,11 @@ function LoginContent() {
       })
       .catch((err) => {
         console.error(err);
-        setErrorMessage("The sign-in link is invalid, has expired, or was already used. Please request a new link.");
+        toast({
+            variant: "destructive",
+            title: "Sign-In Failed",
+            description: "The sign-in link is invalid, has expired, or was already used. Please request a new link.",
+        });
         setIsVerifyingLink(false);
       });
   };
@@ -86,7 +93,11 @@ function LoginContent() {
           completeSignIn(email);
         }
       } else {
-        setErrorMessage("The sign-in link is invalid or malformed. Please try again.");
+        toast({
+            variant: "destructive",
+            title: "Sign-In Failed",
+            description: "The sign-in link is invalid or malformed. Please try again.",
+        });
         setIsVerifyingLink(false);
       }
     }
@@ -111,21 +122,6 @@ function LoginContent() {
     );
   }
 
-  if (errorMessage) {
-      return (
-          <Alert variant="destructive" className="w-full max-w-md">
-            <AlertTitle>Sign-In Failed</AlertTitle>
-            <AlertDescription>
-              {errorMessage}
-               <Link href="/login" className="text-destructive-foreground hover:underline font-semibold mt-2 block">
-                Return to Login &rarr;
-              </Link>
-            </AlertDescription>
-          </Alert>
-      );
-  }
-
-
   return (
     <>
       <AlertDialog open={showEmailPrompt} onOpenChange={setShowEmailPrompt}>
@@ -143,7 +139,7 @@ function LoginContent() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowEmailPrompt(false);
-              setErrorMessage("Sign-in cancelled.");
+              toast({ variant: "destructive", title: "Sign-in cancelled." });
               setIsVerifyingLink(false);
             }}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handlePromptSubmit}>Confirm</AlertDialogAction>
