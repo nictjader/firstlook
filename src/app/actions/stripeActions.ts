@@ -29,9 +29,16 @@ export async function createCheckoutSession(pkg: CoinPackage, userId: string) {
   const checkout_url = headers().get('origin') || process.env.NEXT_PUBLIC_URL!;
 
   try {
+    const customer = await stripe.customers.create({
+        email: userEmail,
+        metadata: {
+            userId: userId,
+        }
+    });
+
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
-      customer_email: userEmail,
+      customer: customer.id,
       metadata: {
         userId: userId,
         packageId: pkg.id,
