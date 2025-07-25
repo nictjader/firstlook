@@ -120,7 +120,7 @@ export default function ProfileView() {
   }
 
   const favoriteStories = (userProfile.favoriteStories || []).map(id => storiesMap.get(id)).filter((s): s is Story => !!s);
-  const readStories = ([...userProfile.readStories] || []).reverse().map(id => storiesMap.get(id)).filter((s): s is Story => !!s);
+  const readStories = (userProfile.readStories || []).slice().reverse().map(id => storiesMap.get(id)).filter((s): s is Story => !!s);
 
   return (
     <div className="space-y-8">
