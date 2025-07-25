@@ -9,7 +9,7 @@ import { getAdminDb } from '@/lib/firebase/admin';
 
 // Initialize Stripe with the secret key and a specific API version from env variables
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: process.env.STRIPE_API_VERSION as Stripe.ApiVersion,
+  apiVersion: process.env.STRIPE_API_VERSION as "2024-06-20",
 });
 
 async function getOrCreateStripeCustomer(userId: string, userProfile: UserProfile): Promise<string> {
