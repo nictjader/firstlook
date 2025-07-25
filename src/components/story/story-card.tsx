@@ -56,20 +56,8 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   }
 
   const isPremium = coinCost > 0;
-  const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=FirstLook';
+  const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Siren';
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
-
-  if (authLoading) {
-    return (
-      <div className="space-y-2">
-        <Skeleton className="w-full bg-muted aspect-[2/3] rounded-lg" />
-        <div className="flex justify-end items-center h-5 gap-3 px-1">
-          <Skeleton className="w-5 h-5 rounded-full" />
-        </div>
-      </div>
-    )
-  }
-
 
   return (
     <div className="space-y-2">

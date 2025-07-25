@@ -22,7 +22,7 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
           Dive into a world of passion and adventure. Your next favorite story awaits.
         </p>
       </div>
-      <Suspense fallback={<div>Loading filter...</div>}>
+      <Suspense fallback={<Skeleton className="h-10 w-full max-w-md mx-auto" />}>
         <SubgenreFilter />
       </Suspense>
       <Suspense fallback={<StoryListSkeleton />}>
@@ -33,10 +33,10 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
 }
 
 const StoryListSkeleton = () => (
-    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
             <div key={i} className="flex flex-col space-y-3">
-                <Skeleton className="h-[300px] w-full rounded-xl" />
+                <Skeleton className="h-[45vw] sm:h-[30vw] md:h-[25vw] lg:h-[20vw] w-full rounded-xl" />
                 <div className="space-y-2">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />

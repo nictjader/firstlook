@@ -6,7 +6,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Lock, Gem, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Lock, Gem, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle, Twitter } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -100,7 +100,14 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     toggleFavoriteStory(story.storyId);
   };
 
-  const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=FirstLook';
+  const handleShare = () => {
+    const text = `I'm reading a great romance story on Siren! Check out "${story.title}". You can read it too at:`;
+    const url = window.location.href;
+    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+    window.open(twitterUrl, '_blank');
+  };
+
+  const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=Siren';
   if (!story) return <p>Story not found.</p>;
   
   const otherParts = seriesParts.filter(part => part.storyId !== story.storyId);
@@ -134,7 +141,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                       <Badge variant="premium"><CheckCircle className="h-3.5 w-3.5 mr-1"/> Unlocked</Badge>
                     )}
                   </div>
-               </div>
                <h3 className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold leading-none tracking-tight text-primary !mb-2">{story.title}</h3>
                 {story.seriesTitle && story.partNumber && (
                   <p className="text-accent font-medium mt-1 flex items-center text-sm sm:text-base">
@@ -148,6 +154,11 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                 <Heart className={`h-6 w-6 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : 'text-muted-foreground'}`} />
               </Button>
             </div>
+          </div>
+           <div className="mt-4 flex items-center space-x-2">
+              <Button variant="outline" size="sm" onClick={handleShare}>
+                  <Twitter className="h-4 w-4 mr-2" /> Share
+              </Button>
           </div>
         </div>
         
@@ -170,14 +181,14 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                     </Button>
                 </div>
             </div>
-            <div className={`py-6 px-6 prose dark:prose-invert max-w-none ${FONT_SIZES[currentFontSizeIndex]}`}>
+            <div className={`py-6 px-6 prose dark:prose-invert max-w-none ${FONT_SIZES[currentFontSizeIndex]} font-body`}>
                 <div dangerouslySetInnerHTML={{ __html: story.content }} />
             </div>
           </>
         ) : (
            <div>
               <div className="relative">
-                <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-80 overflow-hidden">
+                <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-80 overflow-hidden font-body">
                   <p>{story.previewText}</p>
                 </div>
                 <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-card to-transparent" />

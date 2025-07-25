@@ -1,11 +1,23 @@
 
 import CoinPurchase from '@/components/monetization/coin-purchase';
 import { Metadata } from 'next';
+import { Suspense } from 'react';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Buy Coins - FirstLook',
-  description: 'Purchase coins to unlock premium romance stories on FirstLook.',
+  title: 'Buy Coins - Siren',
+  description: 'Purchase coins to unlock premium romance stories on Siren.',
 };
+
+const PurchaseSkeleton = () => (
+  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <Skeleton className="h-64 w-full" />
+    <Skeleton className="h-64 w-full" />
+    <Skeleton className="h-64 w-full" />
+    <Skeleton className="h-64 w-full" />
+  </div>
+);
+
 
 export default function BuyCoinsPage() {
   return (
@@ -16,7 +28,9 @@ export default function BuyCoinsPage() {
           Unlock captivating premium stories by purchasing coins. Choose a package that suits you!
         </p>
       </div>
-      <CoinPurchase />
+      <Suspense fallback={<PurchaseSkeleton />}>
+        <CoinPurchase />
+      </Suspense>
       <div className="mt-12 text-center text-sm text-muted-foreground">
           <p>All payments are securely processed by Stripe.</p>
           <p>By completing your purchase, you agree to our <a href="/terms" className="underline hover:text-primary">Terms of Service</a>.</p>

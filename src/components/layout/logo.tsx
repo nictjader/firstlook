@@ -1,6 +1,6 @@
 
 import Link from 'next/link';
-import { BookOpen } from 'lucide-react';
+import { BookHeart } from 'lucide-react';
 
 interface LogoProps {
   isTextVisible?: boolean;
@@ -9,10 +9,10 @@ interface LogoProps {
 export default function Logo({ isTextVisible = true }: LogoProps) {
   return (
     <Link href="/" className="flex items-center space-x-2">
-      <BookOpen className="h-6 w-6 text-primary" />
+      <BookHeart className="h-7 w-7 text-primary" />
       {isTextVisible && (
         <span className="font-headline text-2xl font-bold text-primary relative bottom-px">
-          FirstLook
+          Siren
         </span>
       )}
     </Link>

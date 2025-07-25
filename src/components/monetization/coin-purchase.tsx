@@ -56,6 +56,7 @@ export default function CoinPurchase() {
   };
 
   const handlePurchaseAttempt = (pkg: CoinPackage) => {
+     if (authLoading) return; // Prevent clicks while auth is loading
      if (!user || !userProfile) {
       router.push(`/login?reason=purchase&redirect=/buy-coins&packageId=${pkg.id}`);
       return;
@@ -89,10 +90,12 @@ export default function CoinPurchase() {
                 >
                   {loadingPackageId === pkg.id ? (
                     <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  ) : authLoading ? (
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   ) : (
                     <ShoppingCart className="w-5 h-5 mr-2" />
                   )}
-                  {loadingPackageId === pkg.id ? 'Redirecting...' : 'Purchase'}
+                  {loadingPackageId === pkg.id ? 'Redirecting...' : (authLoading ? 'Loading...' : 'Purchase')}
               </Button>
           </CardFooter>
         </Card>
