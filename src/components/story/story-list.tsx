@@ -8,10 +8,10 @@ import { useRouter } from 'next/navigation';
 import { BookX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { getAllStories } from '@/app/actions/storyActions';
 import { Skeleton } from '@/components/ui/skeleton';
 
 interface StoryListProps {
+  allStories: Story[];
   selectedSubgenre: Subgenre | 'all';
 }
 
@@ -49,32 +49,16 @@ function groupStoriesForDisplay(stories: Story[]): Story[] {
     }
   }
 
-  // The final list is already sorted by the server action.
-  return Array.from(storyMap.values());
+  // Convert map to array and sort by published date descending to show newest first
+  const grouped = Array.from(storyMap.values());
+  grouped.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  
+  return grouped;
 }
 
 
-export default function StoryList({ selectedSubgenre }: StoryListProps) {
-  const [allStories, setAllStories] = useState<Story[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export default function StoryList({ allStories, selectedSubgenre }: StoryListProps) {
   const router = useRouter();
-
-  useEffect(() => {
-    const fetchStories = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedStories = await getAllStories();
-        setAllStories(fetchedStories);
-      } catch (error) {
-        console.error("Failed to fetch stories:", error);
-        setAllStories([]); 
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStories();
-  }, []); 
 
   const storiesForDisplay = useMemo(() => {
     const grouped = groupStoriesForDisplay(allStories);
@@ -84,8 +68,8 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     return grouped.filter(story => story.subgenre === selectedSubgenre);
   }, [allStories, selectedSubgenre]);
 
-  if (isLoading) {
-    return <StoryListSkeleton />;
+  if (!allStories) {
+      return <StoryListSkeleton />;
   }
 
   if (storiesForDisplay.length === 0) {

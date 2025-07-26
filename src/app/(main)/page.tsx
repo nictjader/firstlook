@@ -1,16 +1,46 @@
 
-
 import StoryList from '@/components/story/story-list';
 import SubgenreFilter from '@/components/story/subgenre-filter';
 import { Suspense } from 'react';
-import type { Subgenre } from '@/lib/types';
+import type { Story, Subgenre } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { docToStory } from '@/lib/types';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
 
-export default function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
+/**
+ * Fetches all stories directly from Firestore.
+ * This function runs on the server when the page is rendered.
+ */
+async function getStoriesForHomepage(): Promise<Story[]> {
+  console.log("Attempting to fetch stories from Firestore...");
+  try {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+
+    if (snapshot.empty) {
+      console.warn("No stories found in the 'stories' collection.");
+      return [];
+    }
+    
+    console.log(`Successfully fetched ${snapshot.size} stories.`);
+    return snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+
+  } catch (error) {
+    console.error(`Critical error in getStoriesForHomepage:`, error);
+    // In case of an error, return an empty array to prevent the page from crashing.
+    return [];
+  }
+}
+
+
+export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
   const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
+  const allStories = await getStoriesForHomepage();
   
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -26,7 +56,7 @@ export default function HomePage({ searchParams }: { searchParams?: { [key: stri
         <SubgenreFilter />
       </Suspense>
       <Suspense fallback={<StoryListSkeleton />}>
-        <StoryList selectedSubgenre={selectedSubgenre} />
+        <StoryList allStories={allStories} selectedSubgenre={selectedSubgenre} />
       </Suspense>
     </div>
   );
