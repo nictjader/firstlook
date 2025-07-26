@@ -15,50 +15,20 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    const allStories: Story[] = [];
-
-    // Step 1: Get all documents from the top-level 'stories' collection.
-    // These are either standalone stories or series containers.
-    const topLevelSnapshot = await db.collection('stories').get();
-
-    const subcollectionPromises: Promise<void>[] = [];
-
-    for (const parentDoc of topLevelSnapshot.docs) {
-      const parentData = parentDoc.data();
-      
-      // Check if this document is a standalone story (has a title and content)
-      // or just a container for a series.
-      if (parentData.title && parentData.content) {
-        // This is a standalone story.
-        allStories.push(docToStory(parentDoc as QueryDocumentSnapshot));
-      }
-
-      // Step 2: For each top-level document, check for and query its nested 'stories' subcollection.
-      const subcollectionRef = parentDoc.ref.collection('stories');
-      const subcollectionPromise = subcollectionRef.select(
-          'title', 
-          'coverImageUrl', 
-          'coinCost', 
-          'subgenre', 
-          'publishedAt',
-          'seriesId',
-          'partNumber',
-          'isPremium'
-      ).get().then(subcollectionSnapshot => {
-        if (!subcollectionSnapshot.empty) {
-          const nestedStories = subcollectionSnapshot.docs.map(storyDoc => docToStory(storyDoc as QueryDocumentSnapshot));
-          allStories.push(...nestedStories);
-        }
-      });
-      subcollectionPromises.push(subcollectionPromise);
+    // A collectionGroup query is the most efficient way to get all 'stories' documents.
+    // This requires a composite index to be configured in firestore.indexes.json.
+    const storiesSnapshot = await db.collectionGroup('stories').get();
+    
+    if (storiesSnapshot.empty) {
+      console.log("No documents found in 'stories' collection group.");
+      return [];
     }
 
-    // Wait for all the subcollection queries to complete.
-    await Promise.all(subcollectionPromises);
-
-    return allStories;
+    const stories = storiesSnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+    
+    return stories;
   } catch (error) {
-    console.error(`Error fetching all stories:`, error);
+    console.error(`Error fetching all stories with collectionGroup:`, error);
     // Return an empty array to prevent the page from crashing.
     return [];
   }
