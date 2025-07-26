@@ -89,9 +89,8 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       throw new Error(`Document with id ${doc.id} has no data.`);
     }
     
-    // In a collectionGroup query, the doc.id is the actual storyId.
-    // For direct doc gets, the data may or may not have a storyId field.
-    // We prioritize the field from the data if it exists, otherwise use the doc id.
+    // In a collectionGroup query or a subcollection query, the doc.id is the actual storyId.
+    // The storyId field in the data should be the definitive source if it exists.
     const storyId = data.storyId || doc.id;
     const isSeriesStory = !!data.seriesId && typeof data.partNumber === 'number';
 
