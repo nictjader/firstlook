@@ -3,7 +3,17 @@
   "indexes": [
     {
       "collectionGroup": "stories",
-      "queryScope": "COLLECTION",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        {
+          "fieldPath": "publishedAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "collectionGroup": "stories",
+      "queryScope": "COLLECTION_GROUP",
       "fields": [
         {
           "fieldPath": "seriesId",
