@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -26,43 +25,39 @@ const StoryListSkeleton = () => (
     </div>
 );
 
-/**
- * Groups stories by series. For any series, it only returns Chapter 1.
- * Standalone stories are returned as-is.
- * The final list is sorted by publication date, with newest stories/series first.
- * @param stories The raw array of stories.
- * @returns A sorted array of stories with series represented only by their first chapter.
- */
-function groupAndSortStories(stories: Story[]): Story[] {
-  const processedStories = new Map<string, Story>();
-
-  // Sort stories to ensure Chapter 1 is processed first for series
-  stories.sort((a, b) => {
-    if (a.seriesId && b.seriesId && a.seriesId === b.seriesId) {
-      return (a.partNumber || 0) - (b.partNumber || 0);
+// Hardcoded data for diagnostics
+const hardcodedStories: Story[] = [
+    {
+        storyId: 'test-1',
+        title: 'Test Story One: A Hardcoded Tale',
+        subgenre: 'contemporary',
+        isPremium: false,
+        coinCost: 0,
+        publishedAt: new Date().toISOString(),
+        coverImageUrl: 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Test+1',
+        previewText: 'This is a test story to see if components render.',
+        content: '<p>This is a test.</p>',
+        wordCount: 5,
+        coverImagePrompt: 'A test image',
+        author: 'The Prototyper',
+        status: 'published',
+    },
+    {
+        storyId: 'test-2',
+        title: 'Test Story Two: Another Test',
+        subgenre: 'historical',
+        isPremium: true,
+        coinCost: 50,
+        publishedAt: new Date().toISOString(),
+        coverImageUrl: 'https://placehold.co/600x900/333/fff.png?text=Test+2',
+        previewText: 'This is a second test story.',
+        content: '<p>This is another test.</p>',
+        wordCount: 5,
+        coverImagePrompt: 'Another test image',
+        author: 'The Prototyper',
+        status: 'published',
     }
-    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-  });
-
-  stories.forEach(story => {
-    if (story.seriesId) {
-      // If we haven't processed this series yet, add Chapter 1.
-      if (!processedStories.has(story.seriesId)) {
-        processedStories.set(story.seriesId, story);
-      }
-    } else {
-      // Standalone stories are always added.
-      processedStories.set(story.storyId, story);
-    }
-  });
-
-  const finalStories = Array.from(processedStories.values());
-  
-  // Sort the final list by publication date to ensure newest appear first
-  finalStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-
-  return finalStories;
-}
+];
 
 
 export default function StoryList({ selectedSubgenre }: StoryListProps) {
@@ -71,21 +66,9 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
   const router = useRouter();
 
   useEffect(() => {
-    const fetchStories = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedStories = await getAllStories();
-        const groupedAndSorted = groupAndSortStories(fetchedStories);
-        setAllStories(groupedAndSorted);
-      } catch (error) {
-        console.error("Failed to fetch stories:", error);
-        setAllStories([]); 
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchStories();
+    // Using hardcoded data instead of fetching
+    setAllStories(hardcodedStories);
+    setIsLoading(false);
   }, []); 
 
   const filteredStories = useMemo(() => {
