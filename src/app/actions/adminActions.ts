@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
 import { COIN_PACKAGES, PREMIUM_STORY_COST } from '@/lib/config';
 
-const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
+// const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
 
 
 /**

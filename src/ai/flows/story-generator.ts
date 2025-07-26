@@ -205,6 +205,12 @@ const storyGenerationFlow = ai.defineFlow(
 export async function generateStory(
   seed: StorySeed
 ): Promise<StoryGenerationOutput> {
-  return storyGenerationFlow(seed);
+  // return storyGenerationFlow(seed);
+  console.log("generateStory is currently disabled.");
+  return Promise.resolve({
+    storyId: uuidv4(),
+    title: seed.titleIdea,
+    success: false,
+    error: "Story generation is temporarily disabled for debugging.",
+  });
 }
-
