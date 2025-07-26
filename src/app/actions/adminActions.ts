@@ -44,6 +44,7 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
  * Generates a story from a seed, saves it to Firestore, and returns simple identifiers.
  * This action is self-contained to prevent client components from needing complex AI types.
  */
+/*
 export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
   const seed = await selectUnusedSeed();
 
@@ -89,13 +90,14 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
     };
   }
 }
-
+*/
 /**
  * Generates a cover image using an AI model and uploads it to Firebase Storage.
  * @param storyId The ID of the story to associate the image with.
  * @param prompt The prompt for the image generation model.
  * @returns A promise that resolves to the public URL of the uploaded image.
  */
+/*
 export async function generateAndUploadCoverImageAction(storyId: string, prompt: string): Promise<string> {
     if (!prompt) {
         console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
@@ -159,7 +161,7 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         return placeholder;
     }
 }
-
+*/
 /**
  * A one-time action to standardize the genres of existing stories in Firestore.
  * It matches stories to their seeds by title and updates the `subgenre` field.
