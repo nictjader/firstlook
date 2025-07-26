@@ -7,38 +7,34 @@ import { docToStory } from '@/lib/types';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
- * Fetches all stories from the database, handling both standalone stories
- * and chapters nested within series. This is the definitive function to
- * get a complete list of all stories.
+ * Fetches all stories from the database.
+ * This simplified version focuses on fetching from the top-level 'stories' collection
+ * to ensure the basic database connection is working.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    const storyMap = new Map<string, Story>();
+    // Using a simple collection query to start
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
-    // 1. Get all documents from the collection group 'stories'.
-    // This is the most efficient way to get all stories, nested or not.
-    const allStoriesSnapshot = await db.collectionGroup('stories').orderBy('publishedAt', 'desc').get();
-
-    allStoriesSnapshot.forEach(doc => {
-        const story = docToStory(doc as QueryDocumentSnapshot);
-        // Using a map ensures that if there are any duplicates, we only store one.
-        storyMap.set(story.storyId, story);
-    });
-
-    const allStories = Array.from(storyMap.values());
-
-    // Final sort in memory to ensure descending order by date.
-    allStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-    
-    if (allStories.length === 0) {
-      console.log("No stories found in the database.");
+    if (snapshot.empty) {
+      console.log("No stories found in the top-level 'stories' collection.");
+      // To ensure we get all data, let's also try a collection group query as a fallback
+      const groupSnapshot = await db.collectionGroup('stories').orderBy('publishedAt', 'desc').get();
+       if (groupSnapshot.empty) {
+         console.log("No stories found in the 'stories' collection group either.");
+         return [];
+       }
+       console.log(`Found ${groupSnapshot.size} stories in the collection group.`);
+       return groupSnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
     }
-
-    return allStories;
+    
+    console.log(`Found ${snapshot.size} stories in the top-level collection.`);
+    return snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
 
   } catch (error) {
-    console.error(`Error fetching all stories:`, error);
+    console.error(`Critical error in getAllStories:`, error);
     // In case of an error, return an empty array to prevent the page from crashing.
     return [];
   }
