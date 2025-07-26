@@ -32,29 +32,25 @@ const StoryListSkeleton = () => (
  * @returns A sorted array of stories with series represented only by their first chapter.
  */
 function groupAndSortStories(stories: Story[]): Story[] {
-  const processedStories = new Map<string, Story>();
+  const storyMap = new Map<string, Story>();
 
-  // Sort stories to ensure Chapter 1 is processed first for series
-  stories.sort((a, b) => {
-    if (a.seriesId && b.seriesId && a.seriesId === b.seriesId) {
-      return (a.partNumber || 0) - (b.partNumber || 0);
-    }
-    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
-  });
-
-  stories.forEach(story => {
+  // First pass: process all stories and prioritize Chapter 1 for series.
+  for (const story of stories) {
     if (story.seriesId) {
-      // If we haven't processed this series yet, add what we believe to be Chapter 1.
-      if (!processedStories.has(story.seriesId)) {
-        processedStories.set(story.seriesId, story);
+      // This is a series.
+      const existing = storyMap.get(story.seriesId);
+      if (!existing || (story.partNumber === 1 && existing.partNumber !== 1)) {
+        // If it's the first time we see this series, or if the current story is Part 1,
+        // we make it the representative story for the series.
+        storyMap.set(story.seriesId, story);
       }
     } else {
-      // Standalone stories are always added.
-      processedStories.set(story.storyId, story);
+      // This is a standalone story.
+      storyMap.set(story.storyId, story);
     }
-  });
+  }
 
-  const finalStories = Array.from(processedStories.values());
+  const finalStories = Array.from(storyMap.values());
   
   // Sort the final list by publication date to ensure newest appear first
   finalStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
