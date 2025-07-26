@@ -4,35 +4,29 @@
 import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, getApp as getAdminApp, type AppOptions } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-let adminApp: AdminApp | null = null;
-let adminDb: Firestore | null = null;
+let adminApp: AdminApp;
+let adminDb: Firestore;
 
-const ADMIN_APP_NAME = 'firebase-admin-app-siren-singleton';
+const ADMIN_APP_NAME = 'firebase-admin-app-siren-singleton-v2';
 
-function initializeAdmin() {
-  const adminApps = getAdminApps();
+// This is a more robust way to initialize the admin SDK in server environments.
+// It ensures that we're always working with a single, named instance of the app.
+if (!getAdminApps().some(app => app?.name === ADMIN_APP_NAME)) {
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
-
   if (!projectId) {
-    throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in environment variables.");
+    throw new Error("Critical: NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in environment variables.");
   }
   
-  if (adminApps.some(app => app?.name === ADMIN_APP_NAME)) {
-    adminApp = getAdminApp(ADMIN_APP_NAME);
-  } else {
-    const appOptions: AppOptions = {
-      projectId: projectId,
-    };
-    adminApp = initializeAdminApp(appOptions, ADMIN_APP_NAME);
-  }
-
-  adminDb = getFirestore(adminApp);
+  adminApp = initializeAdminApp({
+    projectId: projectId,
+  }, ADMIN_APP_NAME);
+} else {
+  adminApp = getAdminApp(ADMIN_APP_NAME);
 }
 
+adminDb = getFirestore(adminApp);
+
 export function getAdminDb(): Firestore {
-  if (!adminDb) {
-    initializeAdmin();
-  }
-  // The non-null assertion is safe here because initializeAdmin() will always set it.
-  return adminDb!;
+  // adminDb is now guaranteed to be initialized by the time this is called.
+  return adminDb;
 }
