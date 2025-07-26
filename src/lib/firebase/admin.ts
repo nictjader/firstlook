@@ -13,12 +13,13 @@ function initializeAdmin() {
   const adminApps = getAdminApps();
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
 
-  if (adminApps.some(app => app.name === ADMIN_APP_NAME)) {
+  if (!projectId) {
+    throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in environment variables.");
+  }
+  
+  if (adminApps.some(app => app?.name === ADMIN_APP_NAME)) {
     adminApp = getAdminApp(ADMIN_APP_NAME);
   } else {
-    if (!projectId) {
-      throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in environment variables.");
-    }
     const appOptions: AppOptions = {
       projectId: projectId,
     };
