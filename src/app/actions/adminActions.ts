@@ -105,10 +105,12 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         return placeholder;
     }
     
+    const fullPrompt = `A beautiful, romantic book cover illustration for a story. The style should be painterly and evocative, fitting a romance novel. The image should feature the elements described in the following prompt: "${prompt}". The image must not contain any text, words, or letters.`;
+
     try {
         const { media } = await ai.generate({
             model: 'googleai/gemini-2.0-flash-preview-image-generation',
-            prompt: prompt,
+            prompt: fullPrompt,
             config: {
                 responseModalities: ['TEXT', 'IMAGE'],
             },
@@ -430,5 +432,3 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         updated: updatedCount,
     };
 }
-
-    
