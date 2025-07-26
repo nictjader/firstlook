@@ -7,27 +7,45 @@ import { docToStory } from '@/lib/types';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
- * Fetches all stories from the database using a collection group query.
- * This is the most efficient way to get all documents from a subcollection
- * named 'stories', regardless of where they are in the hierarchy.
- * This requires a composite index to be configured in firestore.indexes.json.
+ * Fetches all stories from the database.
+ * This function handles a hybrid data structure:
+ * 1. It fetches all standalone stories from the top-level 'stories' collection.
+ * 2. It uses a collectionGroup query to fetch all chapters from nested 
+ *    'stories' subcollections (e.g., /stories/{seriesId}/stories/{chapterId}).
+ * This ensures all stories, whether standalone or part of a series, are retrieved.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    const storiesRef = db.collectionGroup('stories');
-    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+    const standaloneStoriesRef = db.collection('stories');
+    const seriesChaptersRef = db.collectionGroup('stories');
+
+    // Get all documents from the top-level collection first
+    const standaloneSnapshot = await standaloneStoriesRef.orderBy('publishedAt', 'desc').get();
     
-    if (snapshot.empty) {
-      console.log("No stories found in 'stories' collection group.");
-      return [];
+    // Filter out series container documents, keeping only actual standalone stories
+    const standaloneStories = standaloneSnapshot.docs
+      .filter(doc => !doc.data().seriesId) // A standalone story won't have a seriesId
+      .map(doc => docToStory(doc as QueryDocumentSnapshot));
+
+    // Now, get all documents from all subcollections named 'stories'
+    const seriesChaptersSnapshot = await seriesChaptersRef.orderBy('publishedAt', 'desc').get();
+    const seriesChapters = seriesChaptersSnapshot.docs
+      .filter(doc => !!doc.data().seriesId) // Ensure we only get documents that are properly part of a series
+      .map(doc => docToStory(doc as QueryDocumentSnapshot));
+
+    // Combine and sort the two lists
+    const allStories = [...standaloneStories, ...seriesChapters];
+    allStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    
+    if (allStories.length === 0) {
+      console.log("No standalone stories or series chapters found.");
     }
-    
-    const allStories = snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+
     return allStories;
 
   } catch (error) {
-    console.error(`Error fetching all stories with collectionGroup query:`, error);
+    console.error(`Error fetching all stories with combined query:`, error);
     // Return an empty array to prevent the page from crashing.
     return [];
   }
