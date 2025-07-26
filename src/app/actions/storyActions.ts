@@ -7,34 +7,56 @@ import { docToStory } from '@/lib/types';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
- * Fetches all stories from the database for the main story list.
- * This version uses a robust collectionGroup query to find all stories,
- * regardless of how they are nested in the database.
+ * Fetches all stories from the database using a robust two-step process.
+ * First, it gets all parent documents in the top-level 'stories' collection.
+ * Then, it queries the 'stories' subcollection within each parent.
+ * This avoids collectionGroup indexing issues and is more resilient.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    const storiesRef = db.collectionGroup('stories');
-    
-    const documentSnapshots = await storiesRef.select(
-        'title', 
-        'coverImageUrl', 
-        'coinCost', 
-        'subgenre', 
-        'publishedAt',
-        'seriesId',
-        'partNumber',
-        'isPremium'
-    ).get();
+    const allStories: Story[] = [];
 
-    if (documentSnapshots.empty) {
-      console.log("No documents found in 'stories' collection group.");
-      return [];
+    // Step 1: Get all documents from the top-level 'stories' collection.
+    // These are either standalone stories or series containers.
+    const topLevelSnapshot = await db.collection('stories').get();
+
+    const subcollectionPromises: Promise<void>[] = [];
+
+    for (const parentDoc of topLevelSnapshot.docs) {
+      const parentData = parentDoc.data();
+      
+      // Check if this document is a standalone story (has a title and content)
+      // or just a container for a series.
+      if (parentData.title && parentData.content) {
+        // This is a standalone story.
+        allStories.push(docToStory(parentDoc as QueryDocumentSnapshot));
+      }
+
+      // Step 2: For each top-level document, check for and query its nested 'stories' subcollection.
+      const subcollectionRef = parentDoc.ref.collection('stories');
+      const subcollectionPromise = subcollectionRef.select(
+          'title', 
+          'coverImageUrl', 
+          'coinCost', 
+          'subgenre', 
+          'publishedAt',
+          'seriesId',
+          'partNumber',
+          'isPremium'
+      ).get().then(subcollectionSnapshot => {
+        if (!subcollectionSnapshot.empty) {
+          const nestedStories = subcollectionSnapshot.docs.map(storyDoc => docToStory(storyDoc as QueryDocumentSnapshot));
+          allStories.push(...nestedStories);
+        }
+      });
+      subcollectionPromises.push(subcollectionPromise);
     }
-    
-    const stories = documentSnapshots.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
-    
-    return stories;
+
+    // Wait for all the subcollection queries to complete.
+    await Promise.all(subcollectionPromises);
+
+    return allStories;
   } catch (error) {
     console.error(`Error fetching all stories:`, error);
     // Return an empty array to prevent the page from crashing.
