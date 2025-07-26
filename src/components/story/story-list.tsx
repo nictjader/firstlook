@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -25,37 +26,31 @@ const StoryListSkeleton = () => (
 );
 
 /**
- * Groups stories by series. For any series, it only returns Chapter 1.
- * Standalone stories are returned as-is.
- * The final list is sorted by publication date, with newest stories/series first.
- * @param stories The raw array of stories.
- * @returns A sorted array of stories with series represented only by their first chapter.
+ * Groups stories to show only the first part of any series on the main list.
+ * Standalone stories are passed through untouched.
+ * @param stories The raw array of all stories.
+ * @returns A filtered array of stories suitable for the homepage.
  */
-function groupAndSortStories(stories: Story[]): Story[] {
+function groupStoriesForDisplay(stories: Story[]): Story[] {
   const storyMap = new Map<string, Story>();
 
-  // First pass: process all stories and prioritize Chapter 1 for series.
+  // Process all stories to correctly handle series
   for (const story of stories) {
     if (story.seriesId) {
-      // This is a series.
+      // It's part of a series
       const existing = storyMap.get(story.seriesId);
+      // Only add Part 1, or if Part 1 isn't present yet, add the first part we find.
       if (!existing || (story.partNumber === 1 && existing.partNumber !== 1)) {
-        // If it's the first time we see this series, or if the current story is Part 1,
-        // we make it the representative story for the series.
         storyMap.set(story.seriesId, story);
       }
     } else {
-      // This is a standalone story.
+      // It's a standalone story
       storyMap.set(story.storyId, story);
     }
   }
 
-  const finalStories = Array.from(storyMap.values());
-  
-  // Sort the final list by publication date to ensure newest appear first
-  finalStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-
-  return finalStories;
+  // The final list is already sorted by the server action.
+  return Array.from(storyMap.values());
 }
 
 
@@ -69,8 +64,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
       setIsLoading(true);
       try {
         const fetchedStories = await getAllStories();
-        const groupedAndSorted = groupAndSortStories(fetchedStories);
-        setAllStories(groupedAndSorted);
+        setAllStories(fetchedStories);
       } catch (error) {
         console.error("Failed to fetch stories:", error);
         setAllStories([]); 
@@ -82,18 +76,19 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
     fetchStories();
   }, []); 
 
-  const filteredStories = useMemo(() => {
+  const storiesForDisplay = useMemo(() => {
+    const grouped = groupStoriesForDisplay(allStories);
     if (selectedSubgenre === 'all') {
-      return allStories;
+      return grouped;
     }
-    return allStories.filter(story => story.subgenre === selectedSubgenre);
+    return grouped.filter(story => story.subgenre === selectedSubgenre);
   }, [allStories, selectedSubgenre]);
 
   if (isLoading) {
     return <StoryListSkeleton />;
   }
 
-  if (filteredStories.length === 0) {
+  if (storiesForDisplay.length === 0) {
     return (
       <div className="w-full text-center py-12 md:py-24 col-span-full space-y-4">
         <Separator/>
@@ -118,7 +113,7 @@ export default function StoryList({ selectedSubgenre }: StoryListProps) {
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-      {filteredStories.map((story, index) => (
+      {storiesForDisplay.map((story, index) => (
         <StoryCard key={story.storyId} story={story} isPriority={index < 8} />
       ))}
     </div>

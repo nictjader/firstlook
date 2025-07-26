@@ -7,46 +7,39 @@ import { docToStory } from '@/lib/types';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
- * Fetches all stories from the database.
- * This function handles a hybrid data structure:
- * 1. It fetches all standalone stories from the top-level 'stories' collection.
- * 2. It uses a collectionGroup query to fetch all chapters from nested 
- *    'stories' subcollections (e.g., /stories/{seriesId}/stories/{chapterId}).
- * This ensures all stories, whether standalone or part of a series, are retrieved.
+ * Fetches all stories from the database, handling both standalone stories
+ * and chapters nested within series. This is the definitive function to
+ * get a complete list of all stories.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    const standaloneStoriesRef = db.collection('stories');
-    const seriesChaptersRef = db.collectionGroup('stories');
+    const storyMap = new Map<string, Story>();
 
-    // Get all documents from the top-level collection first
-    const standaloneSnapshot = await standaloneStoriesRef.orderBy('publishedAt', 'desc').get();
-    
-    // Filter out series container documents, keeping only actual standalone stories
-    const standaloneStories = standaloneSnapshot.docs
-      .filter(doc => !doc.data().seriesId) // A standalone story won't have a seriesId
-      .map(doc => docToStory(doc as QueryDocumentSnapshot));
+    // 1. Get all documents from the collection group 'stories'.
+    // This is the most efficient way to get all stories, nested or not.
+    const allStoriesSnapshot = await db.collectionGroup('stories').orderBy('publishedAt', 'desc').get();
 
-    // Now, get all documents from all subcollections named 'stories'
-    const seriesChaptersSnapshot = await seriesChaptersRef.orderBy('publishedAt', 'desc').get();
-    const seriesChapters = seriesChaptersSnapshot.docs
-      .filter(doc => !!doc.data().seriesId) // Ensure we only get documents that are properly part of a series
-      .map(doc => docToStory(doc as QueryDocumentSnapshot));
+    allStoriesSnapshot.forEach(doc => {
+        const story = docToStory(doc as QueryDocumentSnapshot);
+        // Using a map ensures that if there are any duplicates, we only store one.
+        storyMap.set(story.storyId, story);
+    });
 
-    // Combine and sort the two lists
-    const allStories = [...standaloneStories, ...seriesChapters];
+    const allStories = Array.from(storyMap.values());
+
+    // Final sort in memory to ensure descending order by date.
     allStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
     
     if (allStories.length === 0) {
-      console.log("No standalone stories or series chapters found.");
+      console.log("No stories found in the database.");
     }
 
     return allStories;
 
   } catch (error) {
-    console.error(`Error fetching all stories with combined query:`, error);
-    // Return an empty array to prevent the page from crashing.
+    console.error(`Error fetching all stories:`, error);
+    // In case of an error, return an empty array to prevent the page from crashing.
     return [];
   }
 }
@@ -61,25 +54,13 @@ export async function getAllStories(): Promise<Story[]> {
 export async function getStoryById(storyId: string): Promise<Story | null> {
     try {
         const db = getAdminDb();
-        // First, try to get the document from the top-level collection.
-        // This is necessary because standalone stories might live here.
-        const topLevelDocRef = db.collection('stories').doc(storyId);
-        const topLevelDoc = await topLevelDocRef.get();
-
-        if (topLevelDoc.exists) {
-            // Check if this document *also* has a nested 'stories' collection.
-            // If so, it's a series container, not a story itself.
-            const nestedStoriesSnapshot = await topLevelDoc.ref.collection('stories').limit(1).get();
-            if (nestedStoriesSnapshot.empty) {
-                return docToStory(topLevelDoc as QueryDocumentSnapshot);
-            }
-        }
-
-        // If not found at the top level or it was a container, search within all subcollections.
+        // The most reliable way to find a specific story document, regardless of nesting,
+        // is to use a collectionGroup query with a 'where' clause.
         const groupQuery = db.collectionGroup('stories').where('storyId', '==', storyId).limit(1);
         const groupSnapshot = await groupQuery.get();
 
         if (groupSnapshot.empty) {
+            console.log(`Story with ID ${storyId} not found in any 'stories' collection.`);
             return null;
         }
 
