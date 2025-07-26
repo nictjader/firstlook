@@ -13,9 +13,6 @@ import { googleAI } from '@genkit-ai/googleai';
 
 // This file is now ONLY for AI-related initialization.
 // The firebase() plugin is removed to prevent conflicting initializations.
-// Tracing and metrics are disabled to prevent loading optional dependencies
-// that were causing build and runtime errors.
 export const ai = genkit({
   plugins: [googleAI()],
-  enableTracingAndMetrics: false,
 });
