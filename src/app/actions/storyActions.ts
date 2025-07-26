@@ -1,4 +1,3 @@
-
 'use server';
 
 import { getAdminDb } from '@/lib/firebase/admin';
@@ -15,20 +14,37 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    // A collectionGroup query is the most efficient way to get all 'stories' documents.
-    // This requires a composite index to be configured in firestore.indexes.json.
-    const storiesSnapshot = await db.collectionGroup('stories').get();
-    
-    if (storiesSnapshot.empty) {
-      console.log("No documents found in 'stories' collection group.");
+    const allStories: Story[] = [];
+
+    // 1. Fetch all top-level documents in the 'stories' collection.
+    // These documents act as containers for the nested stories.
+    const seriesContainerSnapshot = await db.collection('stories').get();
+
+    if (seriesContainerSnapshot.empty) {
+      console.log("No series container documents found in 'stories' collection.");
       return [];
     }
 
-    const stories = storiesSnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+    // 2. For each container, fetch all documents from its nested 'stories' subcollection.
+    for (const seriesDoc of seriesContainerSnapshot.docs) {
+      const nestedStoriesSnapshot = await seriesDoc.ref.collection('stories').get();
+      if (!nestedStoriesSnapshot.empty) {
+        const nestedStories = nestedStoriesSnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+        allStories.push(...nestedStories);
+      } else {
+        // This handles standalone stories that might exist at the top level
+        // if they don't have a nested 'stories' collection.
+        const standaloneStory = docToStory(seriesDoc as QueryDocumentSnapshot);
+        // A simple check to ensure it's a real story, not just an empty container
+        if (standaloneStory.title) {
+            allStories.push(standaloneStory);
+        }
+      }
+    }
     
-    return stories;
+    return allStories;
   } catch (error) {
-    console.error(`Error fetching all stories with collectionGroup:`, error);
+    console.error(`Error fetching all stories with two-step method:`, error);
     // Return an empty array to prevent the page from crashing.
     return [];
   }
