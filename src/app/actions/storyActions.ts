@@ -1,3 +1,4 @@
+
 'use server';
 
 import { getAdminDb } from '@/lib/firebase/admin';
@@ -6,45 +7,27 @@ import { docToStory } from '@/lib/types';
 import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
- * Fetches all stories from the database using a robust two-step process.
- * First, it gets all parent documents in the top-level 'stories' collection.
- * Then, it queries the 'stories' subcollection within each parent.
- * This avoids collectionGroup indexing issues and is more resilient.
+ * Fetches all stories from the database using a collection group query.
+ * This is the most efficient way to get all documents from a subcollection
+ * named 'stories', regardless of where they are in the hierarchy.
+ * This requires a composite index to be configured in firestore.indexes.json.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    const allStories: Story[] = [];
-
-    // 1. Fetch all top-level documents in the 'stories' collection.
-    // These documents act as containers for the nested stories.
-    const seriesContainerSnapshot = await db.collection('stories').get();
-
-    if (seriesContainerSnapshot.empty) {
-      console.log("No series container documents found in 'stories' collection.");
+    const storiesRef = db.collectionGroup('stories');
+    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+    
+    if (snapshot.empty) {
+      console.log("No stories found in 'stories' collection group.");
       return [];
     }
-
-    // 2. For each container, fetch all documents from its nested 'stories' subcollection.
-    for (const seriesDoc of seriesContainerSnapshot.docs) {
-      const nestedStoriesSnapshot = await seriesDoc.ref.collection('stories').get();
-      if (!nestedStoriesSnapshot.empty) {
-        const nestedStories = nestedStoriesSnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
-        allStories.push(...nestedStories);
-      } else {
-        // This handles standalone stories that might exist at the top level
-        // if they don't have a nested 'stories' collection.
-        const standaloneStory = docToStory(seriesDoc as QueryDocumentSnapshot);
-        // A simple check to ensure it's a real story, not just an empty container
-        if (standaloneStory.title) {
-            allStories.push(standaloneStory);
-        }
-      }
-    }
     
+    const allStories = snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
     return allStories;
+
   } catch (error) {
-    console.error(`Error fetching all stories with two-step method:`, error);
+    console.error(`Error fetching all stories with collectionGroup query:`, error);
     // Return an empty array to prevent the page from crashing.
     return [];
   }
