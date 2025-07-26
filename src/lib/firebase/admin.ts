@@ -18,14 +18,15 @@ function initializeAdmin() {
   } else {
     // When running in a Google Cloud environment (like App Hosting),
     // the SDK will automatically find the default credentials.
+    // However, explicitly providing the projectId makes the initialization more robust.
     const appOptions: AppOptions = {
       projectId: projectId,
     };
     adminApp = initializeAdminApp(appOptions, ADMIN_APP_NAME);
   }
 
-  // Explicitly passing the projectId to getFirestore can resolve
-  // connection issues in environments with complex permission setups.
+  // Explicitly passing the adminApp instance to getFirestore ensures
+  // it uses the correct, explicitly configured app context.
   adminDb = getFirestore(adminApp);
 }
 
