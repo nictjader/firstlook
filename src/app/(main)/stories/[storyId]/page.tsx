@@ -1,9 +1,66 @@
 
 import ReaderView from '@/components/story/reader-view';
 import { notFound } from 'next/navigation';
-import { getStoryById, getSeriesParts } from '@/app/actions/storyActions';
+import { getAdminDb } from '@/lib/firebase/admin';
+import type { Story } from '@/lib/types';
+import { docToStory } from '@/lib/types';
+import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Metadata } from 'next';
+
+
+async function getStoryById(storyId: string): Promise<Story | null> {
+    try {
+        const db = getAdminDb();
+        const storyDocRef = db.collection('stories').doc(storyId);
+        const storyDoc = await storyDocRef.get();
+
+        if (!storyDoc.exists) {
+            // If not in the top-level, check the collection group
+            const groupQuery = db.collectionGroup('stories').where('storyId', '==', storyId).limit(1);
+            const groupSnapshot = await groupQuery.get();
+            if (groupSnapshot.empty) {
+                return null;
+            }
+            return docToStory(groupSnapshot.docs[0] as QueryDocumentSnapshot);
+        }
+
+        return docToStory(storyDoc as QueryDocumentSnapshot);
+    } catch (error) {
+        console.error(`Error fetching story by ID ${storyId}:`, error);
+        return null;
+    }
+}
+
+
+async function getSeriesParts(seriesId: string): Promise<Story[]> {
+    if (!seriesId) {
+        return [];
+    }
+    
+    try {
+        const db = getAdminDb();
+        const storiesRef = db.collectionGroup('stories');
+        
+        const q = storiesRef.where('seriesId', '==', seriesId);
+        const querySnapshot = await q.get();
+        
+        if (querySnapshot.empty) {
+            return [];
+        }
+        
+        const stories = querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+        
+        stories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
+        
+        return stories;
+        
+    } catch (error) {
+        console.error(`Error fetching series parts for seriesId ${seriesId}:`, error);
+        return [];
+    }
+}
+
 
 // This function generates metadata for the page based on the story details.
 export async function generateMetadata({ params }: { params: { storyId: string } }): Promise<Metadata> {
