@@ -8,42 +8,33 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
  * Fetches all stories from the database for the main story list.
- * This version uses a more robust two-step query to handle nested collections
- * without relying on collectionGroup, which was causing issues.
+ * This version uses a robust collectionGroup query to find all stories,
+ * regardless of how they are nested in the database.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    const allStories: Story[] = [];
+    const storiesRef = db.collectionGroup('stories');
+    
+    const documentSnapshots = await storiesRef.select(
+        'title', 
+        'coverImageUrl', 
+        'coinCost', 
+        'subgenre', 
+        'publishedAt',
+        'seriesId',
+        'partNumber',
+        'isPremium'
+    ).get();
 
-    // 1. Get all parent documents in the top-level 'stories' collection.
-    const parentStoriesSnapshot = await db.collection('stories').get();
-
-    if (parentStoriesSnapshot.empty) {
-      console.log("No parent story documents found.");
+    if (documentSnapshots.empty) {
+      console.log("No documents found in 'stories' collection group.");
       return [];
     }
-
-    // 2. For each parent document, fetch the stories from its nested 'stories' subcollection.
-    for (const parentDoc of parentStoriesSnapshot.docs) {
-      const nestedStoriesRef = parentDoc.ref.collection('stories');
-      
-      const documentSnapshots = await nestedStoriesRef.select(
-          'title', 
-          'coverImageUrl', 
-          'coinCost', 
-          'subgenre', 
-          'publishedAt',
-          'seriesId',
-          'partNumber',
-          'isPremium'
-      ).get();
-
-      const stories = documentSnapshots.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
-      allStories.push(...stories);
-    }
     
-    return allStories;
+    const stories = documentSnapshots.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+    
+    return stories;
   } catch (error) {
     console.error(`Error fetching all stories:`, error);
     // Return an empty array to prevent the page from crashing.
