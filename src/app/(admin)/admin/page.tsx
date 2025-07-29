@@ -7,13 +7,11 @@ import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Libr
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-// import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
-import { standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
 import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetrics } from '@/lib/types';
-// import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
@@ -97,7 +95,7 @@ function AdminDashboardContent() {
     }
   };
 
-/*
+
   const handleGenerate = async () => {
     if (!user) {
         alert("You must be logged in to generate stories.");
@@ -138,7 +136,7 @@ function AdminDashboardContent() {
     await Promise.all(promises);
     setIsGenerating(false);
   };
-*/
+
   const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing;
 
   return (
@@ -298,7 +296,6 @@ function AdminDashboardContent() {
            </CardContent>
         </Card>
         
-        {/*
         <Card>
            <CardHeader>
             <CardTitle className="flex items-center text-xl"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
@@ -326,7 +323,6 @@ function AdminDashboardContent() {
             </Button>
           </CardContent>
         </Card>
-        */}
 
         {logs.length > 0 && <GenerationLog logs={logs} />}
       </div>

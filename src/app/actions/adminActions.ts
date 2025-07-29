@@ -1,7 +1,7 @@
 
 'use server';
 
-// import { generateStory } from '@/ai/flows/story-generator';
+import { generateStory } from '@/ai/flows/story-generator';
 import type { GeneratedStoryIdentifiers } from '@/lib/types';
 import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
 import { COIN_PACKAGES, PREMIUM_STORY_COST } from '@/lib/config';
 
-// const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
+const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
 
 
 /**
@@ -44,7 +44,6 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
  * Generates a story from a seed, saves it to Firestore, and returns simple identifiers.
  * This action is self-contained to prevent client components from needing complex AI types.
  */
-/*
 export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
   const seed = await selectUnusedSeed();
 
@@ -90,14 +89,13 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
     };
   }
 }
-*/
+
 /**
  * Generates a cover image using an AI model and uploads it to Firebase Storage.
  * @param storyId The ID of the story to associate the image with.
  * @param prompt The prompt for the image generation model.
  * @returns A promise that resolves to the public URL of the uploaded image.
  */
-/*
 export async function generateAndUploadCoverImageAction(storyId: string, prompt: string): Promise<string> {
     if (!prompt) {
         console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
@@ -161,7 +159,7 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         return placeholder;
     }
 }
-*/
+
 /**
  * A one-time action to standardize the genres of existing stories in Firestore.
  * It matches stories to their seeds by title and updates the `subgenre` field.
