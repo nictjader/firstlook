@@ -180,8 +180,6 @@ const storyGenerationFlow = ai.defineFlow(
         seriesTitle: isSeriesStory ? output.seriesTitle ?? undefined : undefined,
         partNumber: isSeriesStory ? output.partNumber ?? undefined : undefined,
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
-        isPublished: true, // Align with new security rules
-        isActive: true, // Align with new security rules
       };
 
       return {

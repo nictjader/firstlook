@@ -54,8 +54,6 @@ export interface Story {
   coverImagePrompt: string;
   author?: string;
   status: 'published' | 'failed';
-  isPublished?: boolean; // Added for new security rules
-  isActive?: boolean; // Added for new security rules
 }
 
 export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance', 'sci-fi'] as const;
@@ -115,8 +113,6 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       coverImagePrompt: data.coverImagePrompt || '',
       author: data.author || 'Anonymous',
       status: data.status || 'published',
-      isPublished: data.isPublished !== undefined ? data.isPublished : true, // Default to true for existing data
-      isActive: data.isActive !== undefined ? data.isActive : true, // Default to true for existing data
     };
 }
 
