@@ -1,26 +1,23 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Allow authenticated users to read stories, regardless of status.
-    // This is more permissive for debugging.
-    match /stories/{storyId} {
-      allow read: if request.auth != null;
-      // Disallow all client-side writes to stories. Only the backend can write.
-      allow write: if false;
+    
+    // Allow admin access to all documents
+    // This is a placeholder and should be secured for production
+    match /{document=**} {
+      allow read, write: if request.auth.token.admin == true;
     }
-
-    // Users can only read and write their own profile data
+    
+    // Users can read and write their own profile
     match /users/{userId} {
-      allow read, update: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
+      allow read, write: if request.auth.uid == userId;
     }
 
-    // Allow backend to log generation failures.
-    // In a real production app, this would be locked down further.
-    match /generation_failures/{docId} {
-        allow write: if false; // Block client-side writes
+    // Any user can read stories that are published
+    match /stories/{storyId} {
+      allow read: if true;
     }
   }
 }

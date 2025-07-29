@@ -17,5 +17,10 @@
       "cpu": 1,
       "name": "ssrsirenh2y45-v2"
     }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
   }
 }
+
