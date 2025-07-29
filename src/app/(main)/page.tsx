@@ -11,33 +11,12 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
 
-// Diagnostic function to test Firestore connection
-async function testFirestoreConnection() {
-  try {
-    const db = getAdminDb();
-    console.log('Database instance:', db);
-    
-    // Test basic connection
-    const testDoc = await db.collection('_test').limit(1).get();
-    console.log('Connection test successful, found docs:', testDoc.size);
-    
-    // Test stories collection specifically  
-    const storiesTest = await db.collection('stories').limit(1).get();
-    console.log('Stories collection test:', storiesTest.size);
-    
-  } catch (error) {
-    console.error('Connection test failed:', error);
-  }
-}
-
 /**
  * Fetches all stories directly from Firestore.
  * This function runs on the server when the page is rendered.
  */
 async function getStoriesForHomepage(): Promise<Story[]> {
   console.log("Attempting to fetch stories from Firestore...");
-  // You can uncomment the line below to run the test on page load
-  // await testFirestoreConnection();
   try {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
@@ -61,7 +40,6 @@ async function getStoriesForHomepage(): Promise<Story[]> {
 
 export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
   const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
-  await testFirestoreConnection(); // Calling the diagnostic function here.
   const allStories = await getStoriesForHomepage();
   
   return (
