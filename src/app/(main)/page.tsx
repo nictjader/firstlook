@@ -61,6 +61,7 @@ async function getStoriesForHomepage(): Promise<Story[]> {
 
 export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
   const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
+  await testFirestoreConnection(); // Calling the diagnostic function here.
   const allStories = await getStoriesForHomepage();
   
   return (
