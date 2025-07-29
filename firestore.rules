@@ -4,20 +4,23 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow admin access to all documents
-    // This is a placeholder and should be secured for production
+    // Default deny all reads/writes
     match /{document=**} {
-      allow read, write: if request.auth.token.admin == true;
-    }
-    
-    // Users can read and write their own profile
-    match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if false;
     }
 
-    // Any user can read stories that are published
+    // Allow authenticated users to read and write their own profile
+    match /users/{userId} {
+      allow read, update, write: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // For stories, allow anyone to read published stories.
+    // Writing stories should be handled by server-side logic with admin privileges.
     match /stories/{storyId} {
-      allow read: if true;
+      allow read: if resource.data.status == 'published';
+      // More restrictive write rule for security
+      allow write: if false; 
     }
   }
 }
