@@ -3,17 +3,21 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Allow authenticated users to read and write their own user profile
-    match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
     }
 
-    // Allow reading of stories for authenticated users
+    // Allow authenticated users to read stories
     match /stories/{storyId} {
       allow read: if request.auth != null;
-      // Write access should be locked down to admin/server-side operations
       allow write: if false; 
+    }
+
+    // Users can only read/write their own profile
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
     }
   }
 }

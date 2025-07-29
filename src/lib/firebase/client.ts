@@ -17,6 +17,10 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
+// Throw an error if the project ID is not set, to prevent connecting to the wrong project.
+if (!firebaseConfig.projectId) {
+  throw new Error("Firebase project ID is not configured. Please check your environment variables.");
+}
 
 // Initialize Firebase for the CLIENT
 let app: FirebaseApp;

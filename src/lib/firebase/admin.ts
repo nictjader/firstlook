@@ -25,7 +25,7 @@ if (!getAdminApps().some(app => app?.name === ADMIN_APP_NAME)) {
 }
 
 // Explicitly connect to the database with the ID '(default)'
-// This is the key fix to bypass the `firebase-core: disabled` issue.
+// This bypasses any issues with the default service link being disabled or misconfigured.
 adminDb = getFirestore(adminApp, '(default)');
 
 export function getAdminDb(): Firestore {
