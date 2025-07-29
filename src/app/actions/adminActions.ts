@@ -126,18 +126,20 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         const bucket = getStorage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
         const imagePath = `story-covers/${storyId}.png`;
         const file = bucket.file(imagePath);
+        
+        // Generate a UUID for the download token. This makes the URL public but unguessable.
+        const downloadToken = uuidv4();
 
         await file.save(imageBuffer, {
           metadata: {
             contentType: mimeType || 'image/png',
             metadata: {
-              firebaseStorageDownloadTokens: uuidv4(),
+              firebaseStorageDownloadTokens: downloadToken,
             }
           },
         });
 
-        // Make the file public and get the URL
-        await file.makePublic();
+        // The publicUrl() method correctly formats the URL with the token, making it accessible.
         const downloadURL = file.publicUrl();
         
         // Update the story document with the final cover URL
