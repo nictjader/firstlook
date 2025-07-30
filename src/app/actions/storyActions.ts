@@ -2,29 +2,47 @@
 'use server';
 
 import { getAdminDb } from '@/lib/firebase/admin';
-import type { Story } from '@/lib/types';
+import type { Story, Subgenre } from '@/lib/types';
 import { docToStory } from '@/lib/types';
-import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+
+interface GetStoriesOptions {
+  subgenre?: Subgenre | 'all';
+  limit?: number;
+}
 
 /**
- * Fetches all stories from the database.
- * This should be used for pages that need a complete list, like the homepage.
+ * Fetches stories from the database with optional filters.
+ * This is the primary function for fetching story lists.
+ * @param options - An object with filtering options like subgenre and limit.
+ * @returns A promise that resolves to an array of Story objects.
  */
-export async function getAllStories(): Promise<Story[]> {
+export async function getStories(options: GetStoriesOptions = {}): Promise<Story[]> {
+  const { subgenre = 'all' } = options;
+
   try {
     const db = getAdminDb();
-    const storiesRef = db.collection('stories');
-    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+    let storiesQuery: Query = db.collection('stories');
+
+    // Apply subgenre filter if it's not 'all'
+    if (subgenre !== 'all') {
+      storiesQuery = storiesQuery.where('subgenre', '==', subgenre);
+    }
+
+    // Always order by published date to get the newest stories first
+    storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
+
+    const snapshot = await storiesQuery.get();
 
     if (snapshot.empty) {
-      console.warn("No stories found in the 'stories' collection.");
+      console.warn(`No stories found for subgenre: ${subgenre}`);
       return [];
     }
     
     return snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
 
   } catch (error) {
-    console.error(`Critical error in getAllStories:`, error);
+    console.error(`Critical error in getStories for subgenre "${subgenre}":`, error);
     // In case of an error, return an empty array to prevent the page from crashing.
     return [];
   }

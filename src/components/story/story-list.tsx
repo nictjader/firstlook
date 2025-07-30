@@ -2,7 +2,7 @@
 'use client';
 
 import { useMemo } from 'react';
-import type { Story, Subgenre } from '@/lib/types';
+import type { Story } from '@/lib/types';
 import StoryCard from './story-card';
 import { useRouter } from 'next/navigation';
 import { BookX } from 'lucide-react';
@@ -10,51 +10,45 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 
 interface StoryListProps {
-  allStories: Story[];
-  selectedSubgenre: Subgenre | 'all';
+  stories: Story[];
 }
 
 /**
  * Groups stories to show only the first part of any series on the main list.
  * Standalone stories are passed through untouched.
- * @param stories The raw array of all stories.
+ * @param stories The raw array of stories (already filtered by genre).
  * @returns A filtered array of stories suitable for the homepage.
  */
 function groupStoriesForDisplay(stories: Story[]): Story[] {
   const storyMap = new Map<string, Story>();
 
-  // Process all stories to correctly handle series
+  // The incoming stories are already sorted by publishedAt descending
   for (const story of stories) {
     if (story.seriesId) {
-      // It's part of a series
-      const existing = storyMap.get(story.seriesId);
-      // Only add Part 1, or if Part 1 isn't present yet, add the first part we find.
-      if (!existing || (story.partNumber === 1 && existing.partNumber !== 1)) {
-        storyMap.set(story.seriesId, story);
+      // If we haven't seen this series yet, add its first part.
+      // Since the input is sorted, the first one we see for a series ID is the newest.
+      // We assume part 1 is what should be shown. A more robust solution might fetch part 1 specifically.
+      if (!storyMap.has(story.seriesId)) {
+        // To be safe, we should ideally find and show Part 1. 
+        // For now, we'll show the first part we encounter, which is likely the newest.
+        // A better approach would be to ensure part 1 is always returned for a series from the query.
+        const partOne = stories.find(s => s.seriesId === story.seriesId && s.partNumber === 1) || story;
+        storyMap.set(story.seriesId, partOne);
       }
     } else {
       // It's a standalone story
       storyMap.set(story.storyId, story);
     }
   }
-
-  // Convert map to array and sort by published date descending to show newest first
-  const grouped = Array.from(storyMap.values());
-  grouped.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   
-  return grouped;
+  // The sorting is preserved from the original array because we iterate in order.
+  return Array.from(storyMap.values());
 }
 
-export default function StoryList({ allStories, selectedSubgenre }: StoryListProps) {
+export default function StoryList({ stories }: StoryListProps) {
   const router = useRouter();
 
-  const storiesForDisplay = useMemo(() => {
-    const grouped = groupStoriesForDisplay(allStories);
-    if (selectedSubgenre === 'all') {
-      return grouped;
-    }
-    return grouped.filter(story => story.subgenre === selectedSubgenre);
-  }, [allStories, selectedSubgenre]);
+  const storiesForDisplay = useMemo(() => groupStoriesForDisplay(stories), [stories]);
 
   if (storiesForDisplay.length === 0) {
     return (
@@ -69,11 +63,9 @@ export default function StoryList({ allStories, selectedSubgenre }: StoryListPro
                 It looks like there are no stories in this category yet. Please check back later or try a different subgenre.
             </p>
         </div>
-        {selectedSubgenre !== 'all' && (
-            <Button variant="outline" onClick={() => router.push('/')}>
-                Clear Filter
-            </Button>
-        )}
+        <Button variant="outline" onClick={() => router.push('/')}>
+            Clear Filter
+        </Button>
         <Separator/>
       </div>
     );

@@ -4,7 +4,7 @@ import SubgenreFilter from '@/components/story/subgenre-filter';
 import { Suspense } from 'react';
 import type { Subgenre } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getAllStories } from '@/app/actions/storyActions';
+import { getStories } from '@/app/actions/storyActions';
 
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
@@ -25,7 +25,9 @@ const StoryListSkeleton = () => (
 
 export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
   const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
-  const allStories = await getAllStories();
+  
+  // Fetch only the stories needed for the current view
+  const stories = await getStories({ subgenre: selectedSubgenre });
   
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -41,7 +43,7 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
         <SubgenreFilter />
       </Suspense>
       <Suspense fallback={<StoryListSkeleton />}>
-        <StoryList allStories={allStories} selectedSubgenre={selectedSubgenre} />
+        <StoryList stories={stories} />
       </Suspense>
     </div>
   );
