@@ -1,9 +1,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { type LucideIcon } from 'lucide-react';
 
 interface MetricCardProps {
   title: string;
   value: string | number;
-  icon: React.ElementType;
+  icon: LucideIcon;
   description: string;
 }
 
