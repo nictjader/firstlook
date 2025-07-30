@@ -12,10 +12,7 @@ import type { CleanupResult, Story, DatabaseMetrics, CoinPackage } from '@/lib/t
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
-import { COIN_PACKAGES, PREMIUM_STORY_COST } from '@/lib/config';
-
-const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
-
+import { COIN_PACKAGES, PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -25,8 +22,8 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    const q = storiesRef.select('title');
-    const snapshot = await q.get();
+    // Fetch only the 'title' field to minimize data transfer
+    const snapshot = await storiesRef.select('title').get();
 
     const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Part ')[0]));
 
@@ -63,7 +60,6 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
       throw new Error(storyResult.error || 'Story generation flow failed to return story data.');
     }
     
-    // Save the story directly to Firestore within this server action
     const storyDocRef = getAdminDb().collection('stories').doc(storyResult.storyId);
     await storyDocRef.set({
         ...storyResult.storyData,
@@ -97,10 +93,11 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
  * @returns A promise that resolves to the public URL of the uploaded image.
  */
 export async function generateAndUploadCoverImageAction(storyId: string, prompt: string): Promise<string> {
+    const db = getAdminDb();
+    
     if (!prompt) {
         console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
         const placeholder = `${PLACEHOLDER_IMAGE_URL}?text=No+Prompt`;
-        const db = getAdminDb();
         await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
         return placeholder;
     }
@@ -127,7 +124,6 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         const imagePath = `story-covers/${storyId}.png`;
         const file = bucket.file(imagePath);
         
-        // Generate a UUID for the download token. This makes the URL public but unguessable.
         const downloadToken = uuidv4();
 
         await file.save(imageBuffer, {
@@ -139,11 +135,8 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
           },
         });
 
-        // The publicUrl() method correctly formats the URL with the token, making it accessible.
-        const downloadURL = file.publicUrl();
+        const downloadURL = `https://storage.googleapis.com/${bucket.name}/${imagePath}?alt=media&token=${downloadToken}`;
         
-        // Update the story document with the final cover URL
-        const db = getAdminDb();
         await db.collection('stories').doc(storyId).update({ coverImageUrl: downloadURL });
 
         console.log(`Successfully generated and uploaded cover for ${storyId}`);
@@ -152,7 +145,6 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
     } catch (error) {
         console.error(`Failed to generate or upload cover image for ${storyId}. Using placeholder.`, error);
         const placeholder = `${PLACEHOLDER_IMAGE_URL}?text=Image+Failed`;
-        const db = getAdminDb();
         try {
             await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
         } catch (dbError) {
@@ -223,8 +215,7 @@ export async function removeTagsAction(): Promise<CleanupResult> {
     let updatedCount = 0;
 
     snapshot.docs.forEach(doc => {
-        const story = doc.data();
-        if (story.tags) {
+        if (doc.data().tags) {
             const storyRef = db.collection('stories').doc(doc.id);
             batch.update(storyRef, { tags: FieldValue.delete() });
             updatedCount++;
@@ -263,11 +254,8 @@ function calculateMinimumCost(totalCoinsNeeded: number): number {
     const sortedPackages = [...COIN_PACKAGES].sort((a, b) => a.coins - b.coins);
 
     // dp[i] will be storing the minimum cost to get 'i' coins.
-    // Initialize with a value larger than any possible cost.
     const dp = new Array(totalCoinsNeeded + 1).fill(Infinity);
-
-    // Base case: cost to get 0 coins is 0.
-    dp[0] = 0;
+    dp[0] = 0; // Base case: cost to get 0 coins is 0.
 
     for (let i = 1; i <= totalCoinsNeeded; i++) {
         for (const pkg of sortedPackages) {
@@ -283,7 +271,6 @@ function calculateMinimumCost(totalCoinsNeeded: number): number {
         }
     }
     
-    // The result could have floating point inaccuracies, so we round to 2 decimal places.
     return parseFloat(dp[totalCoinsNeeded].toFixed(2));
 }
 
@@ -327,29 +314,25 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     let totalWordCount = 0;
     let paidChaptersCount = 0;
     let paidStandaloneStories = 0;
-    const seriesData = new Map<string, { totalChapters: number, paidChapters: number }>();
+    const seriesData = new Map<string, { paidChapters: number }>();
 
     stories.forEach(story => {
         const genre = story.subgenre || 'uncategorized';
 
-        // Monetization
         totalWordCount += story.wordCount || 0;
         if (story.isPremium && story.coinCost > 0) {
             paidChaptersCount++;
         }
         
-        // Composition & Monetization by type
         if (story.seriesId) {
             if (!seriesGenres.has(story.seriesId)) {
                 seriesGenres.set(story.seriesId, genre);
             }
             if (!seriesData.has(story.seriesId)) {
-                seriesData.set(story.seriesId, { totalChapters: 0, paidChapters: 0 });
+                seriesData.set(story.seriesId, { paidChapters: 0 });
             }
-            const currentSeries = seriesData.get(story.seriesId)!;
-            currentSeries.totalChapters++;
             if (story.isPremium && story.coinCost > 0) {
-                currentSeries.paidChapters++;
+                seriesData.get(story.seriesId)!.paidChapters++;
             }
         } else {
             standaloneStoriesCount++;
@@ -364,19 +347,18 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     });
     
-    // Correctly calculate totalCoinCost based on the new 50-coin model
+    // Calculate monetization based on a standard cost to ensure consistency
     const totalCoinCost = paidChaptersCount * PREMIUM_STORY_COST;
     const avgCoinCostPerPaidChapter = paidChaptersCount > 0 ? PREMIUM_STORY_COST : 0;
     
     const multiPartSeriesCount = seriesGenres.size;
     const totalUniqueStories = standaloneStoriesCount + multiPartSeriesCount;
-    const totalChapters = stories.length;
     const paidSeriesChapters = Array.from(seriesData.values()).reduce((acc, s) => acc + s.paidChapters, 0);
     
     const totalValueUSD = calculateMinimumCost(totalCoinCost);
 
     return {
-        totalChapters,
+        totalChapters: stories.length,
         totalUniqueStories,
         standaloneStories: standaloneStoriesCount,
         multiPartSeriesCount,

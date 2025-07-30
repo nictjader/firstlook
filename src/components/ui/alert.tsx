@@ -28,20 +28,26 @@ const alertVariants = cva(
 const Alert = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & VariantProps<typeof alertVariants>
->(({ className, variant, children, ...props }, ref) => (
-  <div
-    ref={ref}
-    role="alert"
-    className={cn(alertVariants({ variant }), className)}
-    {...props}
-  >
-    {variant === 'success' && <CheckCircle className="h-4 w-4" />}
-    {variant === 'warning' && <AlertCircle className="h-4 w-4" />}
-    {variant === 'destructive' && <AlertCircle className="h-4 w-4" />}
-    {(!variant || variant === 'default') && <Info className="h-4 w-4" />}
-    {children}
-  </div>
-))
+>(({ className, variant, children, ...props }, ref) => {
+  const Icon = {
+    success: CheckCircle,
+    warning: AlertCircle,
+    destructive: AlertCircle,
+    default: Info,
+  }[variant || 'default'];
+
+  return (
+    <div
+      ref={ref}
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    >
+      <Icon className="h-4 w-4" />
+      {children}
+    </div>
+  );
+});
 Alert.displayName = "Alert"
 
 const AlertTitle = React.forwardRef<

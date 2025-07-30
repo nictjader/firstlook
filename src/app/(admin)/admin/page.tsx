@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Libr
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -15,6 +15,7 @@ import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetric
 import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
+import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 
 function AdminDashboardContent() {
   const { user } = useAuth();
@@ -48,7 +49,6 @@ function AdminDashboardContent() {
       setIsAnalyzing(false);
     }
   };
-
 
   const handleStandardizeGenres = async () => {
     setIsCleaning(true);
@@ -94,7 +94,6 @@ function AdminDashboardContent() {
       setIsRemovingTags(false);
     }
   };
-
 
   const handleGenerate = async () => {
     if (!user) {
@@ -333,5 +332,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    

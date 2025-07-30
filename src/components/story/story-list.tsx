@@ -8,22 +8,11 @@ import { useRouter } from 'next/navigation';
 import { BookX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface StoryListProps {
   allStories: Story[];
   selectedSubgenre: Subgenre | 'all';
 }
-
-const StoryListSkeleton = () => (
-    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
-        {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="flex flex-col space-y-3">
-                <Skeleton className="h-[45vw] sm:h-[30vw] md:h-[25vw] lg:h-[20vw] w-full rounded-xl" />
-            </div>
-        ))}
-    </div>
-);
 
 /**
  * Groups stories to show only the first part of any series on the main list.
@@ -56,7 +45,6 @@ function groupStoriesForDisplay(stories: Story[]): Story[] {
   return grouped;
 }
 
-
 export default function StoryList({ allStories, selectedSubgenre }: StoryListProps) {
   const router = useRouter();
 
@@ -67,10 +55,6 @@ export default function StoryList({ allStories, selectedSubgenre }: StoryListPro
     }
     return grouped.filter(story => story.subgenre === selectedSubgenre);
   }, [allStories, selectedSubgenre]);
-
-  if (!allStories) {
-      return <StoryListSkeleton />;
-  }
 
   if (storiesForDisplay.length === 0) {
     return (
@@ -103,5 +87,3 @@ export default function StoryList({ allStories, selectedSubgenre }: StoryListPro
     </div>
   );
 }
-
-    

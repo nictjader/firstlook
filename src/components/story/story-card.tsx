@@ -6,9 +6,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Lock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { useMemo, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { capitalizeWords } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
+import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 
 type StoryCardProps = {
   story: Story;
@@ -17,21 +18,18 @@ type StoryCardProps = {
 
 export default function StoryCard({ story, isPriority = false }: StoryCardProps) {
   const { title, coverImageUrl, coinCost, storyId, subgenre } = story;
-  const { user, userProfile, toggleFavoriteStory, loading: authLoading } = useAuth();
-  const [isRead, setIsRead] = useState(false);
+  const { user, userProfile, toggleFavoriteStory } = useAuth();
   const router = useRouter();
+  const [isRead, setIsRead] = useState(false);
 
-  const isFavorited = useMemo(() => {
-    if (authLoading || !userProfile) return false;
-    return userProfile.favoriteStories?.includes(storyId) ?? false;
-  }, [authLoading, userProfile, storyId]);
+  const isFavorited = userProfile?.favoriteStories?.includes(storyId) ?? false;
   
   useEffect(() => {
-    if (user && userProfile) {
+    if (userProfile) {
       setIsRead(userProfile.readStories?.includes(storyId) ?? false);
-    } else if (typeof window !== 'undefined') {
+    } else {
       try {
-        const localReadJson = localStorage.getItem('siren_read_stories');
+        const localReadJson = window.localStorage.getItem('siren_read_stories');
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
         setIsRead(localReadStories.includes(storyId));
       } catch (error) {
@@ -39,7 +37,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
         setIsRead(false);
       }
     }
-  }, [user, userProfile, storyId, authLoading]);
+  }, [userProfile, storyId]);
 
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
@@ -53,7 +51,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   }
 
   const isPremium = coinCost > 0;
-  const placeholderImage = 'https://placehold.co/600x900/D87093/F9E4EB.png?text=Siren';
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
 
   return (
@@ -61,7 +58,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
        <Link href={`/stories/${storyId}`} aria-label={`Read ${title}`} className="group block">
         <div className="w-full bg-muted aspect-[2/3] relative overflow-hidden rounded-lg shadow-md hover:shadow-xl transition-shadow duration-300 ease-in-out">
           <Image
-            src={coverImageUrl || placeholderImage}
+            src={coverImageUrl || PLACEHOLDER_IMAGE_URL}
             alt={title || "Story cover"}
             fill
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -88,5 +85,3 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     </div>
   );
 }
-
-    

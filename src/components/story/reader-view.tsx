@@ -2,7 +2,7 @@
 "use client";
 
 import type { Story } from '@/lib/types';
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -24,6 +24,8 @@ import { Separator } from '@/components/ui/separator';
 import { useTheme } from '@/contexts/theme-context';
 import StoryCard from './story-card';
 import { arrayUnion } from 'firebase/firestore';
+import { useEffectOnce } from '@/hooks/use-effect-once';
+import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 
 const FONT_SIZES = [
   'text-base',   // 16px
@@ -35,7 +37,6 @@ const FONT_SIZES = [
 
 const DEFAULT_FONT_SIZE_INDEX = 1;
 
-// --- Main View Component ---
 export default function ReaderView({ story, seriesParts }: { story: Story; seriesParts: Story[] }) {
   const { user, userProfile, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead } = useAuth();
   const { toast } = useToast();
@@ -53,11 +54,11 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   const isFavorited = userProfile?.favoriteStories.includes(story.storyId) ?? false;
   const hasSufficientCoins = isEffectivelyFree || !userProfile ? true : userProfile.coins >= story.coinCost;
 
-  useMemo(() => {
+  useEffectOnce(() => {
     if (isUnlocked) {
       markStoryAsRead(story.storyId);
     }
-  }, [isUnlocked, story.storyId, markStoryAsRead]);
+  });
 
 
   const changeFontSize = (direction: 'increase' | 'decrease') => {
@@ -99,9 +100,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     }
     toggleFavoriteStory(story.storyId);
   };
-
-  const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=Siren';
-  if (!story) return <p>Story not found.</p>;
   
   const otherParts = seriesParts.filter(part => part.storyId !== story.storyId);
   const subgenreText = capitalizeWords(story.subgenre).replace(" Romance", "");
@@ -115,7 +113,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm overflow-hidden shadow-xl">
         <div className="relative w-full aspect-[16/9] md:aspect-[2/1] bg-muted">
            <Image
-              src={story.coverImageUrl || placeholderImage}
+              src={story.coverImageUrl || PLACEHOLDER_IMAGE_URL}
               alt={`Cover for ${story.title}`}
               fill
               className="object-cover"
@@ -247,5 +245,3 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     </div>
   );
 }
-
-    

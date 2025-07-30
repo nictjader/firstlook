@@ -151,17 +151,16 @@ const storyGenerationFlow = ai.defineFlow(
     const potentialSeriesId = uuidv4(); 
 
     try {
-      const llmResponse = await storyGenerationPrompt({
+      const { output } = await storyGenerationPrompt({
         ...seed,
         potentialSeriesId,
       });
 
-      const output = llmResponse.output;
       if (!output) {
         throw new Error('AI failed to generate a story.');
       }
       
-      const isSeriesStory = output.seriesId !== null && output.seriesId !== undefined && output.partNumber !== null;
+      const isSeriesStory = !!output.seriesId && output.partNumber !== null;
       
       const storyData: Omit<Story, 'publishedAt' | 'coverImageUrl'> = {
         storyId: storyId,
@@ -176,9 +175,9 @@ const storyGenerationFlow = ai.defineFlow(
         author: output.author,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt,
-        seriesId: isSeriesStory ? output.seriesId ?? undefined : undefined,
+        seriesId: isSeriesStory ? output.seriesId : undefined,
         seriesTitle: isSeriesStory ? output.seriesTitle ?? undefined : undefined,
-        partNumber: isSeriesStory ? output.partNumber ?? undefined : undefined,
+        partNumber: isSeriesStory ? output.partNumber : undefined,
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
       };
 

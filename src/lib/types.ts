@@ -1,7 +1,6 @@
 
 import { type Timestamp as ClientTimestamp, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
-import { z } from 'zod';
 
 // --- Type Definitions ---
 
@@ -88,7 +87,6 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       throw new Error(`Document with id ${doc.id} has no data.`);
     }
     
-    // The storyId field in the data should be the definitive source if it exists.
     const storyId = data.storyId || doc.id;
     const isSeriesStory = !!data.seriesId && typeof data.partNumber === 'number';
 
@@ -179,19 +177,6 @@ export interface CleanupResult {
     message: string;
     checked: number;
     updated: number;
-}
-
-export interface StoryCountBreakdown {
-  totalUniqueStories: number;
-  standaloneStories: number;
-  multiPartSeriesCount: number;
-  storiesPerGenre: Record<string, number>;
-}
-
-export interface PurchaseResult {
-  success: boolean;
-  message: string;
-  error?: string;
 }
 
 export interface DatabaseMetrics {

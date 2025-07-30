@@ -10,7 +10,7 @@ export default function MainLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-grow container mx-auto px-4 py-4 sm:py-6 md:py-8 fade-in">
+      <main className="flex-grow container mx-auto px-4 py-8">
         {children}
       </main>
       <Footer />

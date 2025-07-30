@@ -3,6 +3,7 @@ import ReaderView from '@/components/story/reader-view';
 import { notFound } from 'next/navigation';
 import { getStoryById, getSeriesParts } from '@/app/actions/storyActions';
 import type { Metadata } from 'next';
+import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 
 
 // This function generates metadata for the page based on the story details.
@@ -23,9 +24,9 @@ export async function generateMetadata({ params }: { params: { storyId: string }
       description: story.previewText,
       images: [
         {
-          url: story.coverImageUrl || 'https://placehold.co/1200x630.png',
-          width: 1200,
-          height: 630,
+          url: story.coverImageUrl || PLACEHOLDER_IMAGE_URL,
+          width: 600,
+          height: 900,
           alt: `Cover for ${story.title}`,
         },
       ],
