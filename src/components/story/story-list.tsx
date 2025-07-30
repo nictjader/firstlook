@@ -25,24 +25,26 @@ function groupStoriesForDisplay(stories: Story[]): Story[] {
   // The incoming stories are already sorted by publishedAt descending
   for (const story of stories) {
     if (story.seriesId) {
-      // If we haven't seen this series yet, add its first part.
-      // Since the input is sorted, the first one we see for a series ID is the newest.
-      // We assume part 1 is what should be shown. A more robust solution might fetch part 1 specifically.
+      // If we haven't seen this series yet, find its first part and add it.
       if (!storyMap.has(story.seriesId)) {
-        // To be safe, we should ideally find and show Part 1. 
-        // For now, we'll show the first part we encounter, which is likely the newest.
-        // A better approach would be to ensure part 1 is always returned for a series from the query.
-        const partOne = stories.find(s => s.seriesId === story.seriesId && s.partNumber === 1) || story;
-        storyMap.set(story.seriesId, partOne);
+        const partOne = stories.find(s => s.seriesId === story.seriesId && s.partNumber === 1);
+        if (partOne) {
+           storyMap.set(story.seriesId, partOne);
+        }
       }
     } else {
-      // It's a standalone story
+      // It's a standalone story, so the storyId is the unique key
       storyMap.set(story.storyId, story);
     }
   }
   
-  // The sorting is preserved from the original array because we iterate in order.
-  return Array.from(storyMap.values());
+  // Convert map values back to an array. The insertion order is preserved.
+  const displayStories = Array.from(storyMap.values());
+
+  // We need to re-sort because we might have picked an older Part 1 for a newer series.
+  displayStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+  
+  return displayStories;
 }
 
 export default function StoryList({ stories }: StoryListProps) {

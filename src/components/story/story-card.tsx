@@ -54,7 +54,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const isPremium = coinCost > 0;
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
   // This robustly removes " - Part X" from series titles for a clean card display.
-  const displayTitle = title.replace(/ - Part \d+$/, '');
+  const displayTitle = story.seriesTitle ? story.seriesTitle : title;
 
 
   return (
@@ -70,7 +70,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
             data-ai-hint="romance book cover"
             priority={isPriority}
           />
-           {story.partNumber && (
+           {story.partNumber && story.seriesId && (
             <Badge variant="secondary" className="absolute top-2 right-2 z-10">
               Part {story.partNumber}
             </Badge>

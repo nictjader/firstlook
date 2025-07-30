@@ -103,6 +103,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   
   const otherParts = seriesParts.filter(part => part.storyId !== story.storyId);
   const subgenreText = capitalizeWords(story.subgenre).replace(" Romance", "");
+  const displayTitle = story.seriesTitle ? story.seriesTitle : story.title;
+
 
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
@@ -133,11 +135,11 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                     )}
                   </div>
                 </div>
-               <h3 className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold leading-none tracking-tight text-primary !mb-2">{story.title}</h3>
+               <h3 className="text-2xl sm:text-3xl md:text-4xl font-headline font-semibold leading-none tracking-tight text-primary !mb-2">{displayTitle}</h3>
                 {story.seriesTitle && story.partNumber && (
                   <p className="text-accent font-medium mt-1 flex items-center text-sm sm:text-base">
                     <Library className="w-4 h-4 mr-1.5" />
-                     Chapter {story.partNumber} of {story.seriesTitle}
+                     Chapter {story.partNumber} of {story.totalPartsInSeries}
                   </p>
                 )}
             </div>

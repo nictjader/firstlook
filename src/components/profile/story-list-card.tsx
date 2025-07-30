@@ -40,9 +40,9 @@ export default function StoryListCard({ title, stories, isLoading, icon: Icon, e
                 <li key={story.storyId}>
                   <Link href={`/stories/${story.storyId}`} className="group flex items-center justify-between p-3 hover:bg-muted/50 transition-colors">
                     <div className="flex-grow">
-                      <p className="font-semibold text-primary group-hover:underline">{story.title}</p>
-                      {story.seriesTitle && (
-                         <p className="text-xs text-muted-foreground">{`Chapter ${story.partNumber} of ${story.seriesTitle}`}</p>
+                      <p className="font-semibold text-primary group-hover:underline">{story.seriesTitle ? story.seriesTitle : story.title}</p>
+                      {story.seriesTitle && story.partNumber && (
+                         <p className="text-xs text-muted-foreground">{`Chapter ${story.partNumber} of ${story.totalPartsInSeries}`}</p>
                       )}
                     </div>
                     <ChevronRight className="h-5 w-5 text-muted-foreground ml-4 opacity-0 group-hover:opacity-100 transition-opacity" />
