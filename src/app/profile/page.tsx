@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function ProfilePage() {
   return (
-    <div className="container mx-auto max-w-2xl py-8">
+    <div className="max-w-2xl">
       <h1 className="text-3xl font-headline font-bold mb-8 text-primary">My Profile</h1>
       <ProfileView />
     </div>

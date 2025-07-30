@@ -22,7 +22,7 @@ const PurchaseSkeleton = () => (
 
 export default function BuyCoinsPage() {
   return (
-    <div className="container mx-auto max-w-3xl py-8">
+    <div className="max-w-3xl">
       <div className="text-center mb-8">
         <h1 className="text-3xl sm:text-4xl font-headline font-bold text-primary mb-3">Get More Coins</h1>
         <p className="text-base sm:text-lg text-muted-foreground">
