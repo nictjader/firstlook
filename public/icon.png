@@ -1,0 +1,24 @@
+<svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+<style>
+    .icon-path {
+        stroke: hsl(343 74% 64%);
+        fill: hsl(343 74% 64% / 0.1);
+    }
+    .heart-path {
+        stroke: hsl(343 74% 64%);
+        fill: hsl(343 74% 64%);
+    }
+    @media (prefers-color-scheme: dark) {
+        .icon-path {
+            stroke: hsl(343 74% 64%);
+            fill: hsl(343 74% 64% / 0.2);
+        }
+        .heart-path {
+            stroke: hsl(343 74% 64%);
+            fill: hsl(343 74% 64%);
+        }
+    }
+</style>
+<path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" class="icon-path" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M12.42 12.37a2.5 2.5 0 0 0-3.53.21l-.22.25-.22-.25a2.5 2.5 0 0 0-3.53-.21c-.98.86-1.05 2.33-.17 3.39l3.2 3.92a1 1 0 0 0 1.62 0l3.2-3.92c.88-1.06.81-2.53-.17-3.39z" class="heart-path" stroke-width="1.5"/>
+</svg>
