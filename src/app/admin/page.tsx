@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -7,7 +6,7 @@ import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Libr
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, cleanupDuplicateStoriesAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -32,7 +31,6 @@ function AdminDashboardContent() {
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
-  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -98,22 +96,6 @@ function AdminDashboardContent() {
       setIsRemovingTags(false);
     }
   };
-  
-  const handleCleanupDuplicates = async () => {
-    setIsCleaningDuplicates(true);
-    setCleanupResult(null);
-    try {
-        const result = await cleanupDuplicateStoriesAction();
-        setCleanupResult(result);
-        if (result.success) {
-            await handleAnalyzeDatabase();
-        }
-    } catch (error: any) {
-        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
-    } finally {
-        setIsCleaningDuplicates(false);
-    }
-};
 
   const handleGenerate = async () => {
     if (!user) {
@@ -158,8 +140,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates;
-  const hasDuplicates = analysisResult && Object.keys(analysisResult.duplicateTitles).length > 0;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing;
   
   return (
     <>
@@ -223,49 +204,7 @@ function AdminDashboardContent() {
                 </Alert>
               )}
 
-              {hasDuplicates && (
-                <Card className="mt-6 border-destructive">
-                    <CardHeader>
-                        <CardTitle className="text-destructive flex items-center"><Trash2 className="mr-2 h-5 w-5"/> Database Integrity</CardTitle>
-                        <CardDescription>
-                            Found {Object.keys(analysisResult.duplicateTitles).length} story titles with duplicate entries. It is recommended to clean these up.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="text-sm list-disc pl-5 space-y-1 text-muted-foreground">
-                            {Object.entries(analysisResult.duplicateTitles).map(([title, count]) => (
-                                <li key={title}><b>{title}</b> ({count} entries)</li>
-                            ))}
-                        </ul>
-                    </CardContent>
-                    <CardContent>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" disabled={isToolRunning}>
-                                    {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                    {isCleaningDuplicates ? 'Cleaning...' : 'Cleanup Duplicates'}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        This action cannot be undone. This will permanently delete {Object.values(analysisResult.duplicateTitles).reduce((acc, count) => acc + count - 1, 0)} story documents from your database, keeping only the most recent entry for each duplicated title.
-                                    </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction onClick={handleCleanupDuplicates} className="bg-destructive hover:bg-destructive/90">
-                                        Yes, delete duplicates
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </CardContent>
-                </Card>
-               )}
-              
-              {analysisResult && !hasDuplicates && (
+              {analysisResult && (
                 <div className="mt-6 space-y-4">
                     <h2 className="text-2xl font-headline font-semibold text-primary">Database Analysis Complete</h2>
                     
