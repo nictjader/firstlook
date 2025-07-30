@@ -14,7 +14,7 @@ interface StoryListProps {
 }
 
 /**
- * Groups stories to show only the first part of any series on the main list.
+ * Groups stories to show only the first chapter of any series on the main list.
  * Standalone stories are passed through untouched.
  * @param stories The raw array of stories (already filtered by genre).
  * @returns A filtered array of stories suitable for the homepage.
@@ -41,7 +41,7 @@ function groupStoriesForDisplay(stories: Story[]): Story[] {
   // Convert map values back to an array. The insertion order is preserved.
   const displayStories = Array.from(storyMap.values());
 
-  // We need to re-sort because we might have picked an older Part 1 for a newer series.
+  // We need to re-sort because we might have picked an older Chapter 1 for a newer series.
   displayStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
   
   return displayStories;

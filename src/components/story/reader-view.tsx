@@ -233,7 +233,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
               <Library className="w-5 h-5 mr-2 text-primary" />
               More from {story.seriesTitle || 'this series'}
             </h3>
-            <p className="text-sm text-muted-foreground">Follow the rest of the story.</p>
+            <p className="text-sm text-muted-foreground">Follow the rest of the story. Chapters are displayed in order.</p>
           </div>
           <div className="p-6 pt-0">
              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">

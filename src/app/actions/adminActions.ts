@@ -25,7 +25,7 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
     // Fetch only the 'title' field to minimize data transfer
     const snapshot = await storiesRef.select('title').get();
 
-    const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Part ')[0]));
+    const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Chapter ')[0]));
 
     const unusedSeeds = storySeeds.filter(seed => !existingTitles.has(seed.titleIdea));
 
@@ -174,7 +174,7 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
 
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
-        const baseTitle = story.title.split(' - Part ')[0]; 
+        const baseTitle = story.title.split(' - Chapter ')[0]; 
         const correctGenre = seedGenreMap.get(baseTitle);
 
         if (correctGenre && story.subgenre !== correctGenre) {
