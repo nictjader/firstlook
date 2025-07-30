@@ -345,11 +345,6 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
             }
         } else {
             multiPartSeriesCount++;
-            // A series is a "duplicate" if there's more than one chapter with the same seriesTitle
-            // but this is expected behavior. The *real* duplicate check is for multiple *series*
-            // with the same title. This is better handled in the cleanup logic.
-            // For UI reporting, we count any concept with >1 chapter as a potential area to investigate.
-            // A better way is to count unique series IDs per series title.
         }
     }
     
@@ -402,15 +397,40 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     };
 }
 
+/**
+ * Deletes a file from Firebase Storage, handling potential errors.
+ * @param filePath The full path to the file in the bucket (e.g., 'story-covers/storyId.png').
+ */
+async function deleteStorageFile(filePath: string) {
+    try {
+        const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+        if (!bucketName) {
+            console.warn('Storage bucket name not configured, skipping file deletion.');
+            return;
+        }
+        const bucket = getStorage().bucket(bucketName);
+        const file = bucket.file(filePath);
+        await file.delete();
+        console.log(`Successfully deleted ${filePath} from storage.`);
+    } catch (error: any) {
+        // It's common for files not to exist (e.g., placeholder used), so we don't treat "Not Found" as a critical error.
+        if (error.code === 404) {
+            console.log(`File not found in storage, skipping deletion: ${filePath}`);
+        } else {
+            console.error(`Failed to delete file ${filePath} from storage:`, error);
+        }
+    }
+}
+
 
 /**
  * Finds and deletes stories with duplicate titles, keeping only the most recent one.
- * This now handles standalone stories and multi-part series correctly.
+ * This now handles standalone stories and multi-part series correctly, and also
+ * deletes the associated cover images from Firebase Storage.
  */
 export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
-    // Order by publishedAt descending to easily find the "newest" one to keep
     const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
     
     if (snapshot.empty) {
@@ -419,7 +439,8 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
     const batch = db.batch();
-    let deletedCount = 0;
+    const storageDeletePromises: Promise<void>[] = [];
+    let processedCount = 0;
 
     // --- Cleanup for Standalone Stories ---
     const standaloneStories = stories.filter(s => !s.seriesId);
@@ -430,7 +451,11 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
             // This is an older duplicate, mark for deletion.
             const docRef = db.collection('stories').doc(story.storyId);
             batch.delete(docRef);
-            deletedCount++;
+            processedCount++;
+            if (story.coverImageUrl && story.coverImageUrl.includes('storage.googleapis.com')) {
+                const filePath = `story-covers/${story.storyId}.png`;
+                storageDeletePromises.push(deleteStorageFile(filePath));
+            }
         } else {
             // First time seeing this title, it's the newest, so we keep it.
             seenStandaloneTitles.add(story.title);
@@ -438,42 +463,53 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     });
 
     // --- Cleanup for Series ---
-    const seriesStories = stories.filter(s => s.seriesId && s.seriesTitle);
-    const seenSeriesTitles = new Map<string, string>(); // Maps seriesTitle -> newest (master) seriesId
-    
-    seriesStories.forEach(story => {
-        const title = story.seriesTitle!;
-        const currentSeriesId = story.seriesId!;
-
-        if (seenSeriesTitles.has(title)) {
-            // This series title has been seen. Re-assign this chapter to the master seriesId.
-            const masterId = seenSeriesTitles.get(title)!;
-            if (currentSeriesId !== masterId) {
-                const docRef = db.collection('stories').doc(story.storyId);
-                batch.update(docRef, { seriesId: masterId });
-                // Note: We count re-parenting as an "update" for the purpose of the result count.
-                deletedCount++; 
+    // Group all chapters by their seriesTitle
+    const seriesByTitle = new Map<string, Story[]>();
+    stories.forEach(story => {
+        if (story.seriesId && story.seriesTitle) {
+            if (!seriesByTitle.has(story.seriesTitle)) {
+                seriesByTitle.set(story.seriesTitle, []);
             }
-        } else {
-            // First time seeing this series title. This is the newest series, so it's the master.
-            seenSeriesTitles.set(title, currentSeriesId);
+            seriesByTitle.get(story.seriesTitle)!.push(story);
         }
     });
 
+    seriesByTitle.forEach((chapters, title) => {
+        // Within each title group, find all unique series IDs
+        const uniqueSeriesIds = [...new Set(chapters.map(c => c.seriesId!))];
+        
+        if (uniqueSeriesIds.length > 1) {
+            // This series is a duplicate. Keep the one with the newest chapter.
+            const masterSeriesId = chapters[0].seriesId!; // The list is already sorted by publishedAt desc.
+            
+            chapters.forEach(chapter => {
+                if (chapter.seriesId !== masterSeriesId) {
+                    // This chapter belongs to a duplicate series. Re-assign it to the master.
+                    const docRef = db.collection('stories').doc(chapter.storyId);
+                    batch.update(docRef, { seriesId: masterSeriesId });
+                    processedCount++;
+                }
+            });
+        }
+    });
 
-    if (deletedCount > 0) {
+    if (processedCount > 0) {
         await batch.commit();
     }
+    
+    // Wait for all storage deletions to complete.
+    await Promise.all(storageDeletePromises);
 
-    const message = deletedCount > 0
-        ? `Successfully cleaned up ${deletedCount} duplicate entries (deleted or re-assigned).`
+
+    const message = processedCount > 0
+        ? `Successfully cleaned up ${processedCount} duplicate entries (deleted docs, covers, and re-assigned series).`
         : `No duplicate stories found to clean up.`;
 
     return {
         success: true,
         message: message,
         checked: snapshot.size,
-        updated: deletedCount,
+        updated: processedCount,
     };
 }
 
@@ -542,3 +578,5 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     updated: updatedCount,
   };
 }
+
+    
