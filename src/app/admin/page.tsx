@@ -187,20 +187,19 @@ function AdminDashboardContent() {
           </CardHeader>
           <Separator/>
           <CardContent className="pt-6">
-              <div className="flex flex-col sm:flex-row gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
                 <Button onClick={handleAnalyzeDatabase} disabled={isToolRunning}>
                   {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                   {isAnalyzing ? 'Analyzing...' : 'Analyze Database'}
                 </Button>
-                <div className="flex-grow" />
                  <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
                         variant="destructive"
                         disabled={isToolRunning || !analysisResult || Object.keys(analysisResult.duplicateTitles).length === 0}
                       >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Cleanup Duplicates
+                        {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Cleanup
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -212,9 +211,9 @@ function AdminDashboardContent() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCleanupDuplicates}>
+                        <AlertDialogAction onClick={handleCleanupDuplicates} className="bg-destructive hover:bg-destructive/90">
                            {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                           Continue
+                           Yes, Cleanup Duplicates
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
@@ -229,7 +228,7 @@ function AdminDashboardContent() {
                 </Button>
                 <Button onClick={handleRemoveTags} disabled={isToolRunning} variant="outline">
                     {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
-                    {isRemovingTags ? 'Removing...' : 'Remove Orphaned Tags'}
+                    {isRemovingTags ? 'Removing...' : 'Remove Tags'}
                 </Button>
               </div>
 
@@ -398,3 +397,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
