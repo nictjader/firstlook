@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Story } from '@/lib/types';
@@ -5,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Lock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { capitalizeWords } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
