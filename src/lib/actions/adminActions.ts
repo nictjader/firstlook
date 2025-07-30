@@ -311,64 +311,57 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
     
-    // --- New, Corrected Logic ---
-    const storyConceptMap = new Map<string, { count: number, type: 'series' | 'standalone' }>();
     const storiesPerGenre: Record<string, number> = {};
     let totalWordCount = 0;
-    let totalPaidChapters = 0;
+
+    // Maps to track concepts and their occurrences
+    const conceptMap = new Map<string, {
+      ids: Set<string>; // storyId for standalone, seriesId for series
+      titles: Set<string>; // For reporting
+      isSeries: boolean;
+      docIds: string[]; // Firestore document IDs
+    }>();
 
     stories.forEach(story => {
-        const conceptTitle = story.seriesTitle || story.title;
-        const conceptType = story.seriesId ? 'series' : 'standalone';
-        
-        if (!storyConceptMap.has(conceptTitle)) {
-            storyConceptMap.set(conceptTitle, { count: 0, type: conceptType });
-            // Only count genre for the first chapter of a series or for a standalone story
-             const genre = story.subgenre || 'uncategorized';
-             storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
-        }
-        
-        storyConceptMap.get(conceptTitle)!.count++;
         totalWordCount += story.wordCount || 0;
-        if (story.isPremium && story.coinCost > 0) {
-            totalPaidChapters++;
+
+        const conceptKey = story.seriesTitle || story.title;
+        const conceptId = story.seriesId || story.storyId;
+
+        if (!conceptMap.has(conceptKey)) {
+            conceptMap.set(conceptKey, {
+                ids: new Set(),
+                titles: new Set(),
+                isSeries: !!story.seriesId,
+                docIds: [],
+            });
+            // Count genre only once per unique concept
+            const genre = story.subgenre || 'uncategorized';
+            storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
         }
+
+        const concept = conceptMap.get(conceptKey)!;
+        concept.ids.add(conceptId);
+        concept.titles.add(story.title);
+        concept.docIds.push(story.storyId);
     });
 
     const duplicateTitles: Record<string, number> = {};
     let standaloneStoriesCount = 0;
     let multiPartSeriesCount = 0;
 
-    for (const [title, data] of storyConceptMap.entries()) {
-        if (data.type === 'standalone') {
-            standaloneStoriesCount++;
-            if (data.count > 1) {
-                duplicateTitles[title] = data.count;
-            }
-        } else {
+    for (const [key, concept] of conceptMap.entries()) {
+        if (concept.isSeries) {
             multiPartSeriesCount++;
+        } else {
+            standaloneStoriesCount++;
+        }
+
+        if (concept.ids.size > 1) {
+            // This is a true duplicate concept (e.g., same title with multiple storyIds/seriesIds)
+            duplicateTitles[key] = concept.docIds.length;
         }
     }
-    
-    // Refined duplicate logic for series
-    const seriesTitleToIds = new Map<string, Set<string>>();
-    stories.forEach(story => {
-        if (story.seriesId && story.seriesTitle) {
-            if (!seriesTitleToIds.has(story.seriesTitle)) {
-                seriesTitleToIds.set(story.seriesTitle, new Set());
-            }
-            seriesTitleToIds.get(story.seriesTitle)!.add(story.seriesId);
-        }
-    });
-
-    for (const [title, ids] of seriesTitleToIds.entries()) {
-        if (ids.size > 1) {
-             // Find total chapters for this duplicate series title to report accurately
-            const totalChaptersForTitle = stories.filter(s => s.seriesTitle === title).length;
-            duplicateTitles[title] = totalChaptersForTitle;
-        }
-    }
-
 
     const totalCoinCost = stories.reduce((acc, story) => acc + (story.isPremium ? story.coinCost : 0), 0);
     const paidChapters = stories.filter(s => s.isPremium && s.coinCost > 0);
@@ -378,12 +371,11 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const paidStandaloneStories = stories.filter(s => !s.seriesId && s.isPremium && s.coinCost > 0).length;
     const paidSeriesChapters = paidChapters.length - paidStandaloneStories;
-
     const totalValueUSD = calculateMinimumCost(totalCoinCost);
 
     return {
         totalChapters: stories.length,
-        totalUniqueStories: storyConceptMap.size,
+        totalUniqueStories: conceptMap.size,
         standaloneStories: standaloneStoriesCount,
         multiPartSeriesCount,
         storiesPerGenre,
@@ -398,6 +390,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         duplicateTitles,
     };
 }
+
 
 /**
  * Deletes a file from Firebase Storage, handling potential errors.
@@ -444,67 +437,47 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const storageDeletePromises: Promise<void>[] = [];
     let processedCount = 0;
 
-    // --- Cleanup for Standalone Stories ---
-    const standaloneStories = stories.filter(s => !s.seriesId);
-    const seenStandaloneTitles = new Set<string>();
-    
-    standaloneStories.forEach(story => {
-        if (seenStandaloneTitles.has(story.title)) {
-            // This is an older duplicate, mark for deletion.
-            const docRef = db.collection('stories').doc(story.storyId);
-            batch.delete(docRef);
-            processedCount++;
-            if (story.coverImageUrl && story.coverImageUrl.includes('storage.googleapis.com')) {
-                const filePath = `story-covers/${story.storyId}.png`;
-                storageDeletePromises.push(deleteStorageFile(filePath));
-            }
-        } else {
-            // First time seeing this title, it's the newest, so we keep it.
-            seenStandaloneTitles.add(story.title);
-        }
-    });
-
-    // --- Cleanup for Series ---
-    // Group all chapters by their seriesTitle
-    const seriesByTitle = new Map<string, Story[]>();
+    // --- Group stories by concept (seriesTitle or title) ---
+    const storyConcepts = new Map<string, Story[]>();
     stories.forEach(story => {
-        if (story.seriesId && story.seriesTitle) {
-            if (!seriesByTitle.has(story.seriesTitle)) {
-                seriesByTitle.set(story.seriesTitle, []);
-            }
-            seriesByTitle.get(story.seriesTitle)!.push(story);
+        const conceptTitle = story.seriesTitle || story.title;
+        if (!storyConcepts.has(conceptTitle)) {
+            storyConcepts.set(conceptTitle, []);
         }
+        storyConcepts.get(conceptTitle)!.push(story);
     });
 
-    seriesByTitle.forEach((chapters, title) => {
-        // Within each title group, find all unique series IDs
-        const uniqueSeriesIds = [...new Set(chapters.map(c => c.seriesId!))];
-        
-        if (uniqueSeriesIds.length > 1) {
-            // This series is a duplicate. Keep the one with the newest chapter.
-            const masterSeriesId = chapters[0].seriesId!; // The list is already sorted by publishedAt desc.
-            
+    for (const [title, chapters] of storyConcepts.entries()) {
+        const uniqueIds = new Set(chapters.map(c => c.seriesId || c.storyId));
+
+        if (uniqueIds.size > 1) {
+            // This is a duplicate concept. The first chapter in the list is the newest, so its ID is master.
+            const masterId = chapters[0].seriesId || chapters[0].storyId;
+
             chapters.forEach(chapter => {
-                if (chapter.seriesId !== masterSeriesId) {
-                    // This chapter belongs to a duplicate series. Re-assign it to the master.
+                const currentId = chapter.seriesId || chapter.storyId;
+                if (currentId !== masterId) {
+                    // This chapter is part of a duplicate entry. Mark for deletion.
                     const docRef = db.collection('stories').doc(chapter.storyId);
-                    batch.update(docRef, { seriesId: masterSeriesId });
+                    batch.delete(docRef);
                     processedCount++;
+
+                    if (chapter.coverImageUrl && chapter.coverImageUrl.includes('storage.googleapis.com')) {
+                        const filePath = `story-covers/${chapter.storyId}.png`;
+                        storageDeletePromises.push(deleteStorageFile(filePath));
+                    }
                 }
             });
         }
-    });
+    }
 
     if (processedCount > 0) {
         await batch.commit();
+        await Promise.all(storageDeletePromises);
     }
     
-    // Wait for all storage deletions to complete.
-    await Promise.all(storageDeletePromises);
-
-
     const message = processedCount > 0
-        ? `Successfully cleaned up ${processedCount} duplicate entries (deleted docs, covers, and re-assigned series).`
+        ? `Successfully cleaned up and deleted ${processedCount} duplicate story chapters.`
         : `No duplicate stories found to clean up.`;
 
     return {
@@ -580,7 +553,5 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     updated: updatedCount,
   };
 }
-
-    
 
     
