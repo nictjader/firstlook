@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Libr
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, cleanupDuplicateStoriesAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -16,15 +16,6 @@ import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 
 function AdminDashboardContent() {
   const { user } = useAuth();
@@ -39,8 +30,7 @@ function AdminDashboardContent() {
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
-  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
-
+  
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
   };
@@ -105,22 +95,6 @@ function AdminDashboardContent() {
       setIsRemovingTags(false);
     }
   };
-  
-  const handleCleanupDuplicates = async () => {
-    setIsCleaningDuplicates(true);
-    setCleanupResult(null);
-    try {
-        const result = await cleanupDuplicateStoriesAction();
-        setCleanupResult(result);
-        if (result.success) {
-            await handleAnalyzeDatabase();
-        }
-    } catch (error: any) {
-        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
-    } finally {
-        setIsCleaningDuplicates(false);
-    }
-  };
 
   const handleGenerate = async () => {
     if (!user) {
@@ -165,8 +139,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates;
-  const hasDuplicates = analysisResult && Object.keys(analysisResult.duplicateTitles).length > 0;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing;
 
   return (
     <>
@@ -232,49 +205,6 @@ function AdminDashboardContent() {
               {analysisResult && (
                 <div className="mt-6 space-y-4">
                     <h2 className="text-2xl font-headline font-semibold text-primary">Database Analysis Complete</h2>
-                     {hasDuplicates && (
-                        <Card className="border-destructive">
-                            <CardHeader>
-                                <CardTitle className="flex items-center text-destructive"><AlertCircle className="mr-2 h-5 w-5" /> Duplicate Titles Found</CardTitle>
-                                <CardDescription>The following story titles exist multiple times in the database. You can remove duplicates, which will keep the newest version and delete all others.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ul className="list-disc pl-5 text-sm text-destructive space-y-1">
-                                    {Object.entries(analysisResult.duplicateTitles).map(([title, count]) => (
-                                        <li key={title}><strong>{title}</strong> ({count} times)</li>
-                                    ))}
-                                </ul>
-                            </CardContent>
-                            <CardContent>
-                                <Dialog>
-                                    <DialogTrigger asChild>
-                                        <Button variant="destructive" disabled={isToolRunning}>
-                                            <Trash2 className="mr-2 h-4 w-4" /> Cleanup Duplicates
-                                        </Button>
-                                    </DialogTrigger>
-                                    <DialogContent>
-                                        <DialogHeader>
-                                            <DialogTitle>Are you absolutely sure?</DialogTitle>
-                                            <DialogDescription>
-                                                This action cannot be undone. This will permanently delete all but the newest version of each duplicate story from your database.
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <DialogFooter>
-                                            <DialogTrigger asChild>
-                                                <Button variant="outline">Cancel</Button>
-                                            </DialogTrigger>
-                                            <DialogTrigger asChild>
-                                                 <Button variant="destructive" onClick={handleCleanupDuplicates}>
-                                                    {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                                                    Yes, delete duplicates
-                                                </Button>
-                                            </DialogTrigger>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-                            </CardContent>
-                        </Card>
-                    )}
                     <div className="space-y-6">
                         <Card>
                             <CardHeader>
@@ -372,7 +302,7 @@ function AdminDashboardContent() {
            <CardHeader>
             <CardTitle className="flex items-center text-xl"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
             <CardDescription>
-              Generate new stories from the unused seeds in your library. The generator will now prevent duplicate stories from being created.
+              Generate new stories from the unused seeds in your library.
             </CardDescription>
           </CardHeader>
           <Separator/>
