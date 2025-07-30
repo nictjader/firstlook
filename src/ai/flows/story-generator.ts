@@ -175,9 +175,9 @@ const storyGenerationFlow = ai.defineFlow(
         author: output.author,
         status: 'published',
         coverImagePrompt: seed.coverImagePrompt,
-        seriesId: isSeriesStory ? output.seriesId : undefined,
+        seriesId: isSeriesStory ? output.seriesId || undefined : undefined,
         seriesTitle: isSeriesStory ? output.seriesTitle ?? undefined : undefined,
-        partNumber: isSeriesStory ? output.partNumber : undefined,
+        partNumber: isSeriesStory ? output.partNumber ?? undefined : undefined,
         totalPartsInSeries: isSeriesStory ? output.totalPartsInSeries ?? undefined : undefined,
       };
 
