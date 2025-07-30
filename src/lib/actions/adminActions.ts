@@ -433,4 +433,63 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     };
 }
 
+/**
+ * Finds and deletes stories with duplicate titles, keeping only the most recent one.
+ */
+export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.get();
+    
+    if (snapshot.empty) {
+        return { success: true, message: "No stories found.", checked: 0, updated: 0 };
+    }
+
+    const storiesByTitle = new Map<string, Story[]>();
+    snapshot.docs.forEach(doc => {
+        const story = docToStory(doc);
+        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0].trim();
+        
+        if (!storiesByTitle.has(baseTitle)) {
+            storiesByTitle.set(baseTitle, []);
+        }
+        storiesByTitle.get(baseTitle)!.push(story);
+    });
+
+    const batch = db.batch();
+    let deletedCount = 0;
+
+    for (const [title, stories] of storiesByTitle.entries()) {
+        if (stories.length > 1) {
+            // Sort by publishedAt date, newest first
+            stories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+            
+            // The first story is the one to keep
+            const storiesToDelete = stories.slice(1);
+            
+            storiesToDelete.forEach(story => {
+                const docRef = db.collection('stories').doc(story.storyId);
+                batch.delete(docRef);
+                deletedCount++;
+                console.log(`Marked duplicate story for deletion: "${story.title}" (ID: ${story.storyId})`);
+            });
+        }
+    }
+
+    if (deletedCount > 0) {
+        await batch.commit();
+    }
+
+    const message = deletedCount > 0
+        ? `Successfully deleted ${deletedCount} duplicate stories.`
+        : `No duplicate stories found to delete.`;
+
+    return {
+        success: true,
+        message: message,
+        checked: snapshot.size,
+        updated: deletedCount, // Using 'updated' to represent the number of deleted items
+    };
+}
+
     

@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Libr
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction } from '@/lib/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction } from '@/lib/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -31,6 +31,7 @@ function AdminDashboardContent() {
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -97,6 +98,22 @@ function AdminDashboardContent() {
     }
   };
 
+  const handleCleanupDuplicates = async () => {
+    setIsCleaningDuplicates(true);
+    setCleanupResult(null);
+    try {
+        const result = await cleanupDuplicateStoriesAction();
+        setCleanupResult(result);
+        if (result.success && analysisResult) {
+            await handleAnalyzeDatabase();
+        }
+    } catch (error: any) {
+        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
+    } finally {
+        setIsCleaningDuplicates(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!user) {
         alert("You must be logged in to generate stories.");
@@ -140,7 +157,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates;
   
   return (
     <>
@@ -176,7 +193,33 @@ function AdminDashboardContent() {
                   {isAnalyzing ? 'Analyzing...' : 'Analyze Database'}
                 </Button>
                 <div className="flex-grow" />
-                 <Button onClick={handleStandardizePrices} disabled={isToolRunning} variant="outline">
+                 <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="destructive"
+                        disabled={isToolRunning || !analysisResult || Object.keys(analysisResult.duplicateTitles).length === 0}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Cleanup Duplicates
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action will permanently delete duplicate stories from the database, keeping only the most recently published version of each. This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCleanupDuplicates}>
+                           {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                           Continue
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                <Button onClick={handleStandardizePrices} disabled={isToolRunning} variant="outline">
                     {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
                     {isPricing ? 'Updating...' : 'Standardize Prices'}
                 </Button>
@@ -295,6 +338,23 @@ function AdminDashboardContent() {
                                 />
                             </CardContent>
                         </Card>
+                         {Object.keys(analysisResult.duplicateTitles).length > 0 && (
+                            <Card className="border-destructive">
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center text-destructive"><AlertCircle className="mr-2 h-5 w-5" />Duplicate Titles Found</CardTitle>
+                                    <CardDescription>
+                                        The following story titles have multiple entries in the database. You should clean these up. The "Cleanup Duplicates" button is now enabled.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ul className="list-disc pl-5 text-sm text-destructive">
+                                        {Object.entries(analysisResult.duplicateTitles).map(([title, count]) => (
+                                            <li key={title}>{title} ({count} entries)</li>
+                                        ))}
+                                    </ul>
+                                </CardContent>
+                            </Card>
+                        )}
                     </div>
                 </div>
               )}
@@ -336,5 +396,5 @@ function AdminDashboardContent() {
 }
 
 export default function AdminPage() {
-    return <AdminDashboardContent />);
+    return <AdminDashboardContent />;
 }
