@@ -177,13 +177,15 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
 
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
-        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0].trim();
-        const correctGenre = seedGenreMap.get(baseTitle);
-
-        if (correctGenre && story.subgenre !== correctGenre) {
-            const storyRef = db.collection('stories').doc(doc.id);
-            batch.update(storyRef, { subgenre: correctGenre });
-            updatedCount++;
+        const seedTitle = story.seedTitleIdea;
+        
+        if (seedTitle) {
+          const correctGenre = seedGenreMap.get(seedTitle);
+          if (correctGenre && story.subgenre !== correctGenre) {
+              const storyRef = db.collection('stories').doc(doc.id);
+              batch.update(storyRef, { subgenre: correctGenre });
+              updatedCount++;
+          }
         }
     });
 
@@ -311,11 +313,11 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
     
-    // --- Group stories by concept (seriesTitle or title) to correctly identify unique stories ---
     const storyConcepts = new Map<string, {
         isSeries: boolean;
         docIds: string[];
         genre: string;
+        count: number;
     }>();
 
     stories.forEach(story => {
@@ -325,9 +327,12 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
                 isSeries: !!story.seriesId,
                 docIds: [],
                 genre: story.subgenre || 'uncategorized',
+                count: 0
             });
         }
-        storyConcepts.get(conceptTitle)!.docIds.push(story.storyId);
+        const concept = storyConcepts.get(conceptTitle)!;
+        concept.docIds.push(story.storyId);
+        concept.count++;
     });
 
     const storiesPerGenre: Record<string, number> = {};
@@ -342,9 +347,9 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
             multiPartSeriesCount++;
         } else {
             standaloneStoriesCount++;
-            if (concept.docIds.length > 1) {
-                duplicateTitles[title] = concept.docIds.length;
-            }
+        }
+        if (concept.count > 1) {
+            duplicateTitles[title] = concept.count;
         }
     });
 
@@ -425,73 +430,26 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const batch = db.batch();
     const storageDeletePromises: Promise<void>[] = [];
     let processedCount = 0;
+    const titlesToKeep = new Set<string>();
 
-    // --- Group stories by concept (seriesTitle or title) ---
-    const storyConcepts = new Map<string, Story[]>();
-    stories.forEach(story => {
-        const conceptTitle = story.seriesTitle || story.title;
-        if (!storyConcepts.has(conceptTitle)) {
-            storyConcepts.set(conceptTitle, []);
-        }
-        storyConcepts.get(conceptTitle)!.push(story);
-    });
+    for (const story of stories) {
+        const title = story.title;
+        if (titlesToKeep.has(title)) {
+            // This is a duplicate, delete it
+            const docRef = db.collection('stories').doc(story.storyId);
+            batch.delete(docRef);
+            processedCount++;
 
-    for (const [title, chapters] of storyConcepts.entries()) {
-        const isSeries = chapters[0].isSeries;
-
-        if (isSeries) {
-            // For series, group by seriesId to find duplicate generations
-            const seriesById = new Map<string, Story[]>();
-            chapters.forEach(chapter => {
-                const seriesId = chapter.seriesId!;
-                if (!seriesById.has(seriesId)) {
-                    seriesById.set(seriesId, []);
-                }
-                seriesById.get(seriesId)!.push(chapter);
-            });
-
-            if (seriesById.size > 1) {
-                // We have duplicate series. Keep the one with the most recent chapter.
-                const sortedSeries = Array.from(seriesById.values()).sort((a, b) => 
-                    new Date(b[0].publishedAt).getTime() - new Date(a[0].publishedAt).getTime()
-                );
-                
-                const seriesToKeep = sortedSeries.shift(); // The newest series is kept
-                
-                // Delete all chapters from the other, older duplicate series
-                sortedSeries.forEach(seriesToDelete => {
-                    seriesToDelete.forEach(chapter => {
-                         const docRef = db.collection('stories').doc(chapter.storyId);
-                         batch.delete(docRef);
-                         processedCount++;
-
-                         if (chapter.coverImageUrl && chapter.coverImageUrl.includes('storage.googleapis.com')) {
-                            const filePath = `story-covers/${chapter.storyId}.png`;
-                            storageDeletePromises.push(deleteStorageFile(filePath));
-                        }
-                    });
-                });
+            if (story.coverImageUrl && story.coverImageUrl.includes('storage.googleapis.com')) {
+                const filePath = `story-covers/${story.storyId}.png`;
+                storageDeletePromises.push(deleteStorageFile(filePath));
             }
-
         } else {
-            // This is a standalone story concept. If there's more than one, they are duplicates.
-            if (chapters.length > 1) {
-                 // The first chapter is the newest because of the initial query order. Keep it.
-                const chaptersToDelete = chapters.slice(1);
-                
-                chaptersToDelete.forEach(chapter => {
-                    const docRef = db.collection('stories').doc(chapter.storyId);
-                    batch.delete(docRef);
-                    processedCount++;
-
-                    if (chapter.coverImageUrl && chapter.coverImageUrl.includes('storage.googleapis.com')) {
-                        const filePath = `story-covers/${chapter.storyId}.png`;
-                        storageDeletePromises.push(deleteStorageFile(filePath));
-                    }
-                });
-            }
+            // This is the first time we see this title, so keep it.
+            titlesToKeep.add(title);
         }
     }
+
 
     if (processedCount > 0) {
         await batch.commit();
