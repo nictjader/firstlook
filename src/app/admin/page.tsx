@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Libr
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction } from '@/lib/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -15,7 +15,6 @@ import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetric
 import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
-import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 
 
@@ -337,5 +336,5 @@ function AdminDashboardContent() {
 }
 
 export default function AdminPage() {
-    return <AdminDashboardContent />;
+    return <AdminDashboardContent />);
 }

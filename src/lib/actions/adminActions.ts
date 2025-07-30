@@ -375,7 +375,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     return {
         totalChapters: stories.length,
         totalUniqueStories,
-        standaloneStories: standaloneStoriesCount,
+        standaloneStories,
         multiPartSeriesCount,
         storiesPerGenre,
         totalWordCount,

@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { createCheckoutSession } from '@/app/actions/stripeActions';
+import { createCheckoutSession } from '@/lib/actions/stripeActions';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { COIN_PACKAGES } from '@/lib/config';

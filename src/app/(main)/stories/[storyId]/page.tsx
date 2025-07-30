@@ -1,7 +1,7 @@
 
 import ReaderView from '@/components/story/reader-view';
 import { notFound } from 'next/navigation';
-import { getStoryById, getSeriesParts } from '@/app/actions/storyActions';
+import { getStoryById, getSeriesParts } from '@/lib/actions/storyActions';
 import type { Metadata } from 'next';
 import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 

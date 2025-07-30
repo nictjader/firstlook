@@ -19,7 +19,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
 import { type Story } from '@/lib/types';
-import { getStoriesByIds } from '@/app/actions/storyActions.client';
+import { getStoriesByIds } from '@/lib/actions/storyActions.client';
 import { Skeleton } from '../ui/skeleton';
 
 export default function ProfileView() {

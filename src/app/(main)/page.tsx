@@ -4,7 +4,7 @@ import SubgenreFilter from '@/components/story/subgenre-filter';
 import { Suspense } from 'react';
 import type { Subgenre } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getStories } from '@/app/actions/storyActions';
+import { getStories } from '@/lib/actions/storyActions';
 
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
