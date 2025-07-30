@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { Story } from '@/lib/types';
@@ -52,7 +51,8 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
 
   const isPremium = coinCost > 0;
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
-  const displayTitle = title.replace(/ - Part \d+$/, '');
+  // This robustly removes " - Part X" from series titles for a clean card display.
+  const displayTitle = title.replace(/\s-\sPart\s\d+$/, '');
 
   return (
     <div className="space-y-2">
