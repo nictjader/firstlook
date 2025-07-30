@@ -322,7 +322,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const seriesData = new Map<string, { paidChapters: number }>();
 
     stories.forEach(story => {
-        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0].trim();
+        const baseTitle = story.seriesTitle || story.title.split(/ - Part | - Chapter /)[0].trim();
         titleCounts[baseTitle] = (titleCounts[baseTitle] || 0) + 1;
         
         const genre = story.subgenre || 'uncategorized';
