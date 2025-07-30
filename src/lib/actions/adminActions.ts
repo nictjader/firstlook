@@ -439,7 +439,7 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
 export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
-    const snapshot = await storiesRef.get();
+    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
     
     if (snapshot.empty) {
         return { success: true, message: "No stories found.", checked: 0, updated: 0 };
@@ -448,7 +448,8 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const storiesByTitle = new Map<string, Story[]>();
     snapshot.docs.forEach(doc => {
         const story = docToStory(doc);
-        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0].trim();
+        // Normalize title to handle variations like "Title - Part 1" vs "Title"
+        const baseTitle = story.seriesTitle || story.title.split(/ - Part | - Chapter /)[0].trim();
         
         if (!storiesByTitle.has(baseTitle)) {
             storiesByTitle.set(baseTitle, []);
@@ -458,13 +459,11 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
     const batch = db.batch();
     let deletedCount = 0;
+    const titlesChecked = new Set<string>();
 
     for (const [title, stories] of storiesByTitle.entries()) {
         if (stories.length > 1) {
-            // Sort by publishedAt date, newest first
-            stories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-            
-            // The first story is the one to keep
+            // The first story is the one to keep (already sorted by newest first)
             const storiesToDelete = stories.slice(1);
             
             storiesToDelete.forEach(story => {
@@ -474,6 +473,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
                 console.log(`Marked duplicate story for deletion: "${story.title}" (ID: ${story.storyId})`);
             });
         }
+        titlesChecked.add(title);
     }
 
     if (deletedCount > 0) {
@@ -481,7 +481,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     }
 
     const message = deletedCount > 0
-        ? `Successfully deleted ${deletedCount} duplicate stories.`
+        ? `Successfully deleted ${deletedCount} duplicate story chapters.`
         : `No duplicate stories found to delete.`;
 
     return {
@@ -491,5 +491,3 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
         updated: deletedCount, // Using 'updated' to represent the number of deleted items
     };
 }
-
-    
