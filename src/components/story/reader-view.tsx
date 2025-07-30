@@ -6,7 +6,7 @@ import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Lock, Gem, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle, Twitter } from 'lucide-react';
+import { ArrowLeft, Lock, Gem, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -100,13 +100,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
     toggleFavoriteStory(story.storyId);
   };
 
-  const handleShare = () => {
-    const text = `I'm reading a great romance story on Siren! Check out "${story.title}". You can read it too at:`;
-    const url = window.location.href;
-    const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
-    window.open(twitterUrl, '_blank');
-  };
-
   const placeholderImage = 'https://placehold.co/1200x675/D87093/F9E4EB.png?text=Siren';
   if (!story) return <p>Story not found.</p>;
   
@@ -155,11 +148,6 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                 <Heart className={`h-6 w-6 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : 'text-muted-foreground'}`} />
               </Button>
             </div>
-          </div>
-           <div className="mt-4 flex items-center space-x-2">
-              <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Twitter className="h-4 w-4 mr-2" /> Share
-              </Button>
           </div>
         </div>
         
