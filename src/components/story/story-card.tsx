@@ -4,7 +4,7 @@
 import type { Story } from '@/lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Heart, Lock, CheckCircle2 } from 'lucide-react';
+import { Heart, Lock, CheckCircle2, Library } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useEffect, useState } from 'react';
 import { capitalizeWords } from '@/lib/utils';
@@ -14,9 +14,10 @@ import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 type StoryCardProps = {
   story: Story;
   isPriority?: boolean;
+  showChapterInfo?: boolean; // New prop to control chapter visibility
 };
 
-export default function StoryCard({ story, isPriority = false }: StoryCardProps) {
+export default function StoryCard({ story, isPriority = false, showChapterInfo = false }: StoryCardProps) {
   const { title, coverImageUrl, coinCost, storyId, subgenre } = story;
   const { user, userProfile, toggleFavoriteStory } = useAuth();
   const router = useRouter();
@@ -52,7 +53,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
 
   const isPremium = coinCost > 0;
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
-  // This robustly removes " - Part X" from series titles for a clean card display.
   const displayTitle = story.seriesTitle ? story.seriesTitle : title;
 
 
@@ -78,12 +78,22 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
           </div>
         </div>
       </Link>
-      <div className="flex justify-end items-center text-muted-foreground h-5 gap-3 px-1">
-          {isPremium && <Lock className="w-4 h-4" />}
-          {isRead && <CheckCircle2 className="w-4 h-4 text-primary" />}
-          <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
-              <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
-          </button>
+      <div className="flex justify-between items-center text-muted-foreground h-5 gap-3 px-1">
+          <div className="flex items-center gap-2 flex-grow">
+            {showChapterInfo && story.partNumber && (
+              <span className="flex items-center text-xs font-medium text-accent">
+                <Library className="w-3.5 h-3.5 mr-1" />
+                Chapter {story.partNumber} of {story.totalPartsInSeries}
+              </span>
+            )}
+          </div>
+          <div className="flex-shrink-0 flex items-center gap-3">
+              {isPremium && <Lock className="w-4 h-4" />}
+              {isRead && <CheckCircle2 className="w-4 h-4 text-primary" />}
+              <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
+                  <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
+              </button>
+          </div>
         </div>
     </div>
   );

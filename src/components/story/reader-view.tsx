@@ -238,7 +238,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
           <div className="p-6 pt-0">
              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {otherParts.map(part => (
-                <StoryCard key={part.storyId} story={part} />
+                <StoryCard key={part.storyId} story={part} showChapterInfo={true} />
               ))}
             </div>
           </div>
