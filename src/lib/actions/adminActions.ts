@@ -308,31 +308,30 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     }
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
-    const titleCounts: Record<string, number> = {};
     
-    // Composition metrics
+    // Logic for composition and monetization metrics
     const storiesPerGenre: Record<string, number> = {};
     const seriesGenres = new Map<string, string>(); // seriesId -> genre
     let standaloneStoriesCount = 0;
-    
-    // Monetization metrics
     let totalWordCount = 0;
     let paidChaptersCount = 0;
     let paidStandaloneStories = 0;
     const seriesData = new Map<string, { paidChapters: number }>();
 
-    stories.forEach(story => {
-        const baseTitle = story.seriesTitle || story.title.split(/ - Part | - Chapter /)[0].trim();
-        titleCounts[baseTitle] = (titleCounts[baseTitle] || 0) + 1;
-        
-        const genre = story.subgenre || 'uncategorized';
+    // Logic for NEW duplicate detection
+    const standaloneTitleCounts = new Map<string, number>();
+    const seriesTitleCounts = new Map<string, Set<string>>(); // Maps seriesTitle to a Set of seriesIds
 
+    stories.forEach(story => {
+        const genre = story.subgenre || 'uncategorized';
         totalWordCount += story.wordCount || 0;
+        
         if (story.isPremium && story.coinCost > 0) {
             paidChaptersCount++;
         }
         
-        if (story.seriesId) {
+        if (story.seriesId && story.seriesTitle) {
+            // It's a series chapter
             if (!seriesGenres.has(story.seriesId)) {
                 seriesGenres.set(story.seriesId, genre);
             }
@@ -342,12 +341,23 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
             if (story.isPremium && story.coinCost > 0) {
                 seriesData.get(story.seriesId)!.paidChapters++;
             }
+            
+            // For duplicate detection of series
+            if (!seriesTitleCounts.has(story.seriesTitle)) {
+                seriesTitleCounts.set(story.seriesTitle, new Set());
+            }
+            seriesTitleCounts.get(story.seriesTitle)!.add(story.seriesId);
+
         } else {
+            // It's a standalone story
             standaloneStoriesCount++;
             storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
             if (story.isPremium && story.coinCost > 0) {
                 paidStandaloneStories++;
             }
+
+            // For duplicate detection of standalone stories
+            standaloneTitleCounts.set(story.title, (standaloneTitleCounts.get(story.title) || 0) + 1);
         }
     });
 
@@ -355,12 +365,20 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     });
 
-    const duplicateTitles = Object.entries(titleCounts)
-      .filter(([, count]) => count > 1)
-      .reduce((acc, [title, count]) => {
-        acc[title] = count;
-        return acc;
-      }, {} as Record<string, number>);
+    const duplicateTitles: Record<string, number> = {};
+    // Find duplicate standalone stories
+    for (const [title, count] of standaloneTitleCounts.entries()) {
+        if (count > 1) {
+            duplicateTitles[title] = count;
+        }
+    }
+    // Find duplicate series
+    for (const [title, seriesIds] of seriesTitleCounts.entries()) {
+        if (seriesIds.size > 1) {
+            // The "count" here is the number of separate series that share the same title
+            duplicateTitles[title] = seriesIds.size;
+        }
+    }
     
     // Calculate monetization based on a standard cost to ensure consistency
     const totalCoinCost = paidChaptersCount * PREMIUM_STORY_COST;
@@ -392,49 +410,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
 
 /**
- * A one-time action to standardize the coinCost of all premium stories.
- */
-export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
-    const db = getAdminDb();
-    const storiesRef = db.collection('stories');
-    const snapshot = await storiesRef.get();
-
-    if (snapshot.empty) {
-        return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
-    }
-
-    const batch = db.batch();
-    let updatedCount = 0;
-
-    snapshot.docs.forEach(doc => {
-        const story = doc.data() as Story;
-        
-        // Update price only for stories that are premium (cost > 0) and don't already have the new price
-        if (story.isPremium && story.coinCost > 0 && story.coinCost !== PREMIUM_STORY_COST) {
-            const storyRef = db.collection('stories').doc(doc.id);
-            batch.update(storyRef, { coinCost: PREMIUM_STORY_COST });
-            updatedCount++;
-        }
-    });
-
-    if (updatedCount > 0) {
-        await batch.commit();
-    }
-    
-    const message = updatedCount > 0 
-        ? `Successfully checked ${snapshot.size} stories and updated the price of ${updatedCount} premium stories to ${PREMIUM_STORY_COST} coins.`
-        : `Checked ${snapshot.size} stories. All premium stories already have the standard price.`;
-
-    return {
-        success: true,
-        message: message,
-        checked: snapshot.size,
-        updated: updatedCount,
-    };
-}
-
-/**
  * Finds and deletes stories with duplicate titles, keeping only the most recent one.
+ * This now handles standalone stories and multi-part series correctly.
  */
 export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const db = getAdminDb();
@@ -445,49 +422,64 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
         return { success: true, message: "No stories found.", checked: 0, updated: 0 };
     }
 
-    const storiesByTitle = new Map<string, Story[]>();
-    snapshot.docs.forEach(doc => {
-        const story = docToStory(doc);
-        // Normalize title to handle variations like "Title - Part 1" vs "Title"
-        const baseTitle = story.seriesTitle || story.title.split(/ - Part | - Chapter /)[0].trim();
-        
-        if (!storiesByTitle.has(baseTitle)) {
-            storiesByTitle.set(baseTitle, []);
-        }
-        storiesByTitle.get(baseTitle)!.push(story);
-    });
-
+    const stories = snapshot.docs.map(doc => docToStory(doc));
     const batch = db.batch();
     let deletedCount = 0;
-    const titlesChecked = new Set<string>();
 
-    for (const [title, stories] of storiesByTitle.entries()) {
-        if (stories.length > 1) {
-            // The first story is the one to keep (already sorted by newest first)
-            const storiesToDelete = stories.slice(1);
-            
-            storiesToDelete.forEach(story => {
-                const docRef = db.collection('stories').doc(story.storyId);
-                batch.delete(docRef);
-                deletedCount++;
-                console.log(`Marked duplicate story for deletion: "${story.title}" (ID: ${story.storyId})`);
-            });
+    // --- Cleanup for Standalone Stories ---
+    const standaloneStories = stories.filter(s => !s.seriesId);
+    const seenStandaloneTitles = new Set<string>();
+    
+    standaloneStories.forEach(story => {
+        // Since stories are sorted newest first, the first one we see is the one to keep.
+        if (seenStandaloneTitles.has(story.title)) {
+            // This is a duplicate, mark for deletion.
+            const docRef = db.collection('stories').doc(story.storyId);
+            batch.delete(docRef);
+            deletedCount++;
+            console.log(`Marked duplicate standalone story for deletion: "${story.title}" (ID: ${story.storyId})`);
+        } else {
+            seenStandaloneTitles.add(story.title);
         }
-        titlesChecked.add(title);
-    }
+    });
+
+    // --- Cleanup for Series ---
+    const seriesStories = stories.filter(s => s.seriesId && s.seriesTitle);
+    const seriesTitleToMasterId = new Map<string, string>(); // Maps seriesTitle -> newest seriesId
+    
+    // First pass: find the newest seriesId for each seriesTitle
+    seriesStories.forEach(story => {
+        if (!seriesTitleToMasterId.has(story.seriesTitle!)) {
+            seriesTitleToMasterId.set(story.seriesTitle!, story.seriesId!);
+        }
+    });
+
+    // Second pass: identify chapters that need their seriesId updated
+    seriesStories.forEach(story => {
+        const masterId = seriesTitleToMasterId.get(story.seriesTitle!);
+        if (story.seriesId !== masterId) {
+            // This chapter belongs to a duplicate series. Re-assign it to the master series.
+            const docRef = db.collection('stories').doc(story.storyId);
+            batch.update(docRef, { seriesId: masterId });
+            // We count this as an "update" not a deletion, but it's part of the cleanup.
+            deletedCount++; 
+            console.log(`Re-assigning story "${story.title}" to master series "${story.seriesTitle}" (ID: ${masterId})`);
+        }
+    });
+
 
     if (deletedCount > 0) {
         await batch.commit();
     }
 
     const message = deletedCount > 0
-        ? `Successfully deleted ${deletedCount} duplicate story chapters.`
+        ? `Successfully cleaned up ${deletedCount} duplicate entries.`
         : `No duplicate stories found to delete.`;
 
     return {
         success: true,
         message: message,
         checked: snapshot.size,
-        updated: deletedCount, // Using 'updated' to represent the number of deleted items
+        updated: deletedCount,
     };
 }
