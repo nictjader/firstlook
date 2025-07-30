@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react';
 import { capitalizeWords } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
+import { Badge } from '@/components/ui/badge';
 
 type StoryCardProps = {
   story: Story;
@@ -53,7 +54,8 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const isPremium = coinCost > 0;
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
   // This robustly removes " - Part X" from series titles for a clean card display.
-  const displayTitle = title.split(' - Part ')[0];
+  const displayTitle = title.replace(/ - Part \d+$/, '');
+
 
   return (
     <div className="space-y-2">
@@ -68,6 +70,11 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
             data-ai-hint="romance book cover"
             priority={isPriority}
           />
+           {story.partNumber && (
+            <Badge variant="secondary" className="absolute top-2 right-2 z-10">
+              Part {story.partNumber}
+            </Badge>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
               <p className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/80">{subgenreText}</p>
