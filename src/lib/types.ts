@@ -52,6 +52,7 @@ export interface Story {
   coverImagePrompt: string;
   author?: string;
   status: 'published' | 'failed';
+  seedTitleIdea?: string; // For preventing duplicate generation
 }
 
 export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance', 'sci-fi'] as const;
@@ -109,6 +110,7 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       coverImagePrompt: data.coverImagePrompt || '',
       author: data.author || 'Anonymous',
       status: data.status || 'published',
+      seedTitleIdea: data.seedTitleIdea,
     };
 }
 
@@ -202,3 +204,5 @@ export interface DatabaseMetrics {
   // Data Quality Metrics
   duplicateTitles: Record<string, number>;
 }
+
+    

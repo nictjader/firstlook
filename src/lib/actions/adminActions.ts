@@ -21,11 +21,12 @@ import { COIN_PACKAGES, PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/
 async function selectUnusedSeed(): Promise<StorySeed | null> {
   const db = getAdminDb();
   const storiesRef = db.collection('stories');
-  const snapshot = await storiesRef.get();
-  const existingTitles = snapshot.docs.map(doc => doc.data().title);
-  const usedSeeds = new Set(existingTitles);
+  // Query based on the 'seedTitleIdea' field to prevent reusing seeds.
+  const snapshot = await storiesRef.select('seedTitleIdea').get();
   
-  const unusedSeeds = storySeeds.filter(seed => !usedSeeds.has(seed.titleIdea));
+  const usedSeedTitles = new Set(snapshot.docs.map(doc => doc.data().seedTitleIdea).filter(Boolean));
+  
+  const unusedSeeds = storySeeds.filter(seed => !usedSeedTitles.has(seed.titleIdea));
 
   if (unusedSeeds.length === 0) {
     return null; // All seeds have been used
@@ -62,7 +63,8 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
     await storyDocRef.set({
         ...storyResult.storyData,
         publishedAt: FieldValue.serverTimestamp(),
-        coverImageUrl: '' // Will be updated by the cover image action
+        coverImageUrl: '', // Will be updated by the cover image action
+        seedTitleIdea: seed.titleIdea, // Add the seed title for duplicate prevention
     });
 
     return {
@@ -578,5 +580,7 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     updated: updatedCount,
   };
 }
+
+    
 
     
