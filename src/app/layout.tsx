@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   description:
     'Discover captivating romance stories. Unlock premium content and immerse yourself in a world of passion and adventure.',
   icons: {
-    icon: '/icon.png',
+    icon: '/icon.svg',
   },
 };
 
