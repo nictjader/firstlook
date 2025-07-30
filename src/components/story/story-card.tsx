@@ -52,6 +52,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
 
   const isPremium = coinCost > 0;
   const subgenreText = capitalizeWords(subgenre).replace(" Romance", "");
+  const displayTitle = title.replace(/ - Part \d+$/, '');
 
   return (
     <div className="space-y-2">
@@ -70,7 +71,7 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
           <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
               <p className="text-xs font-semibold uppercase tracking-wider text-primary-foreground/80">{subgenreText}</p>
               <h3 className="text-lg font-headline font-bold leading-tight mt-1 line-clamp-2 h-[2.5em]">
-                {title.replace(/ - Part \d+$/, '')}
+                {displayTitle}
               </h3>
           </div>
         </div>
