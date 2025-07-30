@@ -7,7 +7,7 @@ import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Libr
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, cleanupDuplicateStoriesAction } from '@/app/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -16,6 +16,8 @@ import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+
 
 function AdminDashboardContent() {
   const { user } = useAuth();
@@ -27,6 +29,7 @@ function AdminDashboardContent() {
   const [analysisResult, setAnalysisResult] = useState<DatabaseMetrics | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
+  const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
@@ -95,6 +98,23 @@ function AdminDashboardContent() {
       setIsRemovingTags(false);
     }
   };
+  
+  const handleCleanupDuplicates = async () => {
+    setIsCleaningDuplicates(true);
+    setCleanupResult(null);
+    try {
+      const result = await cleanupDuplicateStoriesAction();
+      setCleanupResult(result);
+      // Refresh the analysis to show the cleanup was successful
+      if (result.success) {
+        await handleAnalyzeDatabase();
+      }
+    } catch (error: any) {
+        setCleanupResult({ success: false, message: error.message || 'An unknown error occurred.', checked: 0, updated: 0 });
+    } finally {
+        setIsCleaningDuplicates(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!user) {
@@ -139,7 +159,8 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates;
+  const hasDuplicates = analysisResult && Object.keys(analysisResult.duplicateTitles).length > 0;
 
   return (
     <>
@@ -205,6 +226,44 @@ function AdminDashboardContent() {
               {analysisResult && (
                 <div className="mt-6 space-y-4">
                     <h2 className="text-2xl font-headline font-semibold text-primary">Database Analysis Complete</h2>
+                    {hasDuplicates && (
+                        <Card className="border-destructive/50">
+                            <CardHeader>
+                                <CardTitle className="text-lg flex items-center text-destructive"><AlertCircle className="mr-2 h-5 w-5" /> Database Integrity</CardTitle>
+                                <CardDescription>Duplicate stories were found in the database. These should be cleaned up to prevent issues.</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <ul className="list-disc pl-5 text-sm text-destructive space-y-1">
+                                    {Object.entries(analysisResult.duplicateTitles).map(([title, count]) => (
+                                        <li key={title}><strong>{title}</strong> (found {count} times)</li>
+                                    ))}
+                                </ul>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="destructive" className="mt-4" disabled={isToolRunning}>
+                                            <Trash2 className="mr-2 h-4 w-4" />
+                                            Cleanup Duplicates
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                This action cannot be undone. It will permanently delete older versions of duplicate stories, keeping only the most recent one for each title.
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={handleCleanupDuplicates} disabled={isCleaningDuplicates}>
+                                                {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                                Yes, Cleanup Duplicates
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            </CardContent>
+                        </Card>
+                    )}
                     <div className="space-y-6">
                         <Card>
                             <CardHeader>

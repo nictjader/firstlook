@@ -7,7 +7,7 @@ import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import type { CleanupResult, Story, DatabaseMetrics, CoinPackage } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
@@ -16,18 +16,23 @@ import { COIN_PACKAGES, PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
+ * This version uses a more robust check to prevent duplicate story generation.
  * @returns A randomly selected StorySeed or null if all seeds are used.
  */
 async function selectUnusedSeed(): Promise<StorySeed | null> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    // Fetch all story titles to perform the check in memory.
-    const snapshot = await storiesRef.select('title').get();
-    const existingTitles = snapshot.docs.map(doc => doc.data().title);
+    const allStoriesSnapshot = await storiesRef.get();
+    const existingStoryTitles = allStoriesSnapshot.docs.map(doc => doc.data().title);
+
+    // Create a Set of base titles that already exist in the database.
+    const existingBaseTitles = new Set(
+        existingStoryTitles.map(title => title.split(' - Part')[0].split(' - Chapter')[0].trim())
+    );
 
     // Filter seeds to find which ones have not been used.
-    const unusedSeeds = storySeeds.filter(seed => !existingTitles.includes(seed.titleIdea));
+    const unusedSeeds = storySeeds.filter(seed => !existingBaseTitles.has(seed.titleIdea));
 
     if (unusedSeeds.length === 0) {
         return null; 
@@ -177,7 +182,7 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
 
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
-        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0]; 
+        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0].trim();
         const correctGenre = seedGenreMap.get(baseTitle);
 
         if (correctGenre && story.subgenre !== correctGenre) {
@@ -286,7 +291,7 @@ function calculateMinimumCost(totalCoinsNeeded: number): number {
 export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
-    const snapshot = await storiesRef.get();
+    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
     const emptyMetrics: DatabaseMetrics = {
         totalChapters: 0,
@@ -324,7 +329,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const seriesData = new Map<string, { paidChapters: number }>();
 
     stories.forEach(story => {
-        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0];
+        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0].trim();
         titleCounts[baseTitle] = (titleCounts[baseTitle] || 0) + 1;
         
         const genre = story.subgenre || 'uncategorized';
@@ -432,6 +437,61 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         message: message,
         checked: snapshot.size,
         updated: updatedCount,
+    };
+}
+
+/**
+ * Finds and deletes duplicate stories, keeping only the most recent version of each.
+ */
+export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+
+    if (snapshot.empty) {
+        return { success: true, message: "No stories to check.", checked: 0, updated: 0 };
+    }
+
+    const storiesByBaseTitle = new Map<string, QueryDocumentSnapshot[]>();
+
+    // Group stories by their base title
+    snapshot.docs.forEach(doc => {
+        const title = doc.data().title;
+        const baseTitle = title.split(' - Part')[0].split(' - Chapter')[0].trim();
+        const group = storiesByBaseTitle.get(baseTitle) || [];
+        group.push(doc);
+        storiesByBaseTitle.set(baseTitle, group);
+    });
+
+    const batch = db.batch();
+    let deletedCount = 0;
+    const checkedCount = snapshot.size;
+
+    // Iterate through the groups and delete older duplicates
+    for (const [baseTitle, docs] of storiesByBaseTitle.entries()) {
+        if (docs.length > 1) {
+            // The first doc is the newest because of the 'desc' ordering
+            const docsToDelete = docs.slice(1);
+            docsToDelete.forEach(doc => {
+                batch.delete(doc.ref);
+                deletedCount++;
+            });
+        }
+    }
+
+    if (deletedCount > 0) {
+        await batch.commit();
+    }
+
+    const message = deletedCount > 0
+        ? `Successfully cleaned up ${deletedCount} duplicate stories.`
+        : `No duplicate stories were found to clean up.`;
+    
+    return {
+        success: true,
+        message: message,
+        checked: checkedCount,
+        updated: deletedCount, // Using 'updated' field to represent deletions
     };
 }
 
