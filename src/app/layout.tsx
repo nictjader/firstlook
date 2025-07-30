@@ -1,6 +1,6 @@
 
 import type { Metadata } from 'next';
-import { Playfair_Display, PT_Sans } from 'next/font/google';
+import { Playfair_Display } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
@@ -10,12 +10,6 @@ import GoogleAnalytics from '@/components/analytics/google-analytics';
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
   variable: '--font-playfair-display',
-});
-
-const ptSans = PT_Sans({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-pt-sans',
 });
 
 export const metadata: Metadata = {
@@ -35,7 +29,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${playfairDisplay.variable} ${ptSans.variable} font-body`}
+        className={`${playfairDisplay.variable} font-body`}
       >
         <GoogleAnalytics measurementId="G-TCQE0Z6MKG" />
         <ThemeProvider
