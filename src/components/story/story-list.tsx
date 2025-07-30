@@ -15,45 +15,45 @@ interface StoryListProps {
 
 /**
  * Groups stories to show only the first chapter of any series on the main list.
- * Standalone stories are passed through untouched. This function corrects a previous
- * flaw where multiple parts of a series might be shown.
+ * Standalone stories are passed through untouched. This prevents multiple chapters
+ * of the same series from cluttering the homepage.
  * @param stories The raw array of stories (already filtered by genre).
  * @returns A filtered array of stories suitable for the homepage.
  */
 function groupStoriesForDisplay(stories: Story[]): Story[] {
-    const storyMap = new Map<string, Story>();
-    const seriesPartOnes = new Map<string, Story>();
+  const storyMap = new Map<string, Story>();
 
-    // First pass: identify all standalone stories and find the definitive Part 1 for each series.
-    for (const story of stories) {
-        if (story.seriesId) {
-            // If this is the first part of a series, store it.
-            if (story.partNumber === 1) {
-                // If we haven't stored a Part 1 for this series yet, or if this one is newer, update it.
-                const existingPartOne = seriesPartOnes.get(story.seriesId);
-                if (!existingPartOne || new Date(story.publishedAt) > new Date(existingPartOne.publishedAt)) {
-                    seriesPartOnes.set(story.seriesId, story);
-                }
-            }
-        } else {
-            // It's a standalone story, so the storyId is the unique key.
-            storyMap.set(story.storyId, story);
+  // Process all stories, giving preference to Part 1 of any series.
+  for (const story of stories) {
+    if (story.seriesId) {
+      // This story is part of a series.
+      const seriesId = story.seriesId;
+      const existingEntry = storyMap.get(seriesId);
+
+      // We only want to show Part 1. If we find it, we make it the definitive entry for this series.
+      if (story.partNumber === 1) {
+        // If the current entry for this series is not Part 1, or if this Part 1 is newer, replace it.
+        if (!existingEntry || existingEntry.partNumber !== 1 || new Date(story.publishedAt) > new Date(existingEntry.publishedAt)) {
+           storyMap.set(seriesId, story);
         }
+      } else {
+        // This is a chapter other than Part 1. We only add it if we haven't found Part 1 yet.
+        if (!existingEntry) {
+          storyMap.set(seriesId, story);
+        }
+      }
+    } else {
+      // This is a standalone story.
+      storyMap.set(story.storyId, story);
     }
+  }
 
-    // Add the definitive Part 1 of each series to the main map.
-    // This overwrites any other parts of the series that might have been added in error.
-    for (const partOne of seriesPartOnes.values()) {
-        storyMap.set(partOne.seriesId!, partOne);
-    }
-    
-    // Convert map values back to an array.
-    const displayStories = Array.from(storyMap.values());
+  const displayStories = Array.from(storyMap.values());
+  
+  // Sort the final, unique list by published date to ensure the newest content is first.
+  displayStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
-    // Sort the final list by published date to ensure the newest content is first.
-    displayStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-    
-    return displayStories;
+  return displayStories;
 }
 
 
