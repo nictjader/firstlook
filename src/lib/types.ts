@@ -198,4 +198,7 @@ export interface DatabaseMetrics {
   // USD Value Metrics
   totalValueUSD: number;
   avgValuePerPaidChapterUSD: number;
+
+  // Data Quality Metrics
+  duplicateTitles: Record<string, number>;
 }

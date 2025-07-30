@@ -22,12 +22,15 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
     const db = getAdminDb();
     const storiesRef = db.collection('stories');
     
-    // Fetch only the 'title' field to minimize data transfer
+    // Fetch all story titles to perform the check in memory.
     const snapshot = await storiesRef.select('title').get();
+    const existingTitles = snapshot.docs.map(doc => doc.data().title);
 
-    const existingTitles = new Set(snapshot.docs.map(doc => doc.data().title.split(' - Chapter ')[0]));
-
-    const unusedSeeds = storySeeds.filter(seed => !existingTitles.has(seed.titleIdea));
+    // Filter seeds to find which ones have not been used.
+    // A seed is considered "used" if its titleIdea is a substring of any existing story title.
+    const unusedSeeds = storySeeds.filter(seed => 
+        !existingTitles.some(existingTitle => existingTitle.startsWith(seed.titleIdea))
+    );
 
     if (unusedSeeds.length === 0) {
         return null; 
@@ -177,7 +180,7 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
 
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
-        const baseTitle = story.title.split(' - Chapter ')[0]; 
+        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0]; 
         const correctGenre = seedGenreMap.get(baseTitle);
 
         if (correctGenre && story.subgenre !== correctGenre) {
@@ -187,7 +190,9 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
         }
     });
 
-    await batch.commit();
+    if(updatedCount > 0) {
+        await batch.commit();
+    }
 
     const message = updatedCount > 0 
         ? `Successfully checked ${snapshot.size} stories and updated ${updatedCount} with standardized genres.`
@@ -300,6 +305,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         paidSeriesChapters: 0,
         totalValueUSD: 0,
         avgValuePerPaidChapterUSD: 0,
+        duplicateTitles: {},
     };
 
     if (snapshot.empty) {
@@ -307,6 +313,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     }
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
+    const titleCounts: Record<string, number> = {};
     
     // Composition metrics
     const storiesPerGenre: Record<string, number> = {};
@@ -320,6 +327,9 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const seriesData = new Map<string, { paidChapters: number }>();
 
     stories.forEach(story => {
+        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0];
+        titleCounts[baseTitle] = (titleCounts[baseTitle] || 0) + 1;
+        
         const genre = story.subgenre || 'uncategorized';
 
         totalWordCount += story.wordCount || 0;
@@ -349,6 +359,13 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     seriesGenres.forEach((genre) => {
         storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
     });
+
+    const duplicateTitles = Object.entries(titleCounts)
+      .filter(([, count]) => count > 1)
+      .reduce((acc, [title, count]) => {
+        acc[title] = count;
+        return acc;
+      }, {} as Record<string, number>);
     
     // Calculate monetization based on a standard cost to ensure consistency
     const totalCoinCost = paidChaptersCount * PREMIUM_STORY_COST;
@@ -374,6 +391,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         paidSeriesChapters,
         totalValueUSD: totalValueUSD,
         avgValuePerPaidChapterUSD: paidChaptersCount > 0 ? parseFloat((totalValueUSD / paidChaptersCount).toFixed(2)) : 0,
+        duplicateTitles,
     };
 }
 
@@ -417,5 +435,64 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         message: message,
         checked: snapshot.size,
         updated: updatedCount,
+    };
+}
+
+
+/**
+ * Finds and deletes duplicate stories, keeping only the most recent version.
+ */
+export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.get();
+
+    if (snapshot.empty) {
+        return { success: true, message: "No stories found to check.", checked: 0, updated: 0 };
+    }
+
+    const stories = snapshot.docs.map(doc => docToStory(doc));
+    const storiesByBaseTitle = new Map<string, Story[]>();
+
+    // Group stories by their base title
+    stories.forEach(story => {
+        const baseTitle = story.title.split(' - Chapter ')[0].split(' - Part ')[0];
+        const group = storiesByBaseTitle.get(baseTitle) || [];
+        group.push(story);
+        storiesByBaseTitle.set(baseTitle, group);
+    });
+
+    const batch = db.batch();
+    let storiesToDeleteCount = 0;
+
+    for (const [baseTitle, storyGroup] of storiesByBaseTitle.entries()) {
+        if (storyGroup.length > 1) {
+            // Sort by published date, newest first
+            storyGroup.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+            
+            // The first item is the one to keep, delete the rest
+            const storiesToDelete = storyGroup.slice(1);
+            
+            storiesToDelete.forEach(story => {
+                const storyRef = db.collection('stories').doc(story.storyId);
+                batch.delete(storyRef);
+                storiesToDeleteCount++;
+            });
+        }
+    }
+
+    if (storiesToDeleteCount > 0) {
+        await batch.commit();
+    }
+    
+    const message = storiesToDeleteCount > 0 
+        ? `Successfully removed ${storiesToDeleteCount} duplicate stories.`
+        : `Checked ${stories.length} stories. No duplicates found.`;
+
+    return {
+        success: true,
+        message: message,
+        checked: stories.length,
+        updated: storiesToDeleteCount, // Using 'updated' to represent 'deleted' count
     };
 }
