@@ -168,7 +168,6 @@ function AdminDashboardContent() {
   const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates;
   const hasDuplicates = analysisResult && Object.keys(analysisResult.duplicateTitles).length > 0;
 
-
   return (
     <>
       <Alert variant="warning" className="mb-6">
@@ -406,3 +405,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
