@@ -311,57 +311,46 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
     
-    const storiesPerGenre: Record<string, number> = {};
-    let totalWordCount = 0;
-
-    // Maps to track concepts and their occurrences
-    const conceptMap = new Map<string, {
-      ids: Set<string>; // storyId for standalone, seriesId for series
-      titles: Set<string>; // For reporting
-      isSeries: boolean;
-      docIds: string[]; // Firestore document IDs
+    // --- Group stories by concept (seriesTitle or title) to correctly identify unique stories ---
+    const storyConcepts = new Map<string, {
+        isSeries: boolean;
+        docIds: string[];
+        genre: string;
     }>();
 
     stories.forEach(story => {
-        totalWordCount += story.wordCount || 0;
-
-        const conceptKey = story.seriesTitle || story.title;
-        const conceptId = story.seriesId || story.storyId;
-
-        if (!conceptMap.has(conceptKey)) {
-            conceptMap.set(conceptKey, {
-                ids: new Set(),
-                titles: new Set(),
+        const conceptTitle = story.seriesTitle || story.title;
+        if (!storyConcepts.has(conceptTitle)) {
+            storyConcepts.set(conceptTitle, {
                 isSeries: !!story.seriesId,
                 docIds: [],
+                genre: story.subgenre || 'uncategorized',
             });
-            // Count genre only once per unique concept
-            const genre = story.subgenre || 'uncategorized';
-            storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
         }
-
-        const concept = conceptMap.get(conceptKey)!;
-        concept.ids.add(conceptId);
-        concept.titles.add(story.title);
-        concept.docIds.push(story.storyId);
+        storyConcepts.get(conceptTitle)!.docIds.push(story.storyId);
     });
 
-    const duplicateTitles: Record<string, number> = {};
+    const storiesPerGenre: Record<string, number> = {};
+    let totalWordCount = 0;
     let standaloneStoriesCount = 0;
     let multiPartSeriesCount = 0;
+    const duplicateTitles: Record<string, number> = {};
 
-    for (const [key, concept] of conceptMap.entries()) {
+    storyConcepts.forEach((concept, title) => {
+        storiesPerGenre[concept.genre] = (storiesPerGenre[concept.genre] || 0) + 1;
         if (concept.isSeries) {
             multiPartSeriesCount++;
         } else {
             standaloneStoriesCount++;
+            if (concept.docIds.length > 1) {
+                duplicateTitles[title] = concept.docIds.length;
+            }
         }
+    });
 
-        if (concept.ids.size > 1) {
-            // This is a true duplicate concept (e.g., same title with multiple storyIds/seriesIds)
-            duplicateTitles[key] = concept.docIds.length;
-        }
-    }
+    stories.forEach(story => {
+        totalWordCount += story.wordCount || 0;
+    });
 
     const totalCoinCost = stories.reduce((acc, story) => acc + (story.isPremium ? story.coinCost : 0), 0);
     const paidChapters = stories.filter(s => s.isPremium && s.coinCost > 0);
@@ -375,7 +364,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     return {
         totalChapters: stories.length,
-        totalUniqueStories: conceptMap.size,
+        totalUniqueStories: storyConcepts.size,
         standaloneStories: standaloneStoriesCount,
         multiPartSeriesCount,
         storiesPerGenre,
@@ -448,16 +437,49 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     });
 
     for (const [title, chapters] of storyConcepts.entries()) {
-        const uniqueIds = new Set(chapters.map(c => c.seriesId || c.storyId));
+        const isSeries = chapters[0].isSeries;
 
-        if (uniqueIds.size > 1) {
-            // This is a duplicate concept. The first chapter in the list is the newest, so its ID is master.
-            const masterId = chapters[0].seriesId || chapters[0].storyId;
-
+        if (isSeries) {
+            // For series, group by seriesId to find duplicate generations
+            const seriesById = new Map<string, Story[]>();
             chapters.forEach(chapter => {
-                const currentId = chapter.seriesId || chapter.storyId;
-                if (currentId !== masterId) {
-                    // This chapter is part of a duplicate entry. Mark for deletion.
+                const seriesId = chapter.seriesId!;
+                if (!seriesById.has(seriesId)) {
+                    seriesById.set(seriesId, []);
+                }
+                seriesById.get(seriesId)!.push(chapter);
+            });
+
+            if (seriesById.size > 1) {
+                // We have duplicate series. Keep the one with the most recent chapter.
+                const sortedSeries = Array.from(seriesById.values()).sort((a, b) => 
+                    new Date(b[0].publishedAt).getTime() - new Date(a[0].publishedAt).getTime()
+                );
+                
+                const seriesToKeep = sortedSeries.shift(); // The newest series is kept
+                
+                // Delete all chapters from the other, older duplicate series
+                sortedSeries.forEach(seriesToDelete => {
+                    seriesToDelete.forEach(chapter => {
+                         const docRef = db.collection('stories').doc(chapter.storyId);
+                         batch.delete(docRef);
+                         processedCount++;
+
+                         if (chapter.coverImageUrl && chapter.coverImageUrl.includes('storage.googleapis.com')) {
+                            const filePath = `story-covers/${chapter.storyId}.png`;
+                            storageDeletePromises.push(deleteStorageFile(filePath));
+                        }
+                    });
+                });
+            }
+
+        } else {
+            // This is a standalone story concept. If there's more than one, they are duplicates.
+            if (chapters.length > 1) {
+                 // The first chapter is the newest because of the initial query order. Keep it.
+                const chaptersToDelete = chapters.slice(1);
+                
+                chaptersToDelete.forEach(chapter => {
                     const docRef = db.collection('stories').doc(chapter.storyId);
                     batch.delete(docRef);
                     processedCount++;
@@ -466,8 +488,8 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
                         const filePath = `story-covers/${chapter.storyId}.png`;
                         storageDeletePromises.push(deleteStorageFile(filePath));
                     }
-                }
-            });
+                });
+            }
         }
     }
 
@@ -553,5 +575,3 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     updated: updatedCount,
   };
 }
-
-    
