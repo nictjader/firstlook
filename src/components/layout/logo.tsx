@@ -12,7 +12,7 @@ export default function Logo({ isTextVisible = true }: LogoProps) {
       <BookHeart className="h-7 w-7 text-primary" />
       {isTextVisible && (
         <span className="font-headline text-2xl font-bold text-primary relative bottom-px">
-          Siren
+          FirstLook
         </span>
       )}
     </Link>

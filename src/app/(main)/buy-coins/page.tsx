@@ -5,8 +5,8 @@ import { Suspense } from 'react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
-  title: 'Buy Coins - Siren',
-  description: 'Purchase coins to unlock premium romance stories on Siren.',
+  title: 'Buy Coins - FirstLook',
+  description: 'Purchase coins to unlock premium romance stories on FirstLook.',
 };
 
 const PurchaseSkeleton = () => (

@@ -25,7 +25,7 @@ export default function Footer() {
           </Link>
         </div>
         {year ? (
-          <p>&copy; {year} Siren. All rights reserved.</p>
+          <p>&copy; {year} FirstLook. All rights reserved.</p>
         ) : (
           <div className="h-5" /> // Use a div for placeholder to avoid layout shift
         )}

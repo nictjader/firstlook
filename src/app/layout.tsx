@@ -13,7 +13,7 @@ const playfairDisplay = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: 'Siren - Fall in Love with a Story.',
+  title: 'FirstLook - Fall in Love with a Story.',
   description:
     'Discover captivating romance stories. Unlock premium content and immerse yourself in a world of passion and adventure.',
   icons: {

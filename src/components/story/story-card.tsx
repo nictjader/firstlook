@@ -30,7 +30,7 @@ export default function StoryCard({ story, isPriority = false, showChapterInfo =
       setIsRead(userProfile.readStories?.includes(storyId) ?? false);
     } else {
       try {
-        const localReadJson = window.localStorage.getItem('siren_read_stories');
+        const localReadJson = window.localStorage.getItem('firstlook_read_stories');
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
         setIsRead(localReadStories.includes(storyId));
       } catch (error) {

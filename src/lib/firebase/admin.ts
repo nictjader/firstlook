@@ -1,3 +1,4 @@
+
 // THIS FILE IS FOR SERVER-SIDE FIREBASE INIT ONLY
 
 import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, getApp as getAdminApp, cert } from 'firebase-admin/app';
@@ -6,7 +7,7 @@ import { getFirestore, Firestore } from 'firebase-admin/firestore';
 let adminApp: AdminApp;
 let adminDb: Firestore;
 
-const ADMIN_APP_NAME = 'firebase-admin-app-siren-singleton-v2';
+const ADMIN_APP_NAME = 'firebase-admin-app-firstlook-singleton-v2';
 
 if (!getAdminApps().some(app => app?.name === ADMIN_APP_NAME)) {
   const projectId = 'siren-h2y45';

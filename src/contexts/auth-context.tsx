@@ -11,7 +11,7 @@ import { docToUserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 
-const LOCAL_STORAGE_READ_KEY = 'siren_read_stories';
+const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
 
 interface AuthContextType {
   user: User | null;

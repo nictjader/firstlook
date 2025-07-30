@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: { storyId: string }
   }
 
   return {
-    title: `${story.title} - Siren`,
+    title: `${story.title} - FirstLook`,
     description: story.previewText,
     openGraph: {
       title: story.title,
