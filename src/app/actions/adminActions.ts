@@ -419,38 +419,3 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         updated: updatedCount,
     };
 }
-
-export type DuplicateTitleResult = {
-  title: string;
-  count: number;
-};
-
-/**
- * Finds all stories with duplicate titles in the database.
- */
-export async function findDuplicateTitlesAction(): Promise<{ duplicates: DuplicateTitleResult[] }> {
-    const db = getAdminDb();
-    const storiesRef = db.collection('stories');
-    const snapshot = await storiesRef.select('title').get();
-
-    if (snapshot.empty) {
-        return { duplicates: [] };
-    }
-
-    const titleCounts = new Map<string, number>();
-    snapshot.docs.forEach(doc => {
-        const title = doc.data().title;
-        if (title) {
-            titleCounts.set(title, (titleCounts.get(title) || 0) + 1);
-        }
-    });
-
-    const duplicates: DuplicateTitleResult[] = [];
-    titleCounts.forEach((count, title) => {
-        if (count > 1) {
-            duplicates.push({ title, count });
-        }
-    });
-
-    return { duplicates: duplicates.sort((a, b) => b.count - a.count) };
-}
