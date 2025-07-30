@@ -3,11 +3,11 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, ListDashes } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction } from '@/app/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, findDuplicateTitlesAction, type DuplicateTitleResult } from '@/app/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -16,6 +16,7 @@ import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
 import { generateAndUploadCoverImageAction } from '@/app/actions/adminActions';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 function AdminDashboardContent() {
   const { user } = useAuth();
@@ -30,6 +31,8 @@ function AdminDashboardContent() {
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
+  const [isFindingDups, setIsFindingDups] = useState(false);
+  const [duplicateTitles, setDuplicateTitles] = useState<DuplicateTitleResult[] | null>(null);
 
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -39,6 +42,7 @@ function AdminDashboardContent() {
     setIsAnalyzing(true);
     setAnalysisResult(null);
     setAnalysisError(null);
+    setDuplicateTitles(null);
     try {
       const result = await analyzeDatabaseAction();
       setAnalysisResult(result);
@@ -94,6 +98,20 @@ function AdminDashboardContent() {
       setIsRemovingTags(false);
     }
   };
+  
+  const handleFindDuplicates = async () => {
+    setIsFindingDups(true);
+    setDuplicateTitles(null);
+    setAnalysisError(null);
+    try {
+      const { duplicates } = await findDuplicateTitlesAction();
+      setDuplicateTitles(duplicates);
+    } catch (error: any) {
+       setAnalysisError(error.message || "An unknown error occurred while checking for duplicates.");
+    } finally {
+      setIsFindingDups(false);
+    }
+  };
 
   const handleGenerate = async () => {
     if (!user) {
@@ -136,7 +154,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isFindingDups;
 
   return (
     <>
@@ -171,6 +189,10 @@ function AdminDashboardContent() {
                   {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                   {isAnalyzing ? 'Analyzing...' : 'Analyze Database'}
                 </Button>
+                <Button onClick={handleFindDuplicates} disabled={isToolRunning}>
+                  {isFindingDups ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ListDashes className="mr-2 h-4 w-4" />}
+                  {isFindingDups ? 'Scanning...' : 'Find Duplicate Titles'}
+                </Button>
                  <Button onClick={handleStandardizePrices} disabled={isToolRunning} variant="outline">
                     {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
                     {isPricing ? 'Updating...' : 'Standardize Story Prices'}
@@ -194,9 +216,46 @@ function AdminDashboardContent() {
               
               {analysisError && (
                  <Alert variant="destructive" className="mt-4">
-                    <AlertTitle>Analysis Failed</AlertTitle>
+                    <AlertTitle>Operation Failed</AlertTitle>
                     <AlertDescription>{analysisError}</AlertDescription>
                 </Alert>
+              )}
+
+              {duplicateTitles && (
+                <div className="mt-6 space-y-4">
+                  <h2 className="text-2xl font-headline font-semibold text-primary">Duplicate Title Analysis</h2>
+                  {duplicateTitles.length > 0 ? (
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Duplicate Titles Found</CardTitle>
+                        <CardDescription>The following titles appear more than once in the database. This should be corrected by updating the generation prompt to enforce unique titles.</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead>Title</TableHead>
+                              <TableHead className="text-right">Count</TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {duplicateTitles.map((dup) => (
+                              <TableRow key={dup.title}>
+                                <TableCell className="font-medium">{dup.title}</TableCell>
+                                <TableCell className="text-right font-bold">{dup.count}</TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <Alert variant="success">
+                      <AlertTitle>No Duplicates Found</AlertTitle>
+                      <AlertDescription>Congratulations! Every story in the database has a unique title.</AlertDescription>
+                    </Alert>
+                  )}
+                </div>
               )}
 
               {analysisResult && (

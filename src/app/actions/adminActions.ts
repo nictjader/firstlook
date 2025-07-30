@@ -87,7 +87,8 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
 }
 
 /**
- * Generates a cover image using an AI model and uploads it to Firebase Storage.
+ * Generates a cover image using an AI model and uploads it to a public GCS bucket.
+ * This version creates a publicly accessible URL without using download tokens.
  * @param storyId The ID of the story to associate the image with.
  * @param prompt The prompt for the image generation model.
  * @returns A promise that resolves to the public URL of the uploaded image.
@@ -120,22 +121,24 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
         const { base64Data, mimeType } = extractBase64FromDataUri(media.url);
         const imageBuffer = Buffer.from(base64Data, 'base64');
 
-        const bucket = getStorage().bucket(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
+        const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+        if (!bucketName) {
+            throw new Error("Storage bucket name not configured.");
+        }
+        const bucket = getStorage().bucket(bucketName);
         const imagePath = `story-covers/${storyId}.png`;
         const file = bucket.file(imagePath);
-        
-        const downloadToken = uuidv4();
 
         await file.save(imageBuffer, {
           metadata: {
             contentType: mimeType || 'image/png',
-            metadata: {
-              firebaseStorageDownloadTokens: downloadToken,
-            }
           },
+          // Make the file publicly readable
+          public: true,
         });
 
-        const downloadURL = `https://storage.googleapis.com/${bucket.name}/${imagePath}?alt=media&token=${downloadToken}`;
+        // The public URL is in a standard format
+        const downloadURL = `https://storage.googleapis.com/${bucketName}/${imagePath}`;
         
         await db.collection('stories').doc(storyId).update({ coverImageUrl: downloadURL });
 
@@ -415,4 +418,39 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         checked: snapshot.size,
         updated: updatedCount,
     };
+}
+
+export type DuplicateTitleResult = {
+  title: string;
+  count: number;
+};
+
+/**
+ * Finds all stories with duplicate titles in the database.
+ */
+export async function findDuplicateTitlesAction(): Promise<{ duplicates: DuplicateTitleResult[] }> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.select('title').get();
+
+    if (snapshot.empty) {
+        return { duplicates: [] };
+    }
+
+    const titleCounts = new Map<string, number>();
+    snapshot.docs.forEach(doc => {
+        const title = doc.data().title;
+        if (title) {
+            titleCounts.set(title, (titleCounts.get(title) || 0) + 1);
+        }
+    });
+
+    const duplicates: DuplicateTitleResult[] = [];
+    titleCounts.forEach((count, title) => {
+        if (count > 1) {
+            duplicates.push({ title, count });
+        }
+    });
+
+    return { duplicates: duplicates.sort((a, b) => b.count - a.count) };
 }
