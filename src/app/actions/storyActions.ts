@@ -42,25 +42,22 @@ export async function getAllStories(): Promise<Story[]> {
 
 
 /**
- * Fetches a single story by its ID, including its full content.
- * This function now checks both the top-level and nested collections.
+ * Fetches a single story by its ID using a direct document lookup.
  * @param storyId The ID of the story to fetch.
  * @returns The story object or null if not found.
  */
 export async function getStoryById(storyId: string): Promise<Story | null> {
     try {
         const db = getAdminDb();
-        // The most reliable way to find a specific story document, regardless of nesting,
-        // is to use a collectionGroup query with a 'where' clause.
-        const groupQuery = db.collectionGroup('stories').where('storyId', '==', storyId).limit(1);
-        const groupSnapshot = await groupQuery.get();
+        const storyRef = db.collection('stories').doc(storyId);
+        const storyDoc = await storyRef.get();
 
-        if (groupSnapshot.empty) {
-            console.log(`Story with ID ${storyId} not found in any 'stories' collection.`);
+        if (!storyDoc.exists) {
+            console.log(`Story with ID ${storyId} not found.`);
             return null;
         }
 
-        return docToStory(groupSnapshot.docs[0] as QueryDocumentSnapshot);
+        return docToStory(storyDoc as QueryDocumentSnapshot);
     } catch (error) {
         console.error(`Error fetching story by ID ${storyId}:`, error);
         return null;
