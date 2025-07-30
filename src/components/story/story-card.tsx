@@ -8,9 +8,7 @@ import { Heart, Lock, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useMemo, useState, useEffect } from 'react';
 import { capitalizeWords } from '@/lib/utils';
-import { Skeleton } from '@/components/ui/skeleton';
 import { useRouter } from 'next/navigation';
-import { useToast } from '@/hooks/use-toast';
 
 type StoryCardProps = {
   story: Story;
@@ -22,7 +20,6 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
   const { user, userProfile, toggleFavoriteStory, loading: authLoading } = useAuth();
   const [isRead, setIsRead] = useState(false);
   const router = useRouter();
-  const { toast } = useToast();
 
   const isFavorited = useMemo(() => {
     if (authLoading || !userProfile) return false;
@@ -91,3 +88,5 @@ export default function StoryCard({ story, isPriority = false }: StoryCardProps)
     </div>
   );
 }
+
+    

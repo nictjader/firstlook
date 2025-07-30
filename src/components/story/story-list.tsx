@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import type { Story, Subgenre } from '@/lib/types';
 import StoryCard from './story-card';
 import { useRouter } from 'next/navigation';
@@ -103,3 +103,5 @@ export default function StoryList({ allStories, selectedSubgenre }: StoryListPro
     </div>
   );
 }
+
+    
