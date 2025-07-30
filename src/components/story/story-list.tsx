@@ -15,37 +15,47 @@ interface StoryListProps {
 
 /**
  * Groups stories to show only the first chapter of any series on the main list.
- * Standalone stories are passed through untouched.
+ * Standalone stories are passed through untouched. This function corrects a previous
+ * flaw where multiple parts of a series might be shown.
  * @param stories The raw array of stories (already filtered by genre).
  * @returns A filtered array of stories suitable for the homepage.
  */
 function groupStoriesForDisplay(stories: Story[]): Story[] {
-  const storyMap = new Map<string, Story>();
+    const storyMap = new Map<string, Story>();
+    const seriesPartOnes = new Map<string, Story>();
 
-  // The incoming stories are already sorted by publishedAt descending
-  for (const story of stories) {
-    if (story.seriesId) {
-      // If we haven't seen this series yet, find its first part and add it.
-      if (!storyMap.has(story.seriesId)) {
-        const partOne = stories.find(s => s.seriesId === story.seriesId && s.partNumber === 1);
-        if (partOne) {
-           storyMap.set(story.seriesId, partOne);
+    // First pass: identify all standalone stories and find the definitive Part 1 for each series.
+    for (const story of stories) {
+        if (story.seriesId) {
+            // If this is the first part of a series, store it.
+            if (story.partNumber === 1) {
+                // If we haven't stored a Part 1 for this series yet, or if this one is newer, update it.
+                const existingPartOne = seriesPartOnes.get(story.seriesId);
+                if (!existingPartOne || new Date(story.publishedAt) > new Date(existingPartOne.publishedAt)) {
+                    seriesPartOnes.set(story.seriesId, story);
+                }
+            }
+        } else {
+            // It's a standalone story, so the storyId is the unique key.
+            storyMap.set(story.storyId, story);
         }
-      }
-    } else {
-      // It's a standalone story, so the storyId is the unique key
-      storyMap.set(story.storyId, story);
     }
-  }
-  
-  // Convert map values back to an array. The insertion order is preserved.
-  const displayStories = Array.from(storyMap.values());
 
-  // We need to re-sort because we might have picked an older Chapter 1 for a newer series.
-  displayStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-  
-  return displayStories;
+    // Add the definitive Part 1 of each series to the main map.
+    // This overwrites any other parts of the series that might have been added in error.
+    for (const partOne of seriesPartOnes.values()) {
+        storyMap.set(partOne.seriesId!, partOne);
+    }
+    
+    // Convert map values back to an array.
+    const displayStories = Array.from(storyMap.values());
+
+    // Sort the final list by published date to ensure the newest content is first.
+    displayStories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
+    
+    return displayStories;
 }
+
 
 export default function StoryList({ stories }: StoryListProps) {
   const router = useRouter();
