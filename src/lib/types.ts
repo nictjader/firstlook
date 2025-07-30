@@ -1,6 +1,5 @@
 
-
-import { type Timestamp as ClientTimestamp, type FieldValue, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
+import { type Timestamp as ClientTimestamp, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 import { z } from 'zod';
 
@@ -30,7 +29,7 @@ export interface UserProfile {
   preferences: {
     subgenres: Subgenre[];
   };
-  stripeCustomerId?: string; // Add this line
+  stripeCustomerId?: string; 
   createdAt: string;
   lastLogin: string;
 }
@@ -89,7 +88,6 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       throw new Error(`Document with id ${doc.id} has no data.`);
     }
     
-    // In a collectionGroup query or a subcollection query, the doc.id is the actual storyId.
     // The storyId field in the data should be the definitive source if it exists.
     const storyId = data.storyId || doc.id;
     const isSeriesStory = !!data.seriesId && typeof data.partNumber === 'number';

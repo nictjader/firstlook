@@ -2,8 +2,6 @@
 import ReaderView from '@/components/story/reader-view';
 import { notFound } from 'next/navigation';
 import { getStoryById, getSeriesParts } from '@/app/actions/storyActions';
-import type { Story } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import type { Metadata } from 'next';
 
 

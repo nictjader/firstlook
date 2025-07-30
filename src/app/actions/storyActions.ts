@@ -8,29 +8,19 @@ import type { QueryDocumentSnapshot } from 'firebase-admin/firestore';
 
 /**
  * Fetches all stories from the database.
- * This simplified version focuses on fetching from the top-level 'stories' collection
- * to ensure the basic database connection is working.
+ * This should be used for pages that need a complete list, like the homepage.
  */
 export async function getAllStories(): Promise<Story[]> {
   try {
     const db = getAdminDb();
-    // Using a simple collection query to start
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
     if (snapshot.empty) {
-      console.log("No stories found in the top-level 'stories' collection.");
-      // To ensure we get all data, let's also try a collection group query as a fallback
-      const groupSnapshot = await db.collectionGroup('stories').orderBy('publishedAt', 'desc').get();
-       if (groupSnapshot.empty) {
-         console.log("No stories found in the 'stories' collection group either.");
-         return [];
-       }
-       console.log(`Found ${groupSnapshot.size} stories in the collection group.`);
-       return groupSnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+      console.warn("No stories found in the 'stories' collection.");
+      return [];
     }
     
-    console.log(`Found ${snapshot.size} stories in the top-level collection.`);
     return snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
 
   } catch (error) {
@@ -68,7 +58,7 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
 /**
  * Fetches all parts of a series.
  * @param seriesId The ID of the series to fetch parts for.
- * @returns An array of story objects belonging to the series.
+ * @returns An array of story objects belonging to the series, sorted by part number.
  */
 export async function getSeriesParts(seriesId: string): Promise<Story[]> {
     if (!seriesId) {
@@ -77,8 +67,7 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
     
     try {
         const db = getAdminDb();
-        // A collectionGroup query is appropriate and efficient here because we are using a 'where' filter.
-        const storiesRef = db.collectionGroup('stories');
+        const storiesRef = db.collection('stories');
         
         const q = storiesRef.where('seriesId', '==', seriesId);
         const querySnapshot = await q.get();
@@ -89,7 +78,7 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
         
         const stories = querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
         
-        // Sort manually by partNumber in memory
+        // Sort by partNumber in memory to ensure correct order.
         stories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
         
         return stories;

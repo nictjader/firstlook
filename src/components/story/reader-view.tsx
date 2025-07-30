@@ -2,7 +2,7 @@
 "use client";
 
 import type { Story } from '@/lib/types';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -26,7 +26,7 @@ import StoryCard from './story-card';
 import { arrayUnion } from 'firebase/firestore';
 
 const FONT_SIZES = [
-  'text-base',     // 16px
+  'text-base',   // 16px
   'text-lg',     // 18px
   'text-xl',     // 20px
   'text-2xl',    // 24px
@@ -46,14 +46,14 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   const [showUnlockModal, setShowUnlockModal] = useState(false);
   const [currentFontSizeIndex, setCurrentFontSizeIndex] = useState(DEFAULT_FONT_SIZE_INDEX);
 
-  const isEffectivelyFree = useMemo(() => !story.isPremium || story.coinCost <= 0, [story.isPremium, story.coinCost]);
-  const isUnlockedByUser = useMemo(() => userProfile?.unlockedStories.some(s => s.storyId === story.storyId) ?? false, [story.storyId, userProfile]);
-  const isUnlocked = useMemo(() => isEffectivelyFree || isUnlockedByUser, [isEffectivelyFree, isUnlockedByUser]);
+  const isEffectivelyFree = !story.isPremium || story.coinCost <= 0;
+  const isUnlockedByUser = userProfile?.unlockedStories.some(s => s.storyId === story.storyId) ?? false;
+  const isUnlocked = isEffectivelyFree || isUnlockedByUser;
 
-  const isFavorited = useMemo(() => userProfile?.favoriteStories.includes(story.storyId) ?? false, [story.storyId, userProfile]);
-  const hasSufficientCoins = useMemo(() => isEffectivelyFree || !userProfile ? true : userProfile.coins >= story.coinCost, [story, userProfile, isEffectivelyFree]);
+  const isFavorited = userProfile?.favoriteStories.includes(story.storyId) ?? false;
+  const hasSufficientCoins = isEffectivelyFree || !userProfile ? true : userProfile.coins >= story.coinCost;
 
-  useEffect(() => {
+  useMemo(() => {
     if (isUnlocked) {
       markStoryAsRead(story.storyId);
     }
