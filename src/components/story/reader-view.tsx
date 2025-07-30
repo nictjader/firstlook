@@ -106,6 +106,23 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
   const displayTitle = story.seriesTitle ? story.seriesTitle : story.title;
 
 
+  const ReadingControls = () => (
+    <div className="px-6 py-2 border-b flex justify-between items-center bg-muted/30">
+      <p className="text-sm text-muted-foreground">Reading Controls</p>
+      <div className="flex items-center space-x-1">
+          <Button variant="ghost" size="icon" onClick={() => changeFontSize('decrease')} aria-label="Decrease font size">
+              <ZoomOut className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => changeFontSize('increase')} aria-label="Increase font size">
+              <ZoomIn className="h-5 w-5" />
+          </Button>
+          <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
+              {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6">
        <Link href="/" className="text-sm inline-flex items-center text-primary hover:underline mb-2">
@@ -153,29 +170,16 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         
         {isUnlocked ? (
           <>
-            <div className="px-6">
-              <Separator />
-            </div>
-            <div className="px-6 py-2 border-b flex justify-between items-center bg-muted/30">
-                <p className="text-sm text-muted-foreground">Reading Controls</p>
-                <div className="flex items-center space-x-1">
-                    <Button variant="ghost" size="icon" onClick={() => changeFontSize('decrease')} aria-label="Decrease font size">
-                        <ZoomOut className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => changeFontSize('increase')} aria-label="Increase font size">
-                        <ZoomIn className="h-5 w-5" />
-                    </Button>
-                    <Button variant="ghost" size="icon" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label="Toggle theme">
-                        {theme === 'dark' ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-                    </Button>
-                </div>
-            </div>
+            <Separator />
+            <ReadingControls />
             <div className={`py-6 px-6 prose dark:prose-invert max-w-none ${FONT_SIZES[currentFontSizeIndex]} font-body`}>
                 <div dangerouslySetInnerHTML={{ __html: story.content }} />
             </div>
           </>
         ) : (
            <div>
+              <Separator/>
+              <ReadingControls />
               <div className="relative">
                 <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-80 overflow-hidden font-body">
                   <p>{story.previewText}</p>
