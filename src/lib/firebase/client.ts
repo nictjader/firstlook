@@ -1,4 +1,3 @@
-
 // THIS FILE IS FOR CLIENT-SIDE FIREBASE INIT ONLY
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
@@ -9,7 +8,7 @@ import { getFunctions } from 'firebase/functions';
 // The Firebase config is now hardcoded with the correct project details to ensure
 // proper initialization and fix authentication errors.
 const firebaseConfig = {
-  apiKey: "your-api-key", // This is a placeholder, the build process should replace it.
+  apiKey: "your-api-key-from-firebase",
   authDomain: "siren-h2y45.firebaseapp.com",
   projectId: "siren-h2y45",
   storageBucket: "siren-h2y45.appspot.com",
@@ -18,7 +17,7 @@ const firebaseConfig = {
 };
 
 // This check is a safeguard. In a real environment, you'd want to ensure these keys are present.
-if (firebaseConfig.apiKey === "your-api-key") {
+if (firebaseConfig.apiKey === "your-api-key-from-firebase") {
     // In a real production environment, you might throw an error here.
     // For this context, we will proceed, but auth will likely fail if the key isn't injected.
     console.warn("Firebase API Key is a placeholder. Authentication will fail if not replaced by a valid key.");
