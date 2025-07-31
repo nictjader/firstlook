@@ -5,8 +5,8 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
-// The Firebase config is now partially hardcoded to prevent build/initialization errors.
-// The API key and other sensitive values are still pulled from environment variables.
+// The Firebase config is now hardcoded with the correct project details to ensure
+// proper initialization and fix authentication errors.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: "siren-h2y45.firebaseapp.com",
