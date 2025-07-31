@@ -107,7 +107,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
 
 
   const ReadingControls = () => (
-    <div className="px-6 py-2 border-b flex justify-between items-center bg-muted/30">
+    <div className="flex justify-between items-center bg-muted/30 px-6 py-2">
       <p className="text-sm text-muted-foreground">Reading Controls</p>
       <div className="flex items-center space-x-1">
           <Button variant="ghost" size="icon" onClick={() => changeFontSize('decrease')} aria-label="Decrease font size">
@@ -169,67 +169,68 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         </div>
         
         {isUnlocked ? (
-          <div>
+          <>
+            <div className="px-6">
+              <Separator />
+            </div>
             <ReadingControls />
+            <Separator />
             <div className={`py-6 px-6 prose dark:prose-invert max-w-none ${FONT_SIZES[currentFontSizeIndex]} font-body`}>
                 <div dangerouslySetInnerHTML={{ __html: story.content }} />
             </div>
-          </div>
+          </>
         ) : (
-           <div>
-              <ReadingControls />
-              <div className="relative">
-                <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-80 overflow-hidden font-body">
-                  <p>{story.previewText}</p>
-                </div>
-                <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-card to-transparent" />
-              </div>
-              <div className="p-6 pt-0 text-center bg-card">
-                  <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
-                  <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
-                  <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
-                      <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => {
-                        if (user) {
-                          setShowUnlockModal(true);
-                        } else {
-                          router.push('/login?reason=purchase');
-                        }
-                      }}>
-                          <Lock className="mr-2 h-5 w-5"/>Unlock to Read
-                      </Button>
-                      <DialogContent>
-                          <DialogHeader>
-                              <DialogTitle>{hasSufficientCoins ? "Unlock Story?" : "Not Enough Coins"}</DialogTitle>
-                              <DialogDescription>
-                              {hasSufficientCoins
-                                  ? `This will use ${story.coinCost} coins from your balance to permanently unlock "${story.title}".`
-                                  : `You need ${story.coinCost} coins to read this story, but you only have ${userProfile?.coins ?? 0}. Please purchase more coins.`
-                              }
-                              </DialogDescription>
-                          </DialogHeader>
-                          <DialogFooter>
-                              <Button variant="outline" onClick={() => setShowUnlockModal(false)} disabled={isLoadingUnlock}>Cancel</Button>
-                              {hasSufficientCoins ? (
-                              <Button onClick={handleUnlockStory} disabled={isLoadingUnlock} className="bg-accent hover:bg-accent/90">
-                                  {isLoadingUnlock ? "Unlocking..." : `Yes, unlock for ${story.coinCost} coins`}
-                              </Button>
-                              ) : (
-                              <Link href="/buy-coins">
-                                  <Button className="bg-accent hover:bg-accent/90" onClick={() => setShowUnlockModal(false)}>
-                                  Buy Coins
-                                  </Button>
-                              </Link>
-                              )}
-                          </DialogFooter>
-                      </DialogContent>
-                  </Dialog>
-                  {!user && (
-                    <p className="text-sm mt-2 text-muted-foreground">
-                        Already have an account? <Link href="/login" className="text-primary hover:underline font-semibold">Sign In</Link>
-                    </p>
-                  )}
-              </div>
-          </div>
+           <div className="relative">
+             <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-80 overflow-hidden font-body">
+               <p>{story.previewText}</p>
+             </div>
+             <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-card to-transparent" />
+             <div className="p-6 text-center bg-card">
+                 <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
+                 <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
+                 <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
+                     <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => {
+                       if (user) {
+                         setShowUnlockModal(true);
+                       } else {
+                         router.push('/login?reason=purchase');
+                       }
+                     }}>
+                         <Lock className="mr-2 h-5 w-5"/>Unlock to Read
+                     </Button>
+                     <DialogContent>
+                         <DialogHeader>
+                             <DialogTitle>{hasSufficientCoins ? "Unlock Story?" : "Not Enough Coins"}</DialogTitle>
+                             <DialogDescription>
+                             {hasSufficientCoins
+                                 ? `This will use ${story.coinCost} coins from your balance to permanently unlock "${story.title}".`
+                                 : `You need ${story.coinCost} coins to read this story, but you only have ${userProfile?.coins ?? 0}. Please purchase more coins.`
+                             }
+                             </DialogDescription>
+                         </DialogHeader>
+                         <DialogFooter>
+                             <Button variant="outline" onClick={() => setShowUnlockModal(false)} disabled={isLoadingUnlock}>Cancel</Button>
+                             {hasSufficientCoins ? (
+                             <Button onClick={handleUnlockStory} disabled={isLoadingUnlock} className="bg-accent hover:bg-accent/90">
+                                 {isLoadingUnlock ? "Unlocking..." : `Yes, unlock for ${story.coinCost} coins`}
+                             </Button>
+                             ) : (
+                             <Link href="/buy-coins">
+                                 <Button className="bg-accent hover:bg-accent/90" onClick={() => setShowUnlockModal(false)}>
+                                 Buy Coins
+                                 </Button>
+                             </Link>
+                             )}
+                         </DialogFooter>
+                     </DialogContent>
+                 </Dialog>
+                 {!user && (
+                   <p className="text-sm mt-2 text-muted-foreground">
+                       Already have an account? <Link href="/login" className="text-primary hover:underline font-semibold">Sign In</Link>
+                   </p>
+                 )}
+             </div>
+           </div>
         )}
 
       </div>
