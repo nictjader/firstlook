@@ -1,3 +1,4 @@
+
 // THIS FILE IS FOR CLIENT-SIDE FIREBASE INIT ONLY
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
