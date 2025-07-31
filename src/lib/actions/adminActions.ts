@@ -16,15 +16,17 @@ import { COIN_PACKAGES, PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
+ * It checks against a `seedTitleIdea` field in Firestore to prevent seed reuse.
  * @returns A randomly selected StorySeed or null if all seeds are used.
  */
 async function selectUnusedSeed(): Promise<StorySeed | null> {
   const db = getAdminDb();
   const storiesRef = db.collection('stories');
-  const snapshot = await storiesRef.select('title').get();
-  const usedTitles = new Set(snapshot.docs.map(doc => doc.data().title));
+  // Query for documents that have the 'seedTitleIdea' field.
+  const snapshot = await storiesRef.select('seedTitleIdea').get();
+  const usedSeedTitles = new Set(snapshot.docs.map(doc => doc.data().seedTitleIdea).filter(Boolean));
   
-  const unusedSeeds = storySeeds.filter(seed => !usedTitles.has(seed.titleIdea));
+  const unusedSeeds = storySeeds.filter(seed => !usedSeedTitles.has(seed.titleIdea));
 
   if (unusedSeeds.length === 0) {
     return null; // All seeds have been used
@@ -62,6 +64,7 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
         ...storyResult.storyData,
         publishedAt: FieldValue.serverTimestamp(),
         coverImageUrl: '', // Will be updated by the cover image action
+        seedTitleIdea: seed.titleIdea, // Tag the story with its original seed idea
     });
 
     return {
@@ -466,3 +469,5 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     updated: updatedCount,
   };
 }
+
+    
