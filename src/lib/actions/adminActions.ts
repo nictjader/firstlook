@@ -176,7 +176,8 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
 
     snapshot.docs.forEach(doc => {
         const story = doc.data() as Story;
-        const correctSubgenre = seedMap.get(story.title);
+        // Use the seedTitleIdea for matching now
+        const correctSubgenre = seedMap.get(story.seedTitleIdea || story.title); 
         
         if (correctSubgenre && story.subgenre !== correctSubgenre) {
             const storyRef = db.collection('stories').doc(doc.id);
@@ -304,9 +305,11 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const series = new Map<string, { count: number, genre: string }>();
     const storiesPerGenre: Record<string, number> = {};
     let totalWordCount = 0;
+    let standaloneCount = 0;
 
     stories.forEach(story => {
-        titles.set(story.title, (titles.get(story.title) || 0) + 1);
+        const titleKey = story.seriesTitle || story.title;
+        titles.set(titleKey, (titles.get(titleKey) || 0) + 1);
         totalWordCount += story.wordCount || 0;
         
         if (story.seriesId) {
@@ -315,6 +318,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
             series.set(story.seriesId, seriesData);
         } else {
             // It's a standalone story
+            standaloneCount++;
             storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
         }
     });
@@ -342,8 +346,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     return {
         totalChapters: stories.length,
-        totalUniqueStories: (stories.length - [...titles.values()].reduce((acc, count) => acc + count -1, 0)) + series.size,
-        standaloneStories: stories.filter(s => !s.seriesId).length,
+        totalUniqueStories: standaloneCount + series.size,
+        standaloneStories: standaloneCount,
         multiPartSeriesCount: series.size,
         storiesPerGenre,
         totalWordCount,
@@ -372,21 +376,38 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     }
 
     const titles = new Set<string>();
+    const seriesTitles = new Set<string>();
     const batch = db.batch();
     let deletedCount = 0;
 
-    snapshot.docs.forEach(doc => {
-        const story = doc.data() as Story;
-        if (titles.has(story.title)) {
-            // This is a duplicate, delete it
-            const docRef = db.collection('stories').doc(doc.id);
-            batch.delete(docRef);
-            deletedCount++;
+    // Iterate backwards (from oldest to newest) to make keeping the newest easier
+    const docs = snapshot.docs.reverse();
+
+    for (const doc of docs) {
+        const story = docToStory(doc);
+        const titleKey = story.seriesTitle || story.title;
+        
+        if (story.seriesId) {
+            // Handle series
+            if(seriesTitles.has(titleKey)) {
+                // This is a chapter of a duplicate series, delete it
+                batch.delete(doc.ref);
+                deletedCount++;
+            } else {
+                seriesTitles.add(titleKey);
+            }
         } else {
-            // First time seeing this title, keep it
-            titles.add(story.title);
+            // Handle standalone stories
+            if (titles.has(titleKey)) {
+                // This is a duplicate, delete it
+                batch.delete(doc.ref);
+                deletedCount++;
+            } else {
+                titles.add(titleKey);
+            }
         }
-    });
+    }
+
 
     if (deletedCount > 0) {
         await batch.commit();
@@ -469,5 +490,3 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     updated: updatedCount,
   };
 }
-
-    
