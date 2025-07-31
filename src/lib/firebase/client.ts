@@ -12,7 +12,7 @@ const firebaseConfig = {
   authDomain: "siren-h2y45.firebaseapp.com",
   projectId: "siren-h2y45",
   storageBucket: "siren-h2y45.appspot.com",
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_I,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
