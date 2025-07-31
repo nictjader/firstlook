@@ -21,12 +21,10 @@ import { COIN_PACKAGES, PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/
 async function selectUnusedSeed(): Promise<StorySeed | null> {
   const db = getAdminDb();
   const storiesRef = db.collection('stories');
-  // Query based on the 'seedTitleIdea' field to prevent reusing seeds.
-  const snapshot = await storiesRef.select('seedTitleIdea').get();
+  const snapshot = await storiesRef.select('title').get();
+  const usedTitles = new Set(snapshot.docs.map(doc => doc.data().title));
   
-  const usedSeedTitles = new Set(snapshot.docs.map(doc => doc.data().seedTitleIdea).filter(Boolean));
-  
-  const unusedSeeds = storySeeds.filter(seed => !usedSeedTitles.has(seed.titleIdea));
+  const unusedSeeds = storySeeds.filter(seed => !usedTitles.has(seed.titleIdea));
 
   if (unusedSeeds.length === 0) {
     return null; // All seeds have been used
@@ -64,7 +62,6 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
         ...storyResult.storyData,
         publishedAt: FieldValue.serverTimestamp(),
         coverImageUrl: '', // Will be updated by the cover image action
-        seedTitleIdea: seed.titleIdea, // Add the seed title for duplicate prevention
     });
 
     return {
@@ -162,11 +159,42 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
  * It matches stories to their seeds by title and updates the `subgenre` field.
  */
 export async function standardizeGenresAction(): Promise<CleanupResult> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.get();
+
+    if (snapshot.empty) {
+        return { success: true, message: 'No stories found to process.', checked: 0, updated: 0 };
+    }
+
+    const batch = db.batch();
+    let updatedCount = 0;
+    const seedMap = new Map(storySeeds.map(seed => [seed.titleIdea, seed.subgenre]));
+
+    snapshot.docs.forEach(doc => {
+        const story = doc.data() as Story;
+        const correctSubgenre = seedMap.get(story.title);
+        
+        if (correctSubgenre && story.subgenre !== correctSubgenre) {
+            const storyRef = db.collection('stories').doc(doc.id);
+            batch.update(storyRef, { subgenre: correctSubgenre });
+            updatedCount++;
+        }
+    });
+
+    if (updatedCount > 0) {
+        await batch.commit();
+    }
+
+    const message = updatedCount > 0 
+        ? `Successfully checked ${snapshot.size} stories and standardized the genre for ${updatedCount} of them.`
+        : `Checked ${snapshot.size} stories. All genres were already standard.`;
+
     return {
         success: true,
-        message: 'This action is temporarily disabled.',
-        checked: 0,
-        updated: 0,
+        message,
+        checked: snapshot.size,
+        updated: updatedCount
     };
 }
 
@@ -175,11 +203,29 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
  * A one-time action to remove the 'tags' field from all stories in Firestore.
  */
 export async function removeTagsAction(): Promise<CleanupResult> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.where('tags', '!=', null).get();
+
+    if (snapshot.empty) {
+        return { success: true, message: 'No stories with tags found to remove.', checked: 0, updated: 0 };
+    }
+
+    const batch = db.batch();
+    snapshot.docs.forEach(doc => {
+        const storyRef = db.collection('stories').doc(doc.id);
+        batch.update(storyRef, {
+            tags: FieldValue.delete()
+        });
+    });
+
+    await batch.commit();
+
     return {
         success: true,
-        message: 'This action is temporarily disabled.',
-        checked: 0,
-        updated: 0,
+        message: `Successfully removed the 'tags' field from ${snapshot.size} stories.`,
+        checked: snapshot.size,
+        updated: snapshot.size,
     };
 }
 
@@ -251,36 +297,34 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
     
-    // Map to hold unique story concepts (standalone title or series title)
-    const storyConcepts = new Map<string, { count: number; genre: string, isSeries: boolean }>();
-
-    stories.forEach(story => {
-        const conceptTitle = story.seriesTitle || story.title;
-        const concept = storyConcepts.get(conceptTitle) || { count: 0, genre: story.subgenre, isSeries: !!story.seriesId };
-        concept.count++;
-        storyConcepts.set(conceptTitle, concept);
-    });
-
+    const titles = new Map<string, number>();
+    const series = new Map<string, { count: number, genre: string }>();
     const storiesPerGenre: Record<string, number> = {};
     let totalWordCount = 0;
-    let standaloneStoriesCount = 0;
-    let multiPartSeriesCount = 0;
-    const duplicateTitles: Record<string, number> = {};
 
-    storyConcepts.forEach((concept, title) => {
-        storiesPerGenre[concept.genre] = (storiesPerGenre[concept.genre] || 0) + 1;
-        if (concept.isSeries) {
-            multiPartSeriesCount++;
+    stories.forEach(story => {
+        titles.set(story.title, (titles.get(story.title) || 0) + 1);
+        totalWordCount += story.wordCount || 0;
+        
+        if (story.seriesId) {
+            const seriesData = series.get(story.seriesId) || { count: 0, genre: story.subgenre };
+            seriesData.count++;
+            series.set(story.seriesId, seriesData);
         } else {
-            standaloneStoriesCount++;
-        }
-        if (concept.count > 1) { // This is the corrected check for duplicates
-            duplicateTitles[title] = concept.count;
+            // It's a standalone story
+            storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
         }
     });
 
-    stories.forEach(story => {
-        totalWordCount += story.wordCount || 0;
+    series.forEach(s => {
+        storiesPerGenre[s.genre] = (storiesPerGenre[s.genre] || 0) + 1;
+    });
+
+    const duplicateTitles: Record<string, number> = {};
+    titles.forEach((count, title) => {
+        if (count > 1) {
+            duplicateTitles[title] = count;
+        }
     });
 
     const totalCoinCost = stories.reduce((acc, story) => acc + (story.isPremium ? story.coinCost : 0), 0);
@@ -295,9 +339,9 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     return {
         totalChapters: stories.length,
-        totalUniqueStories: storyConcepts.size,
-        standaloneStories: standaloneStoriesCount,
-        multiPartSeriesCount,
+        totalUniqueStories: (stories.length - [...titles.values()].reduce((acc, count) => acc + count -1, 0)) + series.size,
+        standaloneStories: stories.filter(s => !s.seriesId).length,
+        multiPartSeriesCount: series.size,
         storiesPerGenre,
         totalWordCount,
         totalPaidChapters: paidChapters.length,
@@ -313,35 +357,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
 
 /**
- * Deletes a file from Firebase Storage, handling potential errors.
- * @param filePath The full path to the file in the bucket (e.g., 'story-covers/storyId.png').
- */
-async function deleteStorageFile(filePath: string) {
-    try {
-        const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-        if (!bucketName) {
-            console.warn('Storage bucket name not configured, skipping file deletion.');
-            return;
-        }
-        const bucket = getStorage().bucket(bucketName);
-        const file = bucket.file(filePath);
-        await file.delete();
-        console.log(`Successfully deleted ${filePath} from storage.`);
-    } catch (error: any) {
-        // It's common for files not to exist (e.g., placeholder used), so we don't treat "Not Found" as a critical error.
-        if (error.code === 404) {
-            console.log(`File not found in storage, skipping deletion: ${filePath}`);
-        } else {
-            console.error(`Failed to delete file ${filePath} from storage:`, error);
-        }
-    }
-}
-
-
-/**
  * Finds and deletes stories with duplicate titles, keeping only the most recent one.
- * This now handles standalone stories and multi-part series correctly, and also
- * deletes the associated cover images from Firebase Storage.
  */
 export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const db = getAdminDb();
@@ -352,51 +368,36 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
         return { success: true, message: "No stories found.", checked: 0, updated: 0 };
     }
 
-    const stories = snapshot.docs.map(doc => docToStory(doc));
+    const titles = new Set<string>();
     const batch = db.batch();
-    const storageDeletePromises: Promise<void>[] = [];
-    let processedCount = 0;
-    
-    // Use a map to track the concepts we've decided to keep.
-    // Key: story title (for standalone) or series title (for series).
-    // Value: storyId (for standalone) or seriesId (for series).
-    const conceptsToKeep = new Map<string, string>();
+    let deletedCount = 0;
 
-    for (const story of stories) {
-        const conceptTitle = story.seriesTitle || story.title;
-        
-        if (conceptsToKeep.has(conceptTitle)) {
-            // This is a duplicate concept. Delete this chapter.
-            const docRef = db.collection('stories').doc(story.storyId);
+    snapshot.docs.forEach(doc => {
+        const story = doc.data() as Story;
+        if (titles.has(story.title)) {
+            // This is a duplicate, delete it
+            const docRef = db.collection('stories').doc(doc.id);
             batch.delete(docRef);
-            processedCount++;
-
-            if (story.coverImageUrl && story.coverImageUrl.includes('storage.googleapis.com')) {
-                const filePath = `story-covers/${story.storyId}.png`;
-                storageDeletePromises.push(deleteStorageFile(filePath));
-            }
+            deletedCount++;
         } else {
-            // This is the first time we've seen this concept (story/series title). Keep it.
-            const conceptId = story.seriesId || story.storyId;
-            conceptsToKeep.set(conceptTitle, conceptId);
+            // First time seeing this title, keep it
+            titles.add(story.title);
         }
-    }
+    });
 
-
-    if (processedCount > 0) {
+    if (deletedCount > 0) {
         await batch.commit();
-        await Promise.all(storageDeletePromises);
     }
     
-    const message = processedCount > 0
-        ? `Successfully cleaned up and deleted ${processedCount} duplicate story chapters.`
+    const message = deletedCount > 0
+        ? `Successfully cleaned up and deleted ${deletedCount} duplicate stories.`
         : `No duplicate stories found to clean up.`;
 
     return {
         success: true,
         message: message,
         checked: snapshot.size,
-        updated: processedCount,
+        updated: deletedCount,
     };
 }
 
