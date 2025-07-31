@@ -1,4 +1,3 @@
-
 // THIS FILE IS FOR CLIENT-SIDE FIREBASE INIT ONLY
 import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, type Auth } from 'firebase/auth';
@@ -6,24 +5,32 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
-// The Firebase config is now hardcoded with the correct project details to ensure
-// proper initialization and fix authentication errors.
+// Get Firebase config from environment variables
 const firebaseConfig = {
-  apiKey: "your-api-key-from-firebase",
-  authDomain: "siren-h2y45.firebaseapp.com",
-  projectId: "siren-h2y45",
-  storageBucket: "siren-h2y45.appspot.com",
-  messagingSenderId: "your-messaging-sender-id",
-  appId: "your-app-id",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// This check is a safeguard. In a real environment, you'd want to ensure these keys are present.
-if (firebaseConfig.apiKey === "your-api-key-from-firebase") {
-    // In a real production environment, you might throw an error here.
-    // For this context, we will proceed, but auth will likely fail if the key isn't injected.
-    console.warn("Firebase API Key is a placeholder. Authentication will fail if not replaced by a valid key.");
-}
+// Validate that all required config values are present
+const requiredConfigKeys = [
+  'apiKey',
+  'authDomain', 
+  'projectId',
+  'storageBucket',
+  'messagingSenderId',
+  'appId'
+] as const;
 
+for (const key of requiredConfigKeys) {
+  if (!firebaseConfig[key]) {
+    // In a production build, this will throw an error. In development, it helps identify missing variables.
+    console.error(`Missing Firebase configuration: ${key}. Please check your .env.local file.`);
+  }
+}
 
 // Initialize Firebase for the CLIENT
 let app: FirebaseApp;
