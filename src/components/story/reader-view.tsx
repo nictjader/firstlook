@@ -169,16 +169,14 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         </div>
         
         {isUnlocked ? (
-          <>
-            <Separator />
+          <div>
             <ReadingControls />
             <div className={`py-6 px-6 prose dark:prose-invert max-w-none ${FONT_SIZES[currentFontSizeIndex]} font-body`}>
                 <div dangerouslySetInnerHTML={{ __html: story.content }} />
             </div>
-          </>
+          </div>
         ) : (
            <div>
-              <Separator/>
               <ReadingControls />
               <div className="relative">
                 <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-80 overflow-hidden font-body">
