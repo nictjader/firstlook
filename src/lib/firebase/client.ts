@@ -5,14 +5,14 @@ import { getFirestore, type Firestore } from 'firebase/firestore';
 import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { getFunctions } from 'firebase/functions';
 
-// The Firebase config is pulled from environment variables.
-// These are set in the hosting environment and are available publicly on the client.
+// The Firebase config is now partially hardcoded to prevent build/initialization errors.
+// The API key and other sensitive values are still pulled from environment variables.
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  authDomain: "siren-h2y45.firebaseapp.com",
   projectId: "siren-h2y45",
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  storageBucket: "siren-h2y45.appspot.com",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_I,
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
