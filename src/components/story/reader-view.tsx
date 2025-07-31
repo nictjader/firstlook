@@ -190,7 +190,13 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                   <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
                   <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
                   <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
-                      <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => setShowUnlockModal(true)}>
+                      <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => {
+                        if (user) {
+                          setShowUnlockModal(true);
+                        } else {
+                          router.push('/login?reason=purchase');
+                        }
+                      }}>
                           <Lock className="mr-2 h-5 w-5"/>Unlock to Read
                       </Button>
                       <DialogContent>
