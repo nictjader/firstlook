@@ -9,6 +9,7 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestam
 import { auth, db } from '@/lib/firebase/client';
 import { docToUserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 
 const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
+  const router = useRouter();
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
@@ -169,7 +171,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               title: isFavorited ? 'Removed from Favorites' : 'Added to Favorites',
            });
       } else {
-          console.warn("User not logged in, cannot favorite story.");
+          toast({
+            variant: "default",
+            title: "Sign in to Favorite",
+            description: "You need an account to save your favorite stories.",
+          });
           router.push('/login?reason=favorite');
       }
   }, [user, userProfile, toast, router]);
