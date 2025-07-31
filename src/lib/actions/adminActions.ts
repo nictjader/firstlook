@@ -162,46 +162,11 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
  * It matches stories to their seeds by title and updates the `subgenre` field.
  */
 export async function standardizeGenresAction(): Promise<CleanupResult> {
-    // const db = getAdminDb();
-    // const storiesRef = db.collection('stories');
-    // const snapshot = await storiesRef.get();
-
-    // if (snapshot.empty) {
-    //     return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
-    // }
-
-    // const seedGenreMap = new Map(storySeeds.map(seed => [seed.titleIdea, seed.subgenre]));
-    
-    // const batch = db.batch();
-    // let updatedCount = 0;
-
-    // snapshot.docs.forEach(doc => {
-    //     const story = doc.data() as Story;
-    //     const seedTitle = story.seedTitleIdea;
-        
-    //     if (seedTitle) {
-    //       const correctGenre = seedGenreMap.get(seedTitle);
-    //       if (correctGenre && story.subgenre !== correctGenre) {
-    //           const storyRef = db.collection('stories').doc(doc.id);
-    //           batch.update(storyRef, { subgenre: correctGenre });
-    //           updatedCount++;
-    //       }
-    //     }
-    // });
-
-    // if(updatedCount > 0) {
-    //     await batch.commit();
-    // }
-
-    // const message = updatedCount > 0 
-    //     ? `Successfully checked ${snapshot.size} stories and updated ${updatedCount} with standardized genres.`
-    //     : `Checked ${snapshot.size} stories. All genres were already standard.`;
-
     return {
         success: true,
-        message: 'This action is temporarily disabled.', // message,
-        checked: 0, // snapshot.size,
-        updated: 0, // updatedCount,
+        message: 'This action is temporarily disabled.',
+        checked: 0,
+        updated: 0,
     };
 }
 
@@ -210,38 +175,11 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
  * A one-time action to remove the 'tags' field from all stories in Firestore.
  */
 export async function removeTagsAction(): Promise<CleanupResult> {
-    // const db = getAdminDb();
-    // const storiesRef = db.collection('stories');
-    // const snapshot = await storiesRef.get();
-
-    // if (snapshot.empty) {
-    //     return { success: true, message: "No stories found in the database.", checked: 0, updated: 0 };
-    // }
-
-    // const batch = db.batch();
-    // let updatedCount = 0;
-
-    // snapshot.docs.forEach(doc => {
-    //     if (doc.data().tags) {
-    //         const storyRef = db.collection('stories').doc(doc.id);
-    //         batch.update(storyRef, { tags: FieldValue.delete() });
-    //         updatedCount++;
-    //     }
-    // });
-
-    // if (updatedCount > 0) {
-    //     await batch.commit();
-    // }
-    
-    // const message = updatedCount > 0 
-    //     ? `Successfully checked ${snapshot.size} stories and removed the 'tags' field from ${updatedCount} of them.`
-    //     : `Checked ${snapshot.size} stories. None had the 'tags' field.`;
-
     return {
         success: true,
-        message: 'This action is temporarily disabled.', // message,
-        checked: 0, // snapshot.size,
-        updated: 0, // updatedCount,
+        message: 'This action is temporarily disabled.',
+        checked: 0,
+        updated: 0,
     };
 }
 
@@ -336,16 +274,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         } else {
             standaloneStoriesCount++;
         }
-        if (concept.count > (concept.isSeries ? 1 : 1)) {
-           const story = stories.find(s => s.title === title || s.seriesTitle === title);
-           if (story) {
-                const chapters = stories.filter(s => (s.seriesId && s.seriesId === story.seriesId) || s.title === title);
-                if (chapters.length > story.totalPartsInSeries!) {
-                    duplicateTitles[title] = chapters.length;
-                } else if (!story.seriesId && chapters.length > 1) {
-                    duplicateTitles[title] = chapters.length;
-                }
-           }
+        if (concept.count > 1) { // This is the corrected check for duplicates
+            duplicateTitles[title] = concept.count;
         }
     });
 
@@ -433,10 +363,8 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const conceptsToKeep = new Map<string, string>();
 
     for (const story of stories) {
-        const isSeries = !!story.seriesId;
         const conceptTitle = story.seriesTitle || story.title;
-        const conceptId = story.seriesId || story.storyId;
-
+        
         if (conceptsToKeep.has(conceptTitle)) {
             // This is a duplicate concept. Delete this chapter.
             const docRef = db.collection('stories').doc(story.storyId);
@@ -449,6 +377,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
             }
         } else {
             // This is the first time we've seen this concept (story/series title). Keep it.
+            const conceptId = story.seriesId || story.storyId;
             conceptsToKeep.set(conceptTitle, conceptId);
         }
     }
