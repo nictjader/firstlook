@@ -40,7 +40,7 @@ export default function AuthForm() {
       toast({
         variant: "success",
         title: "Check Your Inbox!",
-        description: `A secure sign-in link has been sent to ${email}.`,
+        description: `A secure sign-in link was sent to ${email}.`,
       });
       setLinkSentTo(email);
     } catch (error: any) {
@@ -60,7 +60,7 @@ export default function AuthForm() {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
-        toast({ variant: "success", title: "Success!", description: "You are now signed in." });
+        toast({ variant: "success", title: "Sign In Successful!", description: "Welcome! You are now signed in." });
         
         const redirectUrl = searchParams.get('redirect');
         const packageId = searchParams.get('packageId');
@@ -74,7 +74,7 @@ export default function AuthForm() {
     } catch (error: any) {
         console.error(error);
         toast({
-            title: "Sign-In Failed",
+            title: "Google Sign-In Failed",
             description: error.message || "Could not sign in with Google. Please try again.",
             variant: "destructive",
         });

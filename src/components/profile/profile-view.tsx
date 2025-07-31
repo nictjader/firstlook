@@ -78,7 +78,7 @@ export default function ProfileView() {
       await verifyBeforeUpdateEmail(user, newEmail);
       toast({
         title: "Verification Email Sent",
-        description: `A link to verify your new email has been sent to ${newEmail}. Please click the link to complete the update.`,
+        description: `A link to verify your new email address has been sent to ${newEmail}.`,
         variant: 'success',
         duration: 8000,
       });
@@ -138,7 +138,7 @@ export default function ProfileView() {
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center text-sm font-semibold"><Mail className="w-4 h-4 mr-2 text-muted-foreground"/>Email</Label>
+            <Label htmlFor="email" className="flex items-center text-sm font-semibold"><Mail className="w-4 h-4 mr-2 text-muted-foreground"/>Email Address</Label>
             <div className="flex items-center justify-between">
               <p className="text-muted-foreground bg-muted/50 px-3 py-2 rounded-md w-full">{userProfile.email || 'No email provided'}</p>
                <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
@@ -147,9 +147,9 @@ export default function ProfileView() {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Change Your Email Address</DialogTitle>
+                    <DialogTitle>Change Email Address</DialogTitle>
                     <DialogDescription>
-                      Enter your new email address below. We'll send a verification link to confirm the change. Your email will not be updated until you click the link.
+                      We'll send a verification link to your new email. Your address won't be updated until you click the link.
                     </DialogDescription>
                   </DialogHeader>
                   <div className="grid gap-4 py-4">
@@ -175,7 +175,7 @@ export default function ProfileView() {
                     </DialogClose>
                      <Button type="submit" onClick={handleEmailChange} disabled={isUpdatingEmail}>
                       {isUpdatingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Save Changes
+                      Send Verification
                     </Button>
                   </DialogFooter>
                 </DialogContent>

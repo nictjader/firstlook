@@ -87,7 +87,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
       setShowUnlockModal(false);
     } catch (error) {
       console.error("Error unlocking story:", error);
-      toast({ title: "Unlock Failed", description: "Could not unlock the story. Please try again.", variant: "destructive" });
+      toast({ title: "Unlock Failed", description: "Could not unlock this story. Please try again.", variant: "destructive" });
     } finally {
       setIsLoadingUnlock(false);
     }
@@ -170,9 +170,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
         
         {isUnlocked ? (
           <>
-            <div className="px-6">
-              <Separator />
-            </div>
+            <Separator />
             <ReadingControls />
             <Separator />
             <div className={`py-6 px-6 prose dark:prose-invert max-w-none ${FONT_SIZES[currentFontSizeIndex]} font-body`}>
@@ -212,7 +210,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                              <Button variant="outline" onClick={() => setShowUnlockModal(false)} disabled={isLoadingUnlock}>Cancel</Button>
                              {hasSufficientCoins ? (
                              <Button onClick={handleUnlockStory} disabled={isLoadingUnlock} className="bg-accent hover:bg-accent/90">
-                                 {isLoadingUnlock ? "Unlocking..." : `Yes, unlock for ${story.coinCost} coins`}
+                                 {isLoadingUnlock ? "Unlocking..." : `Yes, Unlock for ${story.coinCost} Coins`}
                              </Button>
                              ) : (
                              <Link href="/buy-coins">

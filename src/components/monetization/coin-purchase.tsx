@@ -49,7 +49,7 @@ export default function CoinPurchase() {
       console.error("Stripe checkout error:", error);
       toast({
         title: "Purchase Error",
-        description: error.message || "Could not initiate the purchase. Please try again later.",
+        description: error.message || "Could not start the purchase. Please try again later.",
         variant: "destructive",
       });
       setLoadingPackageId(null);

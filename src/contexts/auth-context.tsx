@@ -170,8 +170,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
            });
       } else {
           console.warn("User not logged in, cannot favorite story.");
+          router.push('/login?reason=favorite');
       }
-  }, [user, userProfile, toast]);
+  }, [user, userProfile, toast, router]);
 
   const markStoryAsRead = useCallback((storyId: string) => {
     if (user && userProfile) {

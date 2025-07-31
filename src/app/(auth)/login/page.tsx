@@ -31,14 +31,14 @@ function LoginContent() {
     const reason = searchParams.get('reason');
     if (reason === 'favorite') {
       toast({
-        title: "Please Sign In",
-        description: "You need to create an account to favorite stories.",
+        title: "Sign in to Favorite",
+        description: "You need an account to save your favorite stories.",
         variant: 'default',
       });
     } else if (reason === 'purchase') {
       toast({
-        title: "Please Sign In",
-        description: "You need to create an account to purchase coins.",
+        title: "Sign in to Purchase",
+        description: "You need an account to purchase coins and unlock stories.",
         variant: 'default',
       });
     }
@@ -48,8 +48,8 @@ function LoginContent() {
     if (!email) {
       toast({
         variant: "destructive",
-        title: "Sign-In Failed",
-        description: "Email is required to complete the sign-in. Please try again.",
+        title: "Sign In Failed",
+        description: "An email address is required. Please try again.",
       });
       setIsVerifyingLink(false);
       return;
@@ -61,8 +61,8 @@ function LoginContent() {
         window.localStorage.removeItem('emailForSignIn');
         toast({ 
           variant: "success",
-          title: "Success!", 
-          description: "You are now signed in." 
+          title: "Sign In Successful!", 
+          description: "Welcome back! You are now signed in." 
         });
         
         const redirectUrl = searchParams.get('redirect');
@@ -79,8 +79,8 @@ function LoginContent() {
         console.error(err);
         toast({
             variant: "destructive",
-            title: "Sign-In Failed",
-            description: "The sign-in link is invalid, has expired, or was already used. Please request a new link.",
+            title: "Sign In Failed",
+            description: "This sign-in link may be expired or already used. Please request a new one.",
         });
         setIsVerifyingLink(false);
       });
@@ -111,7 +111,7 @@ function LoginContent() {
       } else {
         toast({
             variant: "destructive",
-            title: "Sign-In Failed",
+            title: "Invalid Link",
             description: "The sign-in link is invalid or malformed. Please try again.",
         });
         setIsVerifyingLink(false);
@@ -126,12 +126,12 @@ function LoginContent() {
             <CardHeader>
                 <CardTitle className="text-2xl text-primary font-semibold tracking-tight flex items-center justify-center">
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                  Verifying Link...
+                  Verifying...
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
-                    Please wait while we securely sign you in. This may take a moment.
+                    Please wait while we securely sign you in.
                 </p>
             </CardContent>
         </Card>
@@ -145,7 +145,7 @@ function LoginContent() {
           <AlertDialogHeader>
             <AlertDialogTitle>Confirm Your Email</AlertDialogTitle>
             <AlertDialogDescription>
-              To complete your sign-in, please provide the email address where you received the link. This helps us keep your account secure.
+              To complete sign-in, please provide the email where you received the link. This keeps your account secure.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="py-4">
@@ -155,10 +155,10 @@ function LoginContent() {
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => {
               setShowEmailPrompt(false);
-              toast({ variant: "destructive", title: "Sign-in cancelled." });
+              toast({ variant: "destructive", title: "Sign-In Cancelled" });
               setIsVerifyingLink(false);
             }}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handlePromptSubmit}>Confirm</AlertDialogAction>
+            <AlertDialogAction onClick={handlePromptSubmit}>Confirm & Sign In</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
