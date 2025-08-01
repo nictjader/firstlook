@@ -91,7 +91,7 @@ export default function AuthForm() {
         <div className="flex justify-center items-center mb-4">
           <Logo />
         </div>
-        <h3 className="text-3xl font-headline font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</h3>
+        <h3 className="text-3xl font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</h3>
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
