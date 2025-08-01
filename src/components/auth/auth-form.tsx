@@ -59,7 +59,6 @@ export default function AuthForm() {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      // No await here - the redirect happens immediately.
       signInWithRedirect(auth, provider);
     } catch (error: any) {
       console.error("Google Sign-In Failed before redirect. Error:", error);
