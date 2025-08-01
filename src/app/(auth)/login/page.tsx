@@ -24,7 +24,6 @@ function LoginContent() {
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
   
-  // Using a ref to prevent re-running the effect on every render in Strict Mode
   const effectRan = useRef(false);
 
   const handleSuccessfulSignIn = useCallback(() => {
@@ -74,7 +73,7 @@ function LoginContent() {
             title: "Sign In Failed",
             description: "An email address is required. Please try again.",
         });
-        setIsVerifying(false); // Show the form again on failure
+        setIsVerifying(false); 
     }
   };
   
@@ -102,33 +101,27 @@ function LoginContent() {
   }, [searchParams, toast]);
 
   useEffect(() => {
-    // Prevent the effect from running twice in strict mode
-    if (effectRan.current === true) return;
+    if (effectRan.current) return;
     effectRan.current = true;
 
     const checkAuth = async () => {
       try {
-        // First, check for a Google Sign-In redirect result
         const result = await getRedirectResult(auth);
         if (result && result.user) {
           handleSuccessfulSignIn();
-          // Important: Stop execution here if successful
           return; 
         }
 
-        // If no redirect result, then check for an email sign-in link
         const fullUrl = window.location.href;
         if (isSignInWithEmailLink(auth, fullUrl)) {
           let email = window.localStorage.getItem('emailForSignIn');
           if (email) {
             completeEmailSignIn(email);
           } else {
-            // User has the link but we don't have their email. Prompt them.
-            setIsVerifying(false);
             setShowEmailPrompt(true);
+            setIsVerifying(false);
           }
         } else {
-          // This is a normal page load, not a redirect or link click.
           setIsVerifying(false);
         }
       } catch (err) {

@@ -7,9 +7,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
 import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Mail, Chrome, MailCheck } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -19,18 +17,14 @@ export default function AuthForm() {
   const [email, setEmail] = useState('');
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const { toast } = useToast();
-  const router = useRouter();
-  const searchParams = useSearchParams();
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    const url = new URL(window.location.href);
-    url.searchParams.set('email', email);
-    
+    // Construct the URL for the email link. It should point back to the login page.
     const actionCodeSettings = {
-      url: url.toString(),
+      url: window.location.href,
       handleCodeInApp: true,
     };
 
@@ -58,17 +52,17 @@ export default function AuthForm() {
   const handleGoogleSignIn = () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
-    try {
-      signInWithRedirect(auth, provider);
-    } catch (error: any) {
-      console.error("Google Sign-In Failed before redirect. Error:", error);
-      toast({
-          title: "Google Sign-In Failed",
-          description: `Could not start the sign-in process. Error: ${error.message}`,
-          variant: "destructive",
-      });
-      setLoading(false);
-    }
+    // No await here. The redirect will take over the page.
+    // The result is handled on the login page itself when the user is redirected back.
+    signInWithRedirect(auth, provider).catch((error: any) => {
+        console.error("Google Sign-In Failed before redirect. Error:", error);
+        toast({
+            title: "Google Sign-In Failed",
+            description: `Could not start the sign-in process. Error: ${error.message}`,
+            variant: "destructive",
+        });
+        setLoading(false);
+    });
   };
 
 
