@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Mail, Chrome, MailCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -57,25 +57,16 @@ export default function AuthForm() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    console.log("Attempting Google Sign-In...");
+    console.log("Attempting Google Sign-In with redirect...");
     console.log("Firebase Config Loaded:", auth.app.options);
     
     const provider = new GoogleAuthProvider();
     
     try {
-        const result = await signInWithPopup(auth, provider);
-        console.log("Sign-in successful", result.user);
-        toast({ variant: "success", title: "Sign In Successful!", description: "Welcome! You are now signed in." });
-        
-        const redirectUrl = searchParams.get('redirect');
-        const packageId = searchParams.get('packageId');
-
-        if (redirectUrl) {
-          const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
-          router.push(finalUrl);
-        } else {
-          router.push('/');
-        }
+        // Use signInWithRedirect instead of signInWithPopup
+        await signInWithRedirect(auth, provider);
+        // The rest of the code will not execute as the page will redirect.
+        // The sign-in result will be handled when the user is redirected back to the page.
     } catch (error: any) {
         console.error("Google Sign-In Failed. Error object:", error);
         toast({
@@ -83,10 +74,9 @@ export default function AuthForm() {
             description: `Error: ${error.code} - ${error.message}`,
             variant: "destructive",
         });
-    } finally {
         setLoading(false);
-        console.log("Google Sign-In process finished.");
     }
+    // No need for a finally block to set loading to false, as the page will navigate away.
   };
 
 
