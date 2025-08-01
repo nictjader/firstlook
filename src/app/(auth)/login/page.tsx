@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useRef } from 'react';
+import { useEffect, useState, Suspense, useRef, useCallback } from 'react';
 import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
@@ -20,12 +20,65 @@ function LoginContent() {
   const router = useRouter();
   const { toast } = useToast();
 
-  const isPotentialMagicLink = searchParams.has('apiKey') && searchParams.has('oobCode');
-  const [isVerifying, setIsVerifying] = useState(true); // Start true to handle redirects immediately
-
-  // State for the custom email prompt dialog
+  const [isVerifying, setIsVerifying] = useState(true);
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSuccessfulSignIn = useCallback(() => {
+    toast({
+      variant: "success",
+      title: "Sign In Successful!",
+      description: "Welcome! You are now signed in."
+    });
+    const redirectUrl = searchParams.get('redirect');
+    const packageId = searchParams.get('packageId');
+
+    if (redirectUrl) {
+      const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
+      router.push(finalUrl);
+    } else {
+      router.push('/');
+    }
+  }, [router, searchParams, toast]);
+
+  const completeEmailSignIn = useCallback((email: string) => {
+    const fullUrl = window.location.href;
+    signInWithEmailLink(auth, email, fullUrl)
+      .then(() => {
+        window.localStorage.removeItem('emailForSignIn');
+        handleSuccessfulSignIn();
+      })
+      .catch((err) => {
+        console.error(err);
+        toast({
+          variant: "destructive",
+          title: "Sign In Failed",
+          description: "This sign-in link may be expired or already used. Please request a new one.",
+        });
+        setIsVerifying(false);
+      });
+  }, [handleSuccessfulSignIn, toast]);
+
+  const handlePromptSubmit = () => {
+    const email = emailInputRef.current?.value;
+    setShowEmailPrompt(false);
+    if (email) {
+        setIsVerifying(true);
+        completeEmailSignIn(email);
+    } else {
+        toast({
+            variant: "destructive",
+            title: "Sign In Failed",
+            description: "An email address is required. Please try again.",
+        });
+    }
+  };
+  
+  const cancelEmailPrompt = () => {
+    setShowEmailPrompt(false);
+    toast({ variant: "destructive", title: "Sign-In Cancelled" });
+    setIsVerifying(false);
+  }
 
   useEffect(() => {
     const reason = searchParams.get('reason');
@@ -44,112 +97,44 @@ function LoginContent() {
     }
   }, [searchParams, toast]);
 
-  // Handle successful sign-in navigation
-  const handleSuccessfulSignIn = () => {
-      toast({ 
-        variant: "success",
-        title: "Sign In Successful!", 
-        description: "Welcome! You are now signed in." 
-      });
-      
-      const redirectUrl = searchParams.get('redirect');
-      const packageId = searchParams.get('packageId');
-
-      if (redirectUrl) {
-        const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
-        router.push(finalUrl);
-      } else {
-        router.push('/');
-      }
-  };
-
-
-  const completeEmailSignIn = (email: string | null) => {
-    if (!email) {
-      toast({
-        variant: "destructive",
-        title: "Sign In Failed",
-        description: "An email address is required. Please try again.",
-      });
-      setIsVerifying(false);
-      return;
-    }
-
-    const fullUrl = window.location.href;
-    signInWithEmailLink(auth, email, fullUrl)
-      .then(() => {
-        window.localStorage.removeItem('emailForSignIn');
-        handleSuccessfulSignIn();
-      })
-      .catch((err) => {
-        console.error(err);
-        toast({
-            variant: "destructive",
-            title: "Sign In Failed",
-            description: "This sign-in link may be expired or already used. Please request a new one.",
-        });
-        setIsVerifying(false);
-      });
-  };
-
-  const handlePromptSubmit = () => {
-    const email = emailInputRef.current?.value || null;
-    setShowEmailPrompt(false);
-    setIsVerifying(true);
-    completeEmailSignIn(email);
-  };
-
   useEffect(() => {
-    // Check for Google Redirect Result first
     getRedirectResult(auth)
       .then((result) => {
         if (result && result.user) {
-          // User successfully signed in with Google
+          // This means the user has successfully signed in via Google redirect.
           handleSuccessfulSignIn();
-        } else if (isPotentialMagicLink) {
-          // No Google result, check for email link
+        } else {
+          // No Google redirect result, check for email link.
           const fullUrl = window.location.href;
           if (isSignInWithEmailLink(auth, fullUrl)) {
-            let email = searchParams.get('email');
-            if (!email) {
-                email = window.localStorage.getItem('emailForSignIn');
-            }
-            
-            if (!email) {
+            let email = window.localStorage.getItem('emailForSignIn');
+            if (email) {
+              completeEmailSignIn(email);
+            } else {
+              // User has the link but we don't have their email. Prompt them.
               setIsVerifying(false);
               setShowEmailPrompt(true);
-            } else {
-              completeEmailSignIn(email);
             }
           } else {
-             toast({
-                variant: "destructive",
-                title: "Invalid Link",
-                description: "The sign-in link is invalid or malformed. Please try again.",
-            });
+            // This is a normal page load, not a redirect or link click.
             setIsVerifying(false);
           }
-        } else {
-            // No redirect or link, we are done verifying.
-            setIsVerifying(false);
         }
       })
       .catch((err) => {
-        console.error("Error during getRedirectResult:", err);
+        console.error("Error during authentication check:", err);
         toast({
-            variant: "destructive",
-            title: "Sign In Failed",
-            description: "An error occurred during sign-in. Please try again.",
+          variant: "destructive",
+          title: "Sign In Failed",
+          description: "An error occurred during sign-in. Please try again.",
         });
         setIsVerifying(false);
       });
-  // The dependencies are correct. This effect should only run once on page load
-  // after a potential redirect.
+  // These dependencies are correct. This effect should only run once.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-
-  if (isVerifying && !showEmailPrompt) {
+  if (isVerifying) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
@@ -182,11 +167,7 @@ function LoginContent() {
             <Input ref={emailInputRef} id="email-confirm" type="email" placeholder="you@example.com" />
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowEmailPrompt(false);
-              toast({ variant: "destructive", title: "Sign-In Cancelled" });
-              setIsVerifying(false);
-            }}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={cancelEmailPrompt}>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={handlePromptSubmit}>Confirm & Sign In</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -221,3 +202,5 @@ export default function LoginPage() {
     </div>
   )
 }
+
+    
