@@ -24,7 +24,7 @@ function LoginContent() {
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
   
-  // Using a ref to prevent re-running the effect on every render
+  // Using a ref to prevent re-running the effect on every render in Strict Mode
   const effectRan = useRef(false);
 
   const handleSuccessfulSignIn = useCallback(() => {
@@ -74,6 +74,7 @@ function LoginContent() {
             title: "Sign In Failed",
             description: "An email address is required. Please try again.",
         });
+        setIsVerifying(false); // Show the form again on failure
     }
   };
   
@@ -102,7 +103,7 @@ function LoginContent() {
 
   useEffect(() => {
     // Prevent the effect from running twice in strict mode
-    if (effectRan.current) return;
+    if (effectRan.current === true) return;
     effectRan.current = true;
 
     const checkAuth = async () => {
