@@ -57,16 +57,10 @@ export default function AuthForm() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
-    console.log("Attempting Google Sign-In with redirect...");
-    console.log("Firebase Config Loaded:", auth.app.options);
-    
     const provider = new GoogleAuthProvider();
     
     try {
-        // Use signInWithRedirect instead of signInWithPopup
         await signInWithRedirect(auth, provider);
-        // The rest of the code will not execute as the page will redirect.
-        // The sign-in result will be handled when the user is redirected back to the page.
     } catch (error: any) {
         console.error("Google Sign-In Failed. Error object:", error);
         toast({
@@ -76,7 +70,6 @@ export default function AuthForm() {
         });
         setLoading(false);
     }
-    // No need for a finally block to set loading to false, as the page will navigate away.
   };
 
 
@@ -91,7 +84,7 @@ export default function AuthForm() {
         <div className="flex justify-center items-center mb-4">
           <Logo />
         </div>
-        <h3 className="text-3xl font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</h3>
+        <h3 className="text-2xl font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</h3>
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">

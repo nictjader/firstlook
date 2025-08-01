@@ -150,7 +150,7 @@ function LoginContent() {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
-                <CardTitle className="text-2xl text-primary font-semibold tracking-tight flex items-center justify-center">
+                <CardTitle className="text-2xl font-semibold tracking-tight flex items-center justify-center">
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                   Verifying...
                 </CardTitle>
