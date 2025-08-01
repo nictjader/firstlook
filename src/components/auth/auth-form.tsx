@@ -55,20 +55,20 @@ export default function AuthForm() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignIn = () => {
     setLoading(true);
     const provider = new GoogleAuthProvider();
-    
     try {
-        await signInWithRedirect(auth, provider);
+      // No await here - the redirect happens immediately.
+      signInWithRedirect(auth, provider);
     } catch (error: any) {
-        console.error("Google Sign-In Failed. Error object:", error);
-        toast({
-            title: "Google Sign-In Failed",
-            description: `Error: ${error.code} - ${error.message}`,
-            variant: "destructive",
-        });
-        setLoading(false);
+      console.error("Google Sign-In Failed before redirect. Error:", error);
+      toast({
+          title: "Google Sign-In Failed",
+          description: `Could not start the sign-in process. Error: ${error.message}`,
+          variant: "destructive",
+      });
+      setLoading(false);
     }
   };
 
