@@ -23,6 +23,9 @@ function LoginContent() {
   const [isVerifying, setIsVerifying] = useState(true);
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
+  
+  // Using a ref to prevent re-running the effect on every render
+  const effectRan = useRef(false);
 
   const handleSuccessfulSignIn = useCallback(() => {
     toast({
@@ -98,30 +101,36 @@ function LoginContent() {
   }, [searchParams, toast]);
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
+    // Prevent the effect from running twice in strict mode
+    if (effectRan.current) return;
+    effectRan.current = true;
+
+    const checkAuth = async () => {
+      try {
+        // First, check for a Google Sign-In redirect result
+        const result = await getRedirectResult(auth);
         if (result && result.user) {
-          // This means the user has successfully signed in via Google redirect.
           handleSuccessfulSignIn();
-        } else {
-          // No Google redirect result, check for email link.
-          const fullUrl = window.location.href;
-          if (isSignInWithEmailLink(auth, fullUrl)) {
-            let email = window.localStorage.getItem('emailForSignIn');
-            if (email) {
-              completeEmailSignIn(email);
-            } else {
-              // User has the link but we don't have their email. Prompt them.
-              setIsVerifying(false);
-              setShowEmailPrompt(true);
-            }
-          } else {
-            // This is a normal page load, not a redirect or link click.
-            setIsVerifying(false);
-          }
+          // Important: Stop execution here if successful
+          return; 
         }
-      })
-      .catch((err) => {
+
+        // If no redirect result, then check for an email sign-in link
+        const fullUrl = window.location.href;
+        if (isSignInWithEmailLink(auth, fullUrl)) {
+          let email = window.localStorage.getItem('emailForSignIn');
+          if (email) {
+            completeEmailSignIn(email);
+          } else {
+            // User has the link but we don't have their email. Prompt them.
+            setIsVerifying(false);
+            setShowEmailPrompt(true);
+          }
+        } else {
+          // This is a normal page load, not a redirect or link click.
+          setIsVerifying(false);
+        }
+      } catch (err) {
         console.error("Error during authentication check:", err);
         toast({
           variant: "destructive",
@@ -129,10 +138,11 @@ function LoginContent() {
           description: "An error occurred during sign-in. Please try again.",
         });
         setIsVerifying(false);
-      });
-  // These dependencies are correct. This effect should only run once.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      }
+    };
+    
+    checkAuth();
+  }, [handleSuccessfulSignIn, completeEmailSignIn, toast]);
 
   if (isVerifying) {
     return (
@@ -202,5 +212,3 @@ export default function LoginPage() {
     </div>
   )
 }
-
-    
