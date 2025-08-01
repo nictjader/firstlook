@@ -143,7 +143,10 @@ function LoginContent() {
         });
         setIsVerifying(false);
       });
-  }, [isPotentialMagicLink, router, toast, searchParams]);
+  // The dependencies are correct. This effect should only run once on page load
+  // after a potential redirect.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   if (isVerifying && !showEmailPrompt) {
