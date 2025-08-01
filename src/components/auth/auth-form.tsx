@@ -57,9 +57,14 @@ export default function AuthForm() {
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
+    console.log("Attempting Google Sign-In...");
+    console.log("Firebase Config Loaded:", auth.app.options);
+    
     const provider = new GoogleAuthProvider();
+    
     try {
-        await signInWithPopup(auth, provider);
+        const result = await signInWithPopup(auth, provider);
+        console.log("Sign-in successful", result.user);
         toast({ variant: "success", title: "Sign In Successful!", description: "Welcome! You are now signed in." });
         
         const redirectUrl = searchParams.get('redirect');
@@ -72,14 +77,15 @@ export default function AuthForm() {
           router.push('/');
         }
     } catch (error: any) {
-        console.error(error);
+        console.error("Google Sign-In Failed. Error object:", error);
         toast({
             title: "Google Sign-In Failed",
-            description: error.message || "Could not sign in with Google. Please try again.",
+            description: `Error: ${error.code} - ${error.message}`,
             variant: "destructive",
         });
     } finally {
         setLoading(false);
+        console.log("Google Sign-In process finished.");
     }
   };
 
