@@ -6,9 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
-import { Loader2, Mail, Chrome, MailCheck } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { sendSignInLinkToEmail } from 'firebase/auth';
+import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 
@@ -49,23 +48,6 @@ export default function AuthForm() {
     }
   };
 
-  const handleGoogleSignIn = () => {
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    // No await here. The redirect will take over the page.
-    // The result is handled on the login page itself when the user is redirected back.
-    signInWithRedirect(auth, provider).catch((error: any) => {
-        console.error("Google Sign-In Failed before redirect. Error:", error);
-        toast({
-            title: "Google Sign-In Failed",
-            description: `Could not start the sign-in process. Error: ${error.message}`,
-            variant: "destructive",
-        });
-        setLoading(false);
-    });
-  };
-
-
   const resetForm = () => {
     setEmail('');
     setLinkSentTo(null);
@@ -94,22 +76,6 @@ export default function AuthForm() {
           </div>
         ) : (
           <div className="space-y-4">
-            <Button 
-                variant="outline" 
-                className="w-full h-12 text-base"
-                onClick={handleGoogleSignIn}
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Chrome className="mr-2 h-5 w-5" />}
-                Continue with Google
-            </Button>
-
-            <div className="flex items-center">
-                <Separator className="flex-1" />
-                <span className="px-4 text-xs text-muted-foreground">OR</span>
-                <Separator className="flex-1" />
-            </div>
-
             <form onSubmit={handleEmailSignIn} className="space-y-4">
               <Input
                 id="email"
@@ -122,7 +88,6 @@ export default function AuthForm() {
               />
               <Button 
                 type="submit"
-                variant="outline" 
                 className="w-full h-12 text-base"
                 disabled={loading}
               >

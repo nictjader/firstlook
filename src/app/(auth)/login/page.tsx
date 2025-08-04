@@ -6,7 +6,7 @@ import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/header';
@@ -106,12 +106,6 @@ function LoginContent() {
 
     const checkAuth = async () => {
       try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          handleSuccessfulSignIn();
-          return; 
-        }
-
         const fullUrl = window.location.href;
         if (isSignInWithEmailLink(auth, fullUrl)) {
           let email = window.localStorage.getItem('emailForSignIn');
@@ -136,7 +130,7 @@ function LoginContent() {
     };
     
     checkAuth();
-  }, [handleSuccessfulSignIn, completeEmailSignIn, toast]);
+  }, [completeEmailSignIn, toast]);
 
   if (isVerifying) {
     return (
@@ -149,7 +143,7 @@ function LoginContent() {
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
-                    Please wait while we securely sign you in. This may take a moment.
+                    Please wait while we check your sign-in status.
                 </p>
             </CardContent>
         </Card>
