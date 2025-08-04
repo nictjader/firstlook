@@ -50,8 +50,7 @@ function LoginContent() {
         window.localStorage.removeItem('emailForSignIn');
         handleSuccessfulSignIn();
       })
-      .catch((err) => {
-        console.error(err);
+      .catch(() => {
         toast({
           variant: "destructive",
           title: "Sign In Failed",
@@ -119,7 +118,6 @@ function LoginContent() {
           setIsVerifying(false);
         }
       } catch (err) {
-        console.error("Error during authentication check:", err);
         toast({
           variant: "destructive",
           title: "Sign In Failed",

@@ -34,7 +34,6 @@ export default function StoryCard({ story, isPriority = false, showChapterInfo =
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
         setIsRead(localReadStories.includes(storyId));
       } catch (error) {
-        console.error("Failed to parse read stories from localStorage", error);
         setIsRead(false);
       }
     }

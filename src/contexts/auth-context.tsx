@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-        console.error("Error fetching user profile:", error);
+        // This error is critical for developers but not for users.
         return null;
     }
   }, []);
@@ -71,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return docToUserProfile(finalDocSnap.data(), user.uid);
     } catch (error) {
-        console.error("Error creating user profile:", error);
         return null;
     }
   }, []);
@@ -90,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
       }
     } catch (error) {
-        console.error("Error syncing local read history:", error);
+        // Silently fail on sync error, not critical for user experience
     }
   }, []);
 
@@ -121,7 +120,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserProfile(null);
         }
       } catch (error) {
-          console.error("Error in onAuthStateChanged:", error);
           // Ensure user state is cleared on error
           setUser(null);
           setUserProfile(null);
@@ -197,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(LOCAL_STORAGE_READ_KEY, JSON.stringify(localReadStories));
         }
       } catch (error) {
-        console.error("Error updating local read history:", error);
+        // Silently fail on local storage error
       }
     }
   }, [user, userProfile]);

@@ -22,7 +22,8 @@ export default function Header() {
       await signOut(auth);
       router.push('/'); 
     } catch (error) {
-      console.error('Error signing out:', error);
+      // It's generally not necessary to show an error to the user for sign-out failures.
+      // Logging it to the console is sufficient for developers.
     }
   };
 

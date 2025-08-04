@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
@@ -63,7 +62,6 @@ export default function ProfileView() {
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
       router.push('/');
     } catch (error) {
-      console.error('Error signing out:', error);
       toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
     }
   };
