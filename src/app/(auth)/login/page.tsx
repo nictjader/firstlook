@@ -6,7 +6,7 @@ import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/header';
@@ -107,7 +107,28 @@ function LoginContent() {
     if (effectRan.current || !auth) return;
     effectRan.current = true;
 
-    const checkAuth = () => {
+    const checkAuth = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+          // User signed in with Google
+          handleSuccessfulSignIn();
+          return; // Stop further processing
+        }
+      } catch (error: any) {
+        let description = "An unknown error occurred during Google Sign-In.";
+        if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+          description = "The sign-in window was closed before completing. Please try again.";
+        }
+        toast({
+            title: "Google Sign-In Error",
+            description: description,
+            variant: "destructive",
+        });
+        setIsVerifying(false);
+        return;
+      }
+      
       const fullUrl = window.location.href;
       if (isSignInWithEmailLink(auth, fullUrl)) {
         let email = window.localStorage.getItem('emailForSignIn');
@@ -123,7 +144,7 @@ function LoginContent() {
     };
     
     checkAuth();
-  }, [completeEmailSignIn]);
+  }, [completeEmailSignIn, handleSuccessfulSignIn, toast]);
 
   if (isVerifying) {
     return (
