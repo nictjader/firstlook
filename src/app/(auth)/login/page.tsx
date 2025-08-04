@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState, Suspense, useRef, useCallback } from 'react';
+import { useEffect, useState, Suspense, useRef } from 'react';
 import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
@@ -26,7 +26,7 @@ function LoginContent() {
   
   const effectRan = useRef(false);
 
-  // This effect runs once on mount to handle any incoming auth links
+  // This effect runs once on mount to handle any incoming email auth links
   useEffect(() => {
     if (effectRan.current || !auth) return;
     effectRan.current = true;
@@ -38,9 +38,7 @@ function LoginContent() {
         signInWithEmailLink(auth, email, fullUrl)
           .then(() => {
             window.localStorage.removeItem('emailForSignIn');
-            // Success is handled by the AuthProvider, which will redirect.
-            // We just need to stop showing the verification loader.
-             toast({
+            toast({
               variant: "success",
               title: "Sign In Successful!",
               description: "Welcome! You're now signed in."
@@ -96,7 +94,6 @@ function LoginContent() {
       const fullUrl = window.location.href;
       signInWithEmailLink(auth, email, fullUrl)
         .then(() => {
-          window.localStorage.setItem('emailForSignIn', email); // Save for next time if needed
           window.localStorage.removeItem('emailForSignIn');
            toast({
               variant: "success",
@@ -105,7 +102,7 @@ function LoginContent() {
             });
           router.push(searchParams.get('redirect') || '/');
         })
-        .catch((error) => {
+        .catch(() => {
            toast({
              variant: "destructive",
              title: "Sign In Failed",
@@ -140,7 +137,7 @@ function LoginContent() {
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
-                    Please wait while we check your sign-in status.
+                    Please wait while we check your sign-in link.
                 </p>
             </CardContent>
         </Card>
