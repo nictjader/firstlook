@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -27,26 +29,31 @@ export default function AuthForm() {
   const [email, setEmail] = useState('');
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const handleSuccessfulSignIn = (provider: 'google' | 'email') => {
+    toast({
+      variant: "success",
+      title: "Sign In Successful!",
+      description: `Welcome! You are now signed in with ${provider === 'google' ? 'Google' : 'email'}.`
+    });
+    const redirectUrl = searchParams.get('redirect');
+    const packageId = searchParams.get('packageId');
+
+    if (redirectUrl) {
+      const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
+      router.push(finalUrl);
+    } else {
+      router.push('/');
+    }
+  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    // This allows us to pass query params through the sign-in flow.
-    const searchParams = new URLSearchParams(window.location.search);
-    const redirectUrl = searchParams.get('redirect');
-    const packageId = searchParams.get('packageId');
-
-    let finalRedirect = `${window.location.origin}/login`;
-    if (redirectUrl) {
-      const url = new URL(finalRedirect);
-      url.searchParams.set('redirect', redirectUrl);
-      if (packageId) {
-        url.searchParams.set('packageId', packageId);
-      }
-      finalRedirect = url.toString();
-    }
-    
+    const finalRedirect = `${window.location.origin}${window.location.pathname}`;
     const actionCodeSettings = {
       url: finalRedirect, 
       handleCodeInApp: true,
@@ -76,17 +83,26 @@ export default function AuthForm() {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      // Use signInWithRedirect for better compatibility with various browsers and pop-up blockers.
-      await signInWithRedirect(auth, provider);
-      // The user will be redirected to Google's sign-in page.
-      // The result will be handled on the login page after they return.
+      const result = await signInWithPopup(auth, provider);
+      if (result.user) {
+        handleSuccessfulSignIn('google');
+      }
     } catch (error: any) {
+       let description = "An unknown error occurred during Google Sign-In.";
+       if (error.code === 'auth/popup-closed-by-user') {
+          description = "The sign-in window was closed before completing. Please try again.";
+       } else if (error.code === 'auth/popup-blocked') {
+          description = "Pop-up was blocked by your browser. Please allow popups for this site and try again.";
+       } else if (error.code === 'auth/account-exists-with-different-credential') {
+          description = "An account already exists with the same email address but different sign-in credentials. Please sign in using the original method."
+       }
        toast({
           title: "Google Sign-In Error",
-          description: error.message || "Could not start Google Sign-In.",
+          description: description,
           variant: "destructive",
       });
-      setLoading(false); // Only reached if signInWithRedirect fails immediately
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -162,5 +178,4 @@ export default function AuthForm() {
     </Card>
   );
 }
-
     
