@@ -16,9 +16,9 @@ import { CheckCircle, AlertTriangle, Info } from 'lucide-react';
 const ToastIcon = ({ variant }: { variant?: 'default' | 'destructive' | 'success' | null }) => {
     switch (variant) {
         case 'success':
-            return <CheckCircle className="h-6 w-6 text-white" />;
+            return <CheckCircle className="h-6 w-6 text-primary" />;
         case 'destructive':
-            return <AlertTriangle className="h-6 w-6 text-white" />;
+            return <AlertTriangle className="h-6 w-6 text-destructive-foreground" />;
         default:
             return <Info className="h-6 w-6 text-foreground" />;
     }
