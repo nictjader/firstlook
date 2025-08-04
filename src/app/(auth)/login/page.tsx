@@ -119,6 +119,8 @@ function LoginContent() {
         let description = "An unknown error occurred during Google Sign-In.";
         if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
           description = "The sign-in window was closed before completing. Please try again.";
+        } else if (error.code === 'auth/account-exists-with-different-credential') {
+            description = "An account already exists with the same email address but different sign-in credentials. Please sign in using the original method."
         }
         toast({
             title: "Google Sign-In Error",

@@ -32,8 +32,10 @@ export default function AuthForm() {
     e.preventDefault();
     setLoading(true);
     
+    // Construct the URL for the sign-in link.
+    // It will redirect back to the login page, where we can handle the sign-in completion.
     const actionCodeSettings = {
-      url: window.location.href, // Use current URL to handle redirects correctly
+      url: `${window.location.origin}/login`, 
       handleCodeInApp: true,
     };
 
@@ -61,16 +63,17 @@ export default function AuthForm() {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
+      // Use signInWithRedirect for better compatibility with various browsers and pop-up blockers.
       await signInWithRedirect(auth, provider);
       // The user will be redirected to Google's sign-in page.
-      // The result will be handled on the login page after redirect.
+      // The result will be handled on the login page after they return.
     } catch (error: any) {
        toast({
           title: "Google Sign-In Error",
           description: error.message || "Could not start Google Sign-In.",
           variant: "destructive",
       });
-      setLoading(false);
+      setLoading(false); // Only reached if signInWithRedirect fails immediately
     }
   };
 
