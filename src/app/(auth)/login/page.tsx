@@ -50,11 +50,16 @@ function LoginContent() {
         window.localStorage.removeItem('emailForSignIn');
         handleSuccessfulSignIn();
       })
-      .catch(() => {
+      .catch((error) => {
+        // This is the improved error handling logic
+        let description = "An unknown error occurred. Please try again.";
+        if (error.code === 'auth/invalid-action-code') {
+          description = "This sign-in link may be expired or already used. Please request a new one.";
+        }
         toast({
           variant: "destructive",
           title: "Sign In Failed",
-          description: "This sign-in link may be expired or already used. Please request a new one.",
+          description: description,
         });
         setIsVerifying(false);
       });
