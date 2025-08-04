@@ -32,10 +32,23 @@ export default function AuthForm() {
     e.preventDefault();
     setLoading(true);
     
-    // Construct the URL for the sign-in link.
-    // It will redirect back to the login page, where we can handle the sign-in completion.
+    // This allows us to pass query params through the sign-in flow.
+    const searchParams = new URLSearchParams(window.location.search);
+    const redirectUrl = searchParams.get('redirect');
+    const packageId = searchParams.get('packageId');
+
+    let finalRedirect = `${window.location.origin}/login`;
+    if (redirectUrl) {
+      const url = new URL(finalRedirect);
+      url.searchParams.set('redirect', redirectUrl);
+      if (packageId) {
+        url.searchParams.set('packageId', packageId);
+      }
+      finalRedirect = url.toString();
+    }
+    
     const actionCodeSettings = {
-      url: `${window.location.origin}/login`, 
+      url: finalRedirect, 
       handleCodeInApp: true,
     };
 
@@ -149,3 +162,5 @@ export default function AuthForm() {
     </Card>
   );
 }
+
+    

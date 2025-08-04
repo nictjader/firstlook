@@ -26,11 +26,11 @@ function LoginContent() {
   
   const effectRan = useRef(false);
 
-  const handleSuccessfulSignIn = useCallback(() => {
+  const handleSuccessfulSignIn = useCallback((provider: 'google' | 'email') => {
     toast({
       variant: "success",
       title: "Sign In Successful!",
-      description: "Welcome! You are now signed in."
+      description: `Welcome! You are now signed in with ${provider === 'google' ? 'Google' : 'email'}.`
     });
     const redirectUrl = searchParams.get('redirect');
     const packageId = searchParams.get('packageId');
@@ -48,7 +48,7 @@ function LoginContent() {
     signInWithEmailLink(auth, email, fullUrl)
       .then(() => {
         window.localStorage.removeItem('emailForSignIn');
-        handleSuccessfulSignIn();
+        handleSuccessfulSignIn('email');
       })
       .catch((error) => {
         let description = "An unknown error occurred. Please try again.";
@@ -112,7 +112,7 @@ function LoginContent() {
         const result = await getRedirectResult(auth);
         if (result) {
           // User signed in with Google
-          handleSuccessfulSignIn();
+          handleSuccessfulSignIn('google');
           return; // Stop further processing
         }
       } catch (error: any) {
@@ -216,3 +216,5 @@ export default function LoginPage() {
     </div>
   )
 }
+
+    
