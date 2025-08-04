@@ -6,7 +6,7 @@ import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/header';
@@ -51,7 +51,6 @@ function LoginContent() {
         handleSuccessfulSignIn();
       })
       .catch((error) => {
-        // This is the improved error handling logic
         let description = "An unknown error occurred. Please try again.";
         if (error.code === 'auth/invalid-action-code') {
           description = "This sign-in link may be expired or already used. Please request a new one.";
@@ -108,39 +107,23 @@ function LoginContent() {
     if (effectRan.current || !auth) return;
     effectRan.current = true;
 
-    const checkAuth = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          handleSuccessfulSignIn();
-          return; // Stop processing if Google sign-in is successful
-        }
-        
-        // Only check for email link if there's no redirect result
-        const fullUrl = window.location.href;
-        if (isSignInWithEmailLink(auth, fullUrl)) {
-          let email = window.localStorage.getItem('emailForSignIn');
-          if (email) {
-            completeEmailSignIn(email);
-          } else {
-            setShowEmailPrompt(true);
-            setIsVerifying(false);
-          }
+    const checkAuth = () => {
+      const fullUrl = window.location.href;
+      if (isSignInWithEmailLink(auth, fullUrl)) {
+        let email = window.localStorage.getItem('emailForSignIn');
+        if (email) {
+          completeEmailSignIn(email);
         } else {
+          setShowEmailPrompt(true);
           setIsVerifying(false);
         }
-      } catch (error) {
-         toast({
-          variant: "destructive",
-          title: "Sign In Failed",
-          description: "An error occurred during sign-in. Please try again.",
-        });
+      } else {
         setIsVerifying(false);
       }
     };
     
     checkAuth();
-  }, [completeEmailSignIn, handleSuccessfulSignIn, toast]);
+  }, [completeEmailSignIn]);
 
   if (isVerifying) {
     return (

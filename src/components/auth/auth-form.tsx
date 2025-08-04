@@ -6,11 +6,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -27,6 +28,25 @@ export default function AuthForm() {
   const [email, setEmail] = useState('');
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const handleSuccessfulSignIn = () => {
+    toast({
+      variant: "success",
+      title: "Sign In Successful!",
+      description: "Welcome! You are now signed in."
+    });
+    const redirectUrl = searchParams.get('redirect');
+    const packageId = searchParams.get('packageId');
+
+    if (redirectUrl) {
+      const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
+      router.push(finalUrl);
+    } else {
+      router.push('/');
+    }
+  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,16 +78,42 @@ export default function AuthForm() {
   };
 
   const handleGoogleSignIn = () => {
-    console.log('Current Origin for Google Sign-In:', window.location.origin);
+    setLoading(true);
     const provider = new GoogleAuthProvider();
-    // No await here - we want to navigate away immediately
-    signInWithRedirect(auth, provider).catch((error) => {
+    signInWithPopup(auth, provider)
+      .then((result) => {
+        // This gives you a Google Access Token. You can use it to access the Google API.
+        const credential = GoogleAuthProvider.credentialFromResult(result);
+        const token = credential?.accessToken;
+        // The signed-in user info.
+        const user = result.user;
+        handleSuccessfulSignIn();
+      })
+      .catch((error) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        // The email of the user's account used.
+        const email = error.customData?.email;
+        // The AuthCredential type that was used.
+        const credential = GoogleAuthProvider.credentialFromError(error);
+        
+        let description = errorMessage;
+        if (errorCode === 'auth/popup-closed-by-user') {
+          description = "The sign-in window was closed before completing. Please try again.";
+        } else if (errorCode === 'auth/cancelled-popup-request') {
+          description = "Multiple sign-in windows were opened. Please try again.";
+        }
+        
         toast({
             title: "Google Sign-In Error",
-            description: error.message || "Could not start the Google Sign-In process.",
+            description: description,
             variant: "destructive",
         });
-    });
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const resetForm = () => {
@@ -128,7 +174,7 @@ export default function AuthForm() {
                 </div>
             </div>
              <Button variant="outline" className="w-full h-11" onClick={handleGoogleSignIn} disabled={loading}>
-              <GoogleIcon />
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
               Continue with Google
             </Button>
           </div>
