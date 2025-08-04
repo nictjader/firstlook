@@ -6,7 +6,7 @@ import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/header';
@@ -42,7 +42,7 @@ function LoginContent() {
       router.push('/');
     }
   }, [router, searchParams, toast]);
-
+  
   const completeEmailSignIn = useCallback((email: string) => {
     const fullUrl = window.location.href;
     signInWithEmailLink(auth, email, fullUrl)
@@ -100,11 +100,18 @@ function LoginContent() {
   }, [searchParams, toast]);
 
   useEffect(() => {
-    if (effectRan.current) return;
+    if (effectRan.current || !auth) return;
     effectRan.current = true;
 
     const checkAuth = async () => {
       try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          handleSuccessfulSignIn();
+          return; // Stop processing if Google sign-in is successful
+        }
+        
+        // Only check for email link if there's no redirect result
         const fullUrl = window.location.href;
         if (isSignInWithEmailLink(auth, fullUrl)) {
           let email = window.localStorage.getItem('emailForSignIn');
@@ -117,8 +124,8 @@ function LoginContent() {
         } else {
           setIsVerifying(false);
         }
-      } catch (err) {
-        toast({
+      } catch (error) {
+         toast({
           variant: "destructive",
           title: "Sign In Failed",
           description: "An error occurred during sign-in. Please try again.",
@@ -128,7 +135,7 @@ function LoginContent() {
     };
     
     checkAuth();
-  }, [completeEmailSignIn, toast]);
+  }, [completeEmailSignIn, handleSuccessfulSignIn, toast]);
 
   if (isVerifying) {
     return (
