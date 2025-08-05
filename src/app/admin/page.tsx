@@ -328,7 +328,7 @@ function AdminDashboardContent() {
                                     title="Total Library Value" 
                                     value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
                                     icon={DollarSign}
-                                    description={`~$${analysisResult.totalValueUSD.toLocaleString()} USD to unlock all paid content.`}
+                                    description={`~$${analysisResult.totalValueUSD.toFixed(2)} USD to unlock all paid content.`}
                                 />
                                 <MetricCard 
                                     title="Avg. Cost / Paid Chapter" 

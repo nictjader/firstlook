@@ -242,7 +242,10 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
-    const emptyMetrics: Omit<DatabaseMetrics, 'totalValueUSD' | 'avgValuePerPaidChapterUSD'> = {
+    // Define a conversion rate: e.g., 100 coins = $0.99 USD
+    const COINS_PER_USD = 100 / 0.99;
+
+    const emptyMetrics: DatabaseMetrics = {
         totalChapters: 0,
         totalUniqueStories: 0,
         standaloneStories: 0,
@@ -255,19 +258,16 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         paidStandaloneStories: 0,
         paidSeriesChapters: 0,
         duplicateTitles: {},
+        totalValueUSD: 0,
+        avgValuePerPaidChapterUSD: 0,
     };
 
     if (snapshot.empty) {
-        return {
-          ...emptyMetrics,
-          totalValueUSD: 0,
-          avgValuePerPaidChapterUSD: 0,
-        };
+        return emptyMetrics;
     }
 
     const allStories = snapshot.docs.map(doc => docToStory(doc));
     
-    // Group stories by a common identifier (seriesId for series, storyId for standalones)
     const storyGroups = new Map<string, Story[]>();
     allStories.forEach(story => {
         const groupId = story.seriesId || story.storyId;
@@ -277,7 +277,6 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         storyGroups.get(groupId)!.push(story);
     });
 
-    // Now, perform analysis on the grouped stories
     const storiesPerGenre: Record<string, number> = {};
     let totalWordCount = 0;
     let standaloneCount = 0;
@@ -287,7 +286,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     let paidSeriesChapters = 0;
     const titleCounts = new Map<string, number>();
 
-    storyGroups.forEach((chapters, groupId) => {
+    storyGroups.forEach((chapters) => {
         const representativeStory = chapters[0];
         const storyTitle = representativeStory.seriesTitle || representativeStory.title;
         const genre = representativeStory.subgenre;
@@ -338,8 +337,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         avgCoinCostPerPaidChapter,
         paidStandaloneStories,
         paidSeriesChapters,
-        totalValueUSD: 0, // This would require a conversion rate
-        avgValuePerPaidChapterUSD: 0, // This would require a conversion rate
+        totalValueUSD: totalCoinCost / COINS_PER_USD,
+        avgValuePerPaidChapterUSD: avgCoinCostPerPaidChapter / COINS_PER_USD,
         duplicateTitles,
     };
 }
@@ -360,8 +359,6 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
     const allStories = snapshot.docs.map(doc => docToStory(doc));
     
-    // Map to group stories by a common identifier (seriesId or storyId)
-    // The value will be an array of all stories/chapters in that group.
     const storyGroups = new Map<string, Story[]>();
 
     allStories.forEach(story => {
@@ -372,10 +369,8 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
         storyGroups.get(groupId)!.push(story);
     });
 
-    // Map to find which titles have multiple groups (i.e., are true duplicates)
     const titleToGroupIds = new Map<string, string[]>();
     storyGroups.forEach((stories, groupId) => {
-        // Use the title from the first story in the group (they should all be the same)
         const title = stories[0].seriesTitle || stories[0].title;
         if (!titleToGroupIds.has(title)) {
             titleToGroupIds.set(title, []);
@@ -386,18 +381,13 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const batch = db.batch();
     let deletedCount = 0;
 
-    // Iterate over titles that are associated with more than one group
-    titleToGroupIds.forEach((groupIds, title) => {
+    titleToGroupIds.forEach((groupIds) => {
         if (groupIds.length > 1) {
-            // This title is a duplicate. We need to find the newest group and delete the others.
-            
-            // Find the group with the most recent `publishedAt` date.
             let newestGroup: Story[] | null = null;
             let newestDate = new Date(0);
 
             groupIds.forEach(id => {
                 const group = storyGroups.get(id)!;
-                // Find the most recent publishedAt date within this group to represent it
                 const groupDate = new Date(Math.max(...group.map(s => new Date(s.publishedAt).getTime())));
                 if (groupDate > newestDate) {
                     newestDate = groupDate;
@@ -405,7 +395,6 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
                 }
             });
 
-            // Now, delete all groups for this title that are not the newest one.
             groupIds.forEach(id => {
                 const group = storyGroups.get(id)!;
                 if (group !== newestGroup) {
@@ -453,7 +442,6 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     let needsUpdate = false;
     let newCoinCost = story.coinCost;
 
-    // Logic for series: Part 1 should be free, subsequent parts should be premium.
     if (story.seriesId) {
       if (story.partNumber === 1 && (story.coinCost !== 0 || story.isPremium !== false)) {
         newCoinCost = 0;
@@ -463,7 +451,6 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
         needsUpdate = true;
       }
     }
-    // Standalone stories can be free or premium, but if premium, cost must be standard.
     else {
       if (story.isPremium && story.coinCost !== PREMIUM_STORY_COST) {
         newCoinCost = PREMIUM_STORY_COST;
