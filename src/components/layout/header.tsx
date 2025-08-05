@@ -12,6 +12,38 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useTheme } from '@/contexts/theme-context';
 import Logo from './logo';
 
+function AuthLoadingSkeleton() {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" disabled>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+                <p>Loading user...</p>
+            </TooltipContent>
+        </Tooltip>
+    );
+}
+
+function LoggedOutButtons() {
+    return (
+        <Tooltip>
+            <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="icon" aria-label="Sign In" className="text-primary hover:text-primary/80">
+                    <Link href="/login">
+                        <LogIn className="h-5 w-5" />
+                    </Link>
+                </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+                <p>Sign In</p>
+            </TooltipContent>
+        </Tooltip>
+    );
+}
+
 export default function Header() {
   const { user, userProfile, loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -20,10 +52,9 @@ export default function Header() {
   const handleSignOut = async () => {
     try {
       await signOut(auth);
-      router.push('/'); 
+      router.push('/');
     } catch (error) {
-      // It's generally not necessary to show an error to the user for sign-out failures.
-      // Logging it to the console is sufficient for developers.
+      console.error("Sign out error", error);
     }
   };
 
@@ -43,11 +74,9 @@ export default function Header() {
                   aria-label="Toggle theme"
                   className="text-primary hover:text-primary/80"
                 >
-                  {theme === 'dark' ? (
-                    <Sun className="h-5 w-5 transition-all" />
-                  ) : (
-                    <Moon className="h-5 w-5 transition-all" />
-                  )}
+                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+                  <span className="sr-only">Toggle theme</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
@@ -56,22 +85,13 @@ export default function Header() {
             </Tooltip>
 
             {authLoading ? (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" disabled>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Loading user...</p>
-                </TooltipContent>
-              </Tooltip>
+              <AuthLoadingSkeleton />
             ) : user ? (
               <>
                 {userProfile && (
                    <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button asChild variant="ghost" className="text-primary hover:text-primary/80 flex items-center space-x-1 px-2">
+                      <Button asChild variant="ghost" className="text-primary hover:text-primary/80 flex items-center space-x-2 px-3">
                         <Link href="/buy-coins">
                           <Gem className="h-4 w-4" />
                           <span>{userProfile.coins}</span>
@@ -85,11 +105,11 @@ export default function Header() {
                 )}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link href="/profile" passHref>
-                      <Button variant="ghost" size="icon" aria-label="Profile" className="text-primary hover:text-primary/80">
-                        <UserCircle className="h-5 w-5" />
-                      </Button>
-                    </Link>
+                    <Button asChild variant="ghost" size="icon" aria-label="Profile" className="text-primary hover:text-primary/80">
+                        <Link href="/profile">
+                            <UserCircle className="h-5 w-5" />
+                        </Link>
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Profile</p>
@@ -107,20 +127,7 @@ export default function Header() {
                 </Tooltip>
               </>
             ) : (
-              <>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link href="/login" passHref>
-                      <Button variant="ghost" size="icon" aria-label="Sign In" className="text-primary hover:text-primary/80">
-                        <LogIn className="h-5 w-5" />
-                      </Button>
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Sign In</p>
-                  </TooltipContent>
-                </Tooltip>
-              </>
+              <LoggedOutButtons />
             )}
           </div>
         </div>
@@ -128,4 +135,3 @@ export default function Header() {
     </TooltipProvider>
   );
 }
-
