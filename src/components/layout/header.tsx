@@ -7,13 +7,13 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2 } from 'lucide-react';
+import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Gem } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTheme } from '@/contexts/theme-context';
 import Logo from './logo';
 
 export default function Header() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
 
@@ -68,6 +68,21 @@ export default function Header() {
               </Tooltip>
             ) : user ? (
               <>
+                {userProfile && (
+                   <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button asChild variant="ghost" className="text-primary hover:text-primary/80 flex items-center space-x-1 px-2">
+                        <Link href="/buy-coins">
+                          <Gem className="h-4 w-4" />
+                          <span>{userProfile.coins}</span>
+                        </Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Your Coins / Buy More</p>
+                    </TooltipContent>
+                  </Tooltip>
+                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link href="/profile" passHref>
