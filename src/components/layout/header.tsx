@@ -8,41 +8,9 @@ import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Gem } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTheme } from '@/contexts/theme-context';
 import Logo from './logo';
 
-function AuthLoadingSkeleton() {
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" disabled>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-                <p>Loading user...</p>
-            </TooltipContent>
-        </Tooltip>
-    );
-}
-
-function LoggedOutButtons() {
-    return (
-        <Tooltip>
-            <TooltipTrigger asChild>
-                <Button asChild variant="ghost" size="icon" aria-label="Sign In" className="text-primary hover:text-primary/80">
-                    <Link href="/login">
-                        <LogIn className="h-5 w-5" />
-                    </Link>
-                </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-                <p>Sign In</p>
-            </TooltipContent>
-        </Tooltip>
-    );
-}
 
 export default function Header() {
   const { user, userProfile, loading: authLoading } = useAuth();
@@ -59,79 +27,55 @@ export default function Header() {
   };
 
   return (
-    <TooltipProvider delayDuration={300}>
       <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto flex h-14 items-center justify-between px-4">
           <Logo />
 
           <div className="flex items-center space-x-1 sm:space-x-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-                  aria-label="Toggle theme"
-                  className="text-primary hover:text-primary/80"
-                >
-                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                  <span className="sr-only">Toggle theme</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Toggle Theme</p>
-              </TooltipContent>
-            </Tooltip>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              aria-label="Toggle theme"
+              className="text-primary hover:text-primary/80"
+            >
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+              <span className="sr-only">Toggle theme</span>
+            </Button>
 
             {authLoading ? (
-              <AuthLoadingSkeleton />
+               <Button variant="ghost" size="icon" disabled>
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                </Button>
             ) : user ? (
               <>
                 {userProfile && (
-                   <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button asChild variant="ghost" className="text-primary hover:text-primary/80 flex items-center space-x-2 px-3">
-                        <Link href="/buy-coins">
-                          <Gem className="h-4 w-4" />
-                          <span>{userProfile.coins}</span>
-                        </Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Your Coins / Buy More</p>
-                    </TooltipContent>
-                  </Tooltip>
+                    <Button asChild variant="ghost" className="text-primary hover:text-primary/80 flex items-center space-x-2 px-3">
+                    <Link href="/buy-coins">
+                        <Gem className="h-4 w-4" />
+                        <span>{userProfile.coins}</span>
+                    </Link>
+                    </Button>
                 )}
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button asChild variant="ghost" size="icon" aria-label="Profile" className="text-primary hover:text-primary/80">
-                        <Link href="/profile">
-                            <UserCircle className="h-5 w-5" />
-                        </Link>
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Profile</p>
-                  </TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign Out" className="text-primary hover:text-primary/80">
-                      <LogOut className="h-5 w-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Sign Out</p>
-                  </TooltipContent>
-                </Tooltip>
+                <Button asChild variant="ghost" size="icon" aria-label="Profile" className="text-primary hover:text-primary/80">
+                    <Link href="/profile">
+                        <UserCircle className="h-5 w-5" />
+                    </Link>
+                </Button>
+                <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign Out" className="text-primary hover:text-primary/80">
+                    <LogOut className="h-5 w-5" />
+                </Button>
               </>
             ) : (
-              <LoggedOutButtons />
+                <Button asChild variant="ghost" size="icon" aria-label="Sign In" className="text-primary hover:text-primary/80">
+                    <Link href="/login">
+                        <LogIn className="h-5 w-5" />
+                    </Link>
+                </Button>
             )}
           </div>
         </div>
       </header>
-    </TooltipProvider>
   );
 }
