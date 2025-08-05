@@ -1,4 +1,5 @@
 
+
 'use server';
 
 import { generateStory } from '@/ai/flows/story-generator';
@@ -252,6 +253,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         multiPartSeriesCount: 0,
         storiesPerGenre: {},
         totalWordCount: 0,
+        avgWordCountFree: 0,
+        avgWordCountPaid: 0,
         totalPaidChapters: 0,
         totalCoinCost: 0,
         avgCoinCostPerPaidChapter: 0,
@@ -268,6 +271,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const allStories = snapshot.docs.map(doc => docToStory(doc));
     
+    // Group all chapters by their unique story (seriesId or storyId for standalones)
     const storyGroups = new Map<string, Story[]>();
     allStories.forEach(story => {
         const groupId = story.seriesId || story.storyId;
@@ -277,6 +281,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         storyGroups.get(groupId)!.push(story);
     });
 
+    // Calculate metrics based on the grouped stories
     const storiesPerGenre: Record<string, number> = {};
     let totalWordCount = 0;
     let standaloneCount = 0;
@@ -285,6 +290,22 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     let paidStandaloneStories = 0;
     let paidSeriesChapters = 0;
     const titleCounts = new Map<string, number>();
+
+    let totalWordCountFree = 0;
+    let freeChapterCount = 0;
+    let totalWordCountPaid = 0;
+    let paidChapterCount = 0;
+
+    allStories.forEach(chapter => {
+      totalWordCount += chapter.wordCount || 0;
+      if (chapter.isPremium && chapter.coinCost > 0) {
+        paidChapterCount++;
+        totalWordCountPaid += chapter.wordCount || 0;
+      } else {
+        freeChapterCount++;
+        totalWordCountFree += chapter.wordCount || 0;
+      }
+    });
 
     storyGroups.forEach((chapters) => {
         const representativeStory = chapters[0];
@@ -301,7 +322,6 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         }
 
         chapters.forEach(chapter => {
-            totalWordCount += chapter.wordCount || 0;
             if (chapter.isPremium && chapter.coinCost > 0) {
                 totalCoinCost += chapter.coinCost;
                 if (chapter.seriesId) {
@@ -324,6 +344,9 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const avgCoinCostPerPaidChapter = totalPaidChapters > 0
         ? Math.round(totalCoinCost / totalPaidChapters)
         : 0;
+    
+    const avgWordCountFree = freeChapterCount > 0 ? Math.round(totalWordCountFree / freeChapterCount) : 0;
+    const avgWordCountPaid = paidChapterCount > 0 ? Math.round(totalWordCountPaid / paidChapterCount) : 0;
 
     return {
         totalChapters: allStories.length,
@@ -332,6 +355,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         multiPartSeriesCount: multiPartSeriesCount,
         storiesPerGenre,
         totalWordCount,
+        avgWordCountFree,
+        avgWordCountPaid,
         totalPaidChapters: totalPaidChapters,
         totalCoinCost,
         avgCoinCostPerPaidChapter,
@@ -487,3 +512,5 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
     updated: updatedCount,
   };
 }
+
+    

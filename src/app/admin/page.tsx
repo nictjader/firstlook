@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2 } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -278,7 +278,7 @@ function AdminDashboardContent() {
                                     />
                                 </div>
                                 <Card>
-                                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-2 md:divide-x md:divide-border">
+                                  <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 md:divide-x md:divide-border">
                                     <div className="p-2">
                                       <h4 className="font-semibold text-base flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary" />Story Types</h4>
                                       <div className="text-sm space-y-2">
@@ -300,6 +300,13 @@ function AdminDashboardContent() {
                                           <p className="text-muted-foreground">No genre data.</p>
                                         )}
                                       </div>
+                                    </div>
+                                    <div className="p-2 pt-4 md:pt-2 md:pl-4 border-t md:border-t-0 md:border-l mt-4 md:mt-0">
+                                       <h4 className="font-semibold text-base flex items-center mb-2"><PenLine className="mr-2 h-4 w-4 text-primary" />Avg. Word Count</h4>
+                                        <div className="text-sm space-y-2">
+                                          <p className="flex justify-between"><span>Free Chapters:</span> <strong>{analysisResult.avgWordCountFree.toLocaleString()}</strong></p>
+                                          <p className="flex justify-between"><span>Paid Chapters:</span> <strong>{analysisResult.avgWordCountPaid.toLocaleString()}</strong></p>
+                                        </div>
                                     </div>
                                   </CardContent>
                                 </Card>
@@ -334,7 +341,7 @@ function AdminDashboardContent() {
                                     title="Avg. Cost / Paid Chapter" 
                                     value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
                                     icon={Coins}
-                                    description={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)} USD, based on the new 50-coin premium price.`}
+                                    description={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)} USD, based on the 50-coin premium price.`}
                                 />
                             </CardContent>
                         </Card>
@@ -398,3 +405,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    

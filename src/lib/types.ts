@@ -1,4 +1,5 @@
 
+
 import { type Timestamp as ClientTimestamp, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 
@@ -166,6 +167,8 @@ export interface DatabaseMetrics {
   multiPartSeriesCount: number;
   storiesPerGenre: Record<string, number>;
   totalWordCount: number;
+  avgWordCountFree: number;
+  avgWordCountPaid: number;
   
   // Monetization Metrics
   totalPaidChapters: number;
@@ -181,3 +184,5 @@ export interface DatabaseMetrics {
   // Data Quality Metrics
   duplicateTitles: Record<string, number>;
 }
+
+    
