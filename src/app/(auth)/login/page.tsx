@@ -6,7 +6,7 @@ import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/header';
@@ -26,17 +26,18 @@ function LoginContent() {
   
   const effectRan = useRef(false);
 
-  // This effect runs once on mount to handle any incoming email auth links
+  // This effect runs once on mount to handle any incoming auth links
   useEffect(() => {
     if (effectRan.current || !auth) return;
     effectRan.current = true;
 
+    // Check for email link sign-in
     const fullUrl = window.location.href;
     if (isSignInWithEmailLink(auth, fullUrl)) {
       let email = window.localStorage.getItem('emailForSignIn');
       if (email) {
         signInWithEmailLink(auth, email, fullUrl)
-          .then(() => {
+          .then((result) => {
             window.localStorage.removeItem('emailForSignIn');
             toast({
               variant: "success",
@@ -47,6 +48,7 @@ function LoginContent() {
           })
           .catch((error) => {
              let description = "An unknown error occurred. Please try again.";
+             // This code is specific for expired/already used links.
              if (error.code === 'auth/invalid-action-code') {
                description = "This sign-in link may be expired or already used. Please request a new one.";
              }
@@ -58,13 +60,12 @@ function LoginContent() {
              setIsVerifying(false);
           });
       } else {
-        // Email is missing, prompt the user for it
         setShowEmailPrompt(true);
         setIsVerifying(false);
       }
     } else {
-      // Not an email link sign-in, so we're done verifying
-      setIsVerifying(false);
+        // Not an email link, so we're done with that check
+        setIsVerifying(false);
     }
   }, [router, searchParams, toast]);
 
@@ -75,12 +76,6 @@ function LoginContent() {
       toast({
         title: "Sign in to Favorite",
         description: "You need an account to save your favorite stories.",
-        variant: 'default',
-      });
-    } else if (reason === 'purchase') {
-      toast({
-        title: "Sign in to Purchase",
-        description: "You need an account to purchase coins and unlock stories.",
         variant: 'default',
       });
     }

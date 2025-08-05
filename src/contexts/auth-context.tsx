@@ -59,7 +59,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           unlockedStories: [],
           readStories: [],
           favoriteStories: [],
-          purchaseHistory: [],
           preferences: { subgenres: [] },
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),

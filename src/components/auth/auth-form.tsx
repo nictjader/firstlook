@@ -39,11 +39,9 @@ export default function AuthForm() {
       description: `Welcome! You are now signed in with ${provider === 'google' ? 'Google' : 'email'}.`
     });
     const redirectUrl = searchParams.get('redirect');
-    const packageId = searchParams.get('packageId');
 
     if (redirectUrl) {
-      const finalUrl = packageId ? `${redirectUrl}?packageId=${packageId}` : redirectUrl;
-      router.push(finalUrl);
+      router.push(redirectUrl);
     } else {
       router.push('/');
     }

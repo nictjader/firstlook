@@ -8,11 +8,11 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { CleanupResult, Story, DatabaseMetrics, CoinPackage } from '@/lib/types';
+import type { CleanupResult, Story, DatabaseMetrics } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
-import { COIN_PACKAGES, PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/config';
+import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -235,42 +235,6 @@ export async function removeTagsAction(): Promise<CleanupResult> {
 
 
 /**
- * Calculates the most cost-effective way to purchase a given number of coins.
- * This is a classic dynamic programming problem (Unbounded Knapsack / Change-making problem).
- * @param totalCoinsNeeded The total number of coins to purchase.
- * @returns The minimum cost in USD.
- */
-function calculateMinimumCost(totalCoinsNeeded: number): number {
-    if (totalCoinsNeeded <= 0) {
-        return 0;
-    }
-
-    // Sort packages by coins to handle cases where buying a larger package is cheaper.
-    const sortedPackages = [...COIN_PACKAGES].sort((a, b) => a.coins - b.coins);
-
-    // dp[i] will be storing the minimum cost to get 'i' coins.
-    const dp = new Array(totalCoinsNeeded + 1).fill(Infinity);
-    dp[0] = 0; // Base case: cost to get 0 coins is 0.
-
-    for (let i = 1; i <= totalCoinsNeeded; i++) {
-        for (const pkg of sortedPackages) {
-            if (pkg.coins <= i) {
-                // If we use this package, the cost is its price + the minimum cost for the remaining coins.
-                const cost = pkg.priceUSD + dp[i - pkg.coins];
-                dp[i] = Math.min(dp[i], cost);
-            } else {
-                // If the package provides more coins than currently needed,
-                // it might still be the cheapest option.
-                dp[i] = Math.min(dp[i], pkg.priceUSD);
-            }
-        }
-    }
-    
-    return parseFloat(dp[totalCoinsNeeded].toFixed(2));
-}
-
-
-/**
  * Analyzes all stories in the database to provide clear, actionable composition and pricing metrics.
  */
 export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
@@ -278,7 +242,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
-    const emptyMetrics: DatabaseMetrics = {
+    const emptyMetrics: Omit<DatabaseMetrics, 'totalValueUSD' | 'avgValuePerPaidChapterUSD'> = {
         totalChapters: 0,
         totalUniqueStories: 0,
         standaloneStories: 0,
@@ -290,13 +254,15 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         avgCoinCostPerPaidChapter: 0,
         paidStandaloneStories: 0,
         paidSeriesChapters: 0,
-        totalValueUSD: 0,
-        avgValuePerPaidChapterUSD: 0,
         duplicateTitles: {},
     };
 
     if (snapshot.empty) {
-        return emptyMetrics;
+        return {
+          ...emptyMetrics,
+          totalValueUSD: 0,
+          avgValuePerPaidChapterUSD: 0,
+        };
     }
 
     const stories = snapshot.docs.map(doc => docToStory(doc));
@@ -342,7 +308,6 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const paidStandaloneStories = stories.filter(s => !s.seriesId && s.isPremium && s.coinCost > 0).length;
     const paidSeriesChapters = paidChapters.length - paidStandaloneStories;
-    const totalValueUSD = calculateMinimumCost(totalCoinCost);
 
     return {
         totalChapters: stories.length,
@@ -356,8 +321,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         avgCoinCostPerPaidChapter,
         paidStandaloneStories,
         paidSeriesChapters,
-        totalValueUSD: totalValueUSD,
-        avgValuePerPaidChapterUSD: paidChapters.length > 0 ? parseFloat((totalValueUSD / paidChapters.length).toFixed(2)) : 0,
+        totalValueUSD: 0,
+        avgValuePerPaidChapterUSD: 0,
         duplicateTitles,
     };
 }

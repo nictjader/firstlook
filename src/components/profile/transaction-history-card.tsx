@@ -1,16 +1,16 @@
 
 "use client";
 
-import type { Purchase, UnlockedStoryInfo, Story } from "@/lib/types";
+import type { UnlockedStoryInfo, Story } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Gem, BookLock, History } from "lucide-react";
+import { BookLock, History } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { useState, useEffect } from "react";
 import { Skeleton } from "../ui/skeleton";
 
 type Transaction = {
   date: string;
-  type: 'purchase' | 'unlock';
+  type: 'unlock';
   description: string;
   amount: string;
   amountColor: string;
@@ -18,25 +18,16 @@ type Transaction = {
 };
 
 interface TransactionHistoryCardProps {
-  purchaseHistory: Purchase[];
   unlockedStories: UnlockedStoryInfo[];
   storiesMap: Map<string, Story>;
   isLoading: boolean;
 }
 
-export default function TransactionHistoryCard({ purchaseHistory, unlockedStories, storiesMap, isLoading }: TransactionHistoryCardProps) {
+export default function TransactionHistoryCard({ unlockedStories, storiesMap, isLoading }: TransactionHistoryCardProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
     const generateTransactions = () => {
-      const purchaseTransactions: Transaction[] = (purchaseHistory || []).map(p => ({
-        date: p.purchasedAt,
-        type: 'purchase',
-        description: `${p.coins.toLocaleString()} Coin Package`,
-        amount: `+${p.coins.toLocaleString()}`,
-        amountColor: "text-green-600 dark:text-green-500",
-        icon: Gem
-      }));
 
       const unlockTransactions: Transaction[] = (unlockedStories || []).map(unlocked => {
         const story = storiesMap.get(unlocked.storyId);
@@ -50,7 +41,7 @@ export default function TransactionHistoryCard({ purchaseHistory, unlockedStorie
         };
       });
 
-      const allTransactions = [...purchaseTransactions, ...unlockTransactions];
+      const allTransactions = [...unlockTransactions];
       allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setTransactions(allTransactions);
@@ -59,16 +50,16 @@ export default function TransactionHistoryCard({ purchaseHistory, unlockedStorie
     if (!isLoading) {
       generateTransactions();
     }
-  }, [purchaseHistory, unlockedStories, storiesMap, isLoading]);
+  }, [unlockedStories, storiesMap, isLoading]);
 
   return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="text-xl font-headline flex items-center">
             <History className="w-5 h-5 mr-2 text-primary" />
-            Transaction History
+            Unlock History
         </CardTitle>
-        <CardDescription>A complete ledger of your coin purchases and story unlocks.</CardDescription>
+        <CardDescription>A complete ledger of your story unlocks.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -84,7 +75,7 @@ export default function TransactionHistoryCard({ purchaseHistory, unlockedStorie
                 <TableRow>
                   <TableHead className="w-[100px]">Date</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Coins</TableHead>
+                  <TableHead className="text-right">Cost</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -113,9 +104,9 @@ export default function TransactionHistoryCard({ purchaseHistory, unlockedStorie
                 <History className="h-8 w-8 text-muted-foreground" />
             </div>
             <div className="space-y-1">
-                <h3 className="text-xl font-semibold tracking-tight">No Transactions Found</h3>
+                <h3 className="text-xl font-semibold tracking-tight">No Unlocks Found</h3>
                 <p className="text-muted-foreground max-w-md mx-auto text-sm">
-                   You have no coin purchases or story unlocks yet.
+                   You have not unlocked any premium stories yet.
                 </p>
             </div>
           </div>

@@ -185,9 +185,6 @@ export default function ProfileView() {
             <Label className="flex items-center text-sm font-semibold"><Gem className="w-4 h-4 mr-2 text-yellow-500"/>Coin Balance</Label>
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
               <span className="text-2xl font-bold text-primary">{userProfile.coins} Coins</span>
-              <Button asChild variant="default" size="sm">
-                 <Link href="/buy-coins">Buy More Coins</Link>
-              </Button>
             </div>
           </div>
         </CardContent>
@@ -210,7 +207,6 @@ export default function ProfileView() {
       />
 
       <TransactionHistoryCard 
-        purchaseHistory={userProfile.purchaseHistory}
         unlockedStories={userProfile.unlockedStories}
         storiesMap={storiesMap}
         isLoading={isLoadingStories}

@@ -4,13 +4,6 @@ import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQu
 
 // --- Type Definitions ---
 
-export interface Purchase {
-  packageId: string;
-  coins: number;
-  priceUSD: number;
-  purchasedAt: string;
-}
-
 export interface UnlockedStoryInfo {
     storyId: string;
     unlockedAt: string;
@@ -24,11 +17,9 @@ export interface UserProfile {
   unlockedStories: UnlockedStoryInfo[];
   readStories: string[];
   favoriteStories: string[];
-  purchaseHistory: Purchase[];
   preferences: {
     subgenres: Subgenre[];
   };
-  stripeCustomerId?: string; 
   createdAt: string;
   lastLogin: string;
 }
@@ -131,26 +122,12 @@ export function docToUserProfile(docData: DocumentData, userId: string): UserPro
       }),
       readStories: data.readStories || [],
       favoriteStories: data.favoriteStories || [],
-      purchaseHistory: (data.purchaseHistory || []).map((p: any): Purchase => ({
-          ...p,
-          purchasedAt: safeToISOString(p.purchasedAt),
-      })),
       preferences: data.preferences || { subgenres: [] },
-      stripeCustomerId: data.stripeCustomerId,
       createdAt: safeToISOString(data.createdAt),
       lastLogin: safeToISOString(data.lastLogin),
     };
 }
 
-
-export interface CoinPackage {
-  id: string;
-  coins: number;
-  priceUSD: number;
-  description: string;
-  stripePriceId?: string;
-  bestValue?: boolean;
-}
 
 // This is the output from the AI flow, which includes the full story data
 // This should only be used on the server.
@@ -204,5 +181,3 @@ export interface DatabaseMetrics {
   // Data Quality Metrics
   duplicateTitles: Record<string, number>;
 }
-
-    

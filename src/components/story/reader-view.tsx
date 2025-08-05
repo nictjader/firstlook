@@ -191,7 +191,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                        if (user) {
                          setShowUnlockModal(true);
                        } else {
-                         router.push('/login?reason=purchase');
+                         router.push('/login');
                        }
                      }}>
                          <Lock className="mr-2 h-5 w-5"/>Unlock to Read
@@ -202,7 +202,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                              <DialogDescription>
                              {hasSufficientCoins
                                  ? `This will use ${story.coinCost} coins from your balance to permanently unlock "${story.title}".`
-                                 : `You need ${story.coinCost} coins to read this story, but you only have ${userProfile?.coins ?? 0}. Please purchase more coins.`
+                                 : `You need ${story.coinCost} coins to read this story, but you only have ${userProfile?.coins ?? 0}.`
                              }
                              </DialogDescription>
                          </DialogHeader>
@@ -213,11 +213,9 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                                  {isLoadingUnlock ? "Unlocking..." : `Yes, Unlock for ${story.coinCost} Coins`}
                              </Button>
                              ) : (
-                             <Link href="/buy-coins">
-                                 <Button className="bg-accent hover:bg-accent/90" onClick={() => setShowUnlockModal(false)}>
-                                 Buy Coins
-                                 </Button>
-                             </Link>
+                              <Button disabled={true} className="bg-accent hover:bg-accent/90">
+                                Purchase Coins
+                              </Button>
                              )}
                          </DialogFooter>
                      </DialogContent>

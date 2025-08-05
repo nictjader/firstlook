@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { Gem, LogIn, LogOut, UserCircle, Moon, Sun, Loader2 } from 'lucide-react';
+import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useTheme } from '@/contexts/theme-context';
 import Logo from './logo';
@@ -34,20 +34,6 @@ export default function Header() {
           <Logo />
 
           <div className="flex items-center space-x-1 sm:space-x-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link href="/buy-coins" passHref>
-                  <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2 sm:px-3 text-primary hover:text-primary/80">
-                    <Gem className="h-4 w-4 mr-0 sm:mr-1" />
-                    <span className="hidden sm:inline-flex">Coins</span>
-                  </Button>
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Buy Coins</p>
-              </TooltipContent>
-            </Tooltip>
-
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
