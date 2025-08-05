@@ -265,64 +265,81 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         };
     }
 
-    const stories = snapshot.docs.map(doc => docToStory(doc));
+    const allStories = snapshot.docs.map(doc => docToStory(doc));
     
-    const titles = new Map<string, number>();
-    const series = new Map<string, { count: number, genre: string }>();
+    // Group stories by a common identifier (seriesId for series, storyId for standalones)
+    const storyGroups = new Map<string, Story[]>();
+    allStories.forEach(story => {
+        const groupId = story.seriesId || story.storyId;
+        if (!storyGroups.has(groupId)) {
+            storyGroups.set(groupId, []);
+        }
+        storyGroups.get(groupId)!.push(story);
+    });
+
+    // Now, perform analysis on the grouped stories
     const storiesPerGenre: Record<string, number> = {};
     let totalWordCount = 0;
     let standaloneCount = 0;
+    let multiPartSeriesCount = 0;
+    let totalCoinCost = 0;
+    let paidStandaloneStories = 0;
+    let paidSeriesChapters = 0;
+    const titleCounts = new Map<string, number>();
 
-    stories.forEach(story => {
-        const titleKey = story.seriesTitle || story.title;
-        titles.set(titleKey, (titles.get(titleKey) || 0) + 1);
-        totalWordCount += story.wordCount || 0;
-        
-        if (story.seriesId) {
-            const seriesData = series.get(story.seriesId) || { count: 0, genre: story.subgenre };
-            seriesData.count++;
-            series.set(story.seriesId, seriesData);
+    storyGroups.forEach((chapters, groupId) => {
+        const representativeStory = chapters[0];
+        const storyTitle = representativeStory.seriesTitle || representativeStory.title;
+        const genre = representativeStory.subgenre;
+
+        titleCounts.set(storyTitle, (titleCounts.get(storyTitle) || 0) + 1);
+        storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
+
+        if (representativeStory.seriesId) {
+            multiPartSeriesCount++;
         } else {
-            // It's a standalone story
             standaloneCount++;
-            storiesPerGenre[story.subgenre] = (storiesPerGenre[story.subgenre] || 0) + 1;
         }
-    });
 
-    series.forEach(s => {
-        storiesPerGenre[s.genre] = (storiesPerGenre[s.genre] || 0) + 1;
+        chapters.forEach(chapter => {
+            totalWordCount += chapter.wordCount || 0;
+            if (chapter.isPremium && chapter.coinCost > 0) {
+                totalCoinCost += chapter.coinCost;
+                if (chapter.seriesId) {
+                    paidSeriesChapters++;
+                } else {
+                    paidStandaloneStories++;
+                }
+            }
+        });
     });
 
     const duplicateTitles: Record<string, number> = {};
-    titles.forEach((count, title) => {
+    titleCounts.forEach((count, title) => {
         if (count > 1) {
             duplicateTitles[title] = count;
         }
     });
-
-    const totalCoinCost = stories.reduce((acc, story) => acc + (story.isPremium ? story.coinCost : 0), 0);
-    const paidChapters = stories.filter(s => s.isPremium && s.coinCost > 0);
-    const avgCoinCostPerPaidChapter = paidChapters.length > 0
-        ? Math.round(totalCoinCost / paidChapters.length)
+    
+    const totalPaidChapters = paidStandaloneStories + paidSeriesChapters;
+    const avgCoinCostPerPaidChapter = totalPaidChapters > 0
+        ? Math.round(totalCoinCost / totalPaidChapters)
         : 0;
 
-    const paidStandaloneStories = stories.filter(s => !s.seriesId && s.isPremium && s.coinCost > 0).length;
-    const paidSeriesChapters = paidChapters.length - paidStandaloneStories;
-
     return {
-        totalChapters: stories.length,
-        totalUniqueStories: standaloneCount + series.size,
+        totalChapters: allStories.length,
+        totalUniqueStories: storyGroups.size,
         standaloneStories: standaloneCount,
-        multiPartSeriesCount: series.size,
+        multiPartSeriesCount: multiPartSeriesCount,
         storiesPerGenre,
         totalWordCount,
-        totalPaidChapters: paidChapters.length,
+        totalPaidChapters: totalPaidChapters,
         totalCoinCost,
         avgCoinCostPerPaidChapter,
         paidStandaloneStories,
         paidSeriesChapters,
-        totalValueUSD: 0,
-        avgValuePerPaidChapterUSD: 0,
+        totalValueUSD: 0, // This would require a conversion rate
+        avgValuePerPaidChapterUSD: 0, // This would require a conversion rate
         duplicateTitles,
     };
 }
