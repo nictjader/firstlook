@@ -78,7 +78,7 @@ export default function FeedbackPage() {
       <CardHeader>
         <CardTitle className="text-3xl font-headline text-primary">Share Your Feedback</CardTitle>
         <CardDescription>
-          Have a suggestion, a bug report, or a feature request? We'd love to hear from you!
+          We'd love to hear from you! Your feedback is essential in helping us improve FirstLook. Please share any thoughts, suggestions, bug reports, or praise you might have. Thank you for helping us make the app better for everyone.
         </CardDescription>
       </CardHeader>
       <CardContent>
