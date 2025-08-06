@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -22,9 +21,6 @@ export default function Footer() {
           </Link>
           <Link href="/privacy" className="hover:text-primary transition-colors">
             Privacy Policy
-          </Link>
-          <Link href="/feedback" className="hover:text-primary transition-colors">
-            Feedback
           </Link>
         </div>
         {year ? (
