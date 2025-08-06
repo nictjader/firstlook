@@ -15,7 +15,11 @@
       "maxInstances": 100,
       "concurrency": 80,
       "cpu": 1,
-      "name": "ssrsirenh2y45-v2"
+      "name": "ssrsirenh2y45-v2",
+      "environment": {
+        "STRIPE_SECRET_KEY": "${env.STRIPE_SECRET_KEY}",
+        "STRIPE_WEBHOOK_SECRET": "${env.STRIPE_WEBHOOK_SECRET}"
+      }
     }
   },
   "firestore": {
