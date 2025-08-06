@@ -26,46 +26,74 @@ function LoginContent() {
   
   const effectRan = useRef(false);
 
-  // This effect runs once on mount to handle any incoming auth links
+  // This effect runs once on mount to handle any incoming auth links or redirects
   useEffect(() => {
     if (effectRan.current || !auth) return;
     effectRan.current = true;
 
-    // Check for email link sign-in
-    const fullUrl = window.location.href;
-    if (isSignInWithEmailLink(auth, fullUrl)) {
-      let email = window.localStorage.getItem('emailForSignIn');
-      if (email) {
-        signInWithEmailLink(auth, email, fullUrl)
-          .then((result) => {
-            window.localStorage.removeItem('emailForSignIn');
-            toast({
-              variant: "success",
-              title: "Sign In Successful!",
-              description: "Welcome! You're now signed in."
-            });
-            router.push(searchParams.get('redirect') || '/');
-          })
-          .catch((error) => {
-             let description = "An unknown error occurred. Please try again.";
-             // This code is specific for expired/already used links.
-             if (error.code === 'auth/invalid-action-code') {
-               description = "This sign-in link may be expired or already used. Please request a new one.";
-             }
-             toast({
-               variant: "destructive",
-               title: "Sign In Failed",
-               description: description,
-             });
-             setIsVerifying(false);
+    // Check for Google redirect result first
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result && result.user) {
+          // User successfully signed in with Google
+          toast({
+            variant: "success",
+            title: "Sign In Successful!",
+            description: "Welcome! You're now signed in with Google."
           });
-      } else {
-        setShowEmailPrompt(true);
-        setIsVerifying(false);
-      }
-    } else {
-        // Not an email link, so we're done with that check
-        setIsVerifying(false);
+          router.push(searchParams.get('redirect') || '/');
+        } else {
+          // No Google redirect, check for email link sign-in
+          handleEmailLinkCheck();
+        }
+      })
+      .catch((error) => {
+        // Handle Errors here.
+        const errorCode = error.code;
+        const errorMessage = error.message;
+        toast({
+          variant: "destructive",
+          title: "Sign In Failed",
+          description: `Google Sign-In Error: ${errorMessage}`,
+        });
+        setIsVerifying(false); // Stop loading on error
+      });
+
+    const handleEmailLinkCheck = () => {
+        const fullUrl = window.location.href;
+        if (isSignInWithEmailLink(auth, fullUrl)) {
+          let email = window.localStorage.getItem('emailForSignIn');
+          if (email) {
+            signInWithEmailLink(auth, email, fullUrl)
+              .then((result) => {
+                window.localStorage.removeItem('emailForSignIn');
+                toast({
+                  variant: "success",
+                  title: "Sign In Successful!",
+                  description: "Welcome! You're now signed in."
+                });
+                router.push(searchParams.get('redirect') || '/');
+              })
+              .catch((error) => {
+                 let description = "An unknown error occurred. Please try again.";
+                 if (error.code === 'auth/invalid-action-code') {
+                   description = "This sign-in link may be expired or already used. Please request a new one.";
+                 }
+                 toast({
+                   variant: "destructive",
+                   title: "Sign In Failed",
+                   description: description,
+                 });
+                 setIsVerifying(false);
+              });
+          } else {
+            setShowEmailPrompt(true);
+            setIsVerifying(false);
+          }
+        } else {
+            // Not a Google redirect or an email link, so we're done with all checks
+            setIsVerifying(false);
+        }
     }
   }, [router, searchParams, toast]);
 
@@ -132,7 +160,7 @@ function LoginContent() {
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
-                    Please wait while we check your sign-in link.
+                    Please wait while we check your sign-in status.
                 </p>
             </CardContent>
         </Card>
@@ -189,3 +217,5 @@ export default function LoginPage() {
     </div>
   )
 }
+
+    

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -32,26 +32,16 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const handleSuccessfulSignIn = (provider: 'google' | 'email') => {
-    toast({
-      variant: "success",
-      title: "Sign In Successful!",
-      description: `Welcome! You are now signed in with ${provider === 'google' ? 'Google' : 'email'}.`
-    });
-    const redirectUrl = searchParams.get('redirect');
-
-    if (redirectUrl) {
-      router.push(redirectUrl);
-    } else {
-      router.push('/');
-    }
-  };
-
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    const finalRedirect = `${window.location.origin}${window.location.pathname}`;
+    // Store the redirect path to be used after email link sign-in.
+    const redirectUrl = searchParams.get('redirect');
+    const finalRedirect = redirectUrl 
+      ? `${window.location.origin}/login?redirect=${encodeURIComponent(redirectUrl)}`
+      : `${window.location.origin}/login`;
+
     const actionCodeSettings = {
       url: finalRedirect, 
       handleCodeInApp: true,
@@ -81,12 +71,12 @@ export default function AuthForm() {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      const result = await signInWithPopup(auth, provider);
-      if (result.user) {
-        handleSuccessfulSignIn('google');
-      }
+      // Use signInWithRedirect instead of signInWithPopup
+      await signInWithRedirect(auth, provider);
+      // The user will be redirected to Google's sign-in page.
+      // The result will be handled on the login page after the redirect.
     } catch (error: any) {
-       let description = "An unknown error occurred during Google Sign-In.";
+       let description = "An unknown error occurred during Google Sign-In setup.";
        if (error.code === 'auth/popup-closed-by-user') {
           description = "The sign-in window was closed before completing. Please try again.";
        } else if (error.code === 'auth/popup-blocked') {
@@ -99,8 +89,7 @@ export default function AuthForm() {
           description: description,
           variant: "destructive",
       });
-    } finally {
-      setLoading(false);
+       setLoading(false);
     }
   };
 
@@ -176,4 +165,6 @@ export default function AuthForm() {
     </Card>
   );
 }
+    
+
     
