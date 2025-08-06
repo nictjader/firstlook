@@ -46,7 +46,7 @@ export default function Header() {
                       <Gem className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
                       <div className="flex flex-col items-start -space-y-1">
                         <span className="hidden md:inline-flex font-semibold">Buy Coins</span>
-                        <span className="sm:inline-flex">{userProfile.coins.toLocaleString()} Coins</span>
+                        <span className="sm:inline-flex">{userProfile.coins.toLocaleString()}</span>
                       </div>
                     </Button>
                   </Link>
