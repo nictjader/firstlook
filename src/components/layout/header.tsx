@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Gem } from 'lucide-react';
+import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Gem, MessageSquareHeart } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
 import Logo from './logo';
 import {
@@ -53,6 +53,19 @@ export default function Header() {
                 </TooltipContent>
               </Tooltip>
             )}
+
+            <Tooltip>
+               <TooltipTrigger asChild>
+                  <Button asChild variant="ghost" size="icon" aria-label="Feedback" className="text-primary">
+                    <Link href="/feedback">
+                      <MessageSquareHeart className="h-5 w-5" />
+                    </Link>
+                  </Button>
+                </TooltipTrigger>
+              <TooltipContent>
+                <p>Give Feedback</p>
+              </TooltipContent>
+            </Tooltip>
 
             <Tooltip>
               <TooltipTrigger asChild>
