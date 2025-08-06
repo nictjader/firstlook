@@ -91,8 +91,7 @@ export async function createCheckoutSession(
   }
 
   try {
-    const requestHeaders = headers();
-    const origin = requestHeaders.get('origin') || process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || headers().get('origin') || 'http://localhost:3000';
     
     // On success, always redirect to the profile page to show the updated balance.
     const successUrl = `${origin}/profile?purchase_success=true`;
@@ -131,6 +130,7 @@ export async function createCheckoutSession(
       // Store the userId and coins directly in the session's metadata for the webhook
       metadata: {
         userId: userId,
+        packageId: packageId,
         coins: coinPackage.coins.toString(),
       },
     });
@@ -151,7 +151,7 @@ export async function createCheckoutSession(
  * This function is called by the webhook to ensure data consistency.
  * @param userId The Firebase UID of the user.
  */
-async function recalibrateCoinBalance(userId: string) {
+async function recalibrateCoinBalance(userId: string): Promise<boolean> {
     const db = getAdminDb();
     const userRef = db.collection('users').doc(userId);
     const storiesRef = db.collection('stories');
@@ -159,7 +159,8 @@ async function recalibrateCoinBalance(userId: string) {
     // 1. Get the user document
     const userDoc = await userRef.get();
     if (!userDoc.exists) {
-        throw new Error(`User with ID ${userId} not found during recalibration.`);
+        console.error(`[Recalibrate] User with ID ${userId} not found.`);
+        return false;
     }
     const userProfile = userDoc.data()!;
 
@@ -205,7 +206,8 @@ async function recalibrateCoinBalance(userId: string) {
 
     // 5. Update the user's balance in Firestore
     await userRef.update({ coins: finalBalance });
-    console.log(`SUCCESS: Recalibrated balance for user ${userId}. New balance: ${finalBalance}`);
+    console.log(`[Recalibrate] SUCCESS: Recalibrated balance for user ${userId}. New balance: ${finalBalance}`);
+    return true;
 }
 
 
@@ -230,7 +232,7 @@ export async function handleStripeWebhook(request: Request) {
     
     try {
         event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-        console.log("Stripe event signature verified successfully.");
+        console.log(`Stripe event signature verified. Event ID: ${event.id}, Type: ${event.type}`);
     } catch (err: any) {
         console.error(`CRITICAL: Webhook signature verification failed: ${err.message}`);
         return new Response(`Webhook Error: ${err.message}`, { status: 400 });
@@ -238,26 +240,31 @@ export async function handleStripeWebhook(request: Request) {
 
     // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
-        console.log("Processing 'checkout.session.completed' event.");
         const session = event.data.object as Stripe.Checkout.Session;
+        console.log(`Processing 'checkout.session.completed' for session ID: ${session.id}`);
         
         const userId = session.metadata?.userId;
+        const packageId = session.metadata?.packageId;
 
-        if (!userId) {
-            console.error('CRITICAL: Webhook Error: Missing userId in session metadata.', { sessionId: session.id });
+        if (!userId || !packageId) {
+            console.error(`CRITICAL: Webhook Error: Missing userId or packageId in session metadata.`, { sessionId: session.id, metadata: session.metadata });
             return new Response('Webhook Error: Missing required metadata.', { status: 400 });
         }
+        
+        console.log(`Metadata found: UserID=${userId}, PackageID=${packageId}`);
 
         try {
-            // Instead of just incrementing, we run a full recalibration.
-            await recalibrateCoinBalance(userId);
-        } catch (error) {
-            console.error(`CRITICAL: Failed to recalibrate user's coin balance for user ${userId}:`, error);
+            const recalibrationSuccess = await recalibrateCoinBalance(userId);
+            if (!recalibrationSuccess) {
+                 console.error(`CRITICAL: Recalibration failed for user ${userId} after purchase. Manual intervention may be required.`);
+            }
+        } catch (error: any) {
+            console.error(`CRITICAL: Failed to recalibrate user's coin balance for user ${userId}:`, error.message);
             // Don't return a 500 to Stripe, as it might retry a failed recalibration logic indefinitely.
             // Log the error for manual intervention.
         }
     } else {
-        console.log(`Received unhandled event type: ${event.type}`);
+        console.log(`Received and acknowledged unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -313,3 +320,5 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     return [];
   }
 }
+
+    
