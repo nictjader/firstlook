@@ -110,8 +110,6 @@ export async function createCheckoutSession(
       success_url: successUrl,
       cancel_url: `${origin}/buy-coins?cancelled=true`,
       customer: customerId, // Associate the checkout with the Stripe Customer
-       // Pass the user ID in the session metadata for the webhook
-      client_reference_id: userId,
     });
 
     if (!session.url) {
@@ -152,9 +150,12 @@ export async function handleStripeWebhook(request: Request) {
 
     // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
+        const session = event.data.object as Stripe.Checkout.Session;
+        
+        // Retrieve the session with line items to get metadata
         const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
-            (event.data.object as Stripe.Checkout.Session).id,
-            { expand: ['line_items'] }
+            session.id,
+            { expand: ['line_items.data.price.product'] }
         );
 
         const lineItems = sessionWithLineItems.line_items;
@@ -162,13 +163,25 @@ export async function handleStripeWebhook(request: Request) {
             console.error('Webhook Error: No line items found in session.', sessionWithLineItems);
             return new Response('Webhook Error: No line items found.', { status: 400 });
         }
+        
+        const customerId = session.customer;
+        if (!customerId || typeof customerId !== 'string') {
+          console.error('Webhook Error: Missing customer ID in session.');
+          return new Response('Webhook Error: Missing customer ID.', { status: 400 });
+        }
 
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer.deleted) {
+          console.error(`Webhook Error: Customer ${customerId} has been deleted.`);
+          return new Response('Webhook Error: Customer deleted.', { status: 400 });
+        }
+
+        const userId = customer.metadata.firebaseUID;
         const product = lineItems.data[0].price?.product as Stripe.Product;
-        const userId = sessionWithLineItems.client_reference_id;
         const coins = product?.metadata?.coins;
 
         if (!userId || !coins) {
-            console.error('Webhook Error: Missing userId or coins in session metadata.', sessionWithLineItems);
+            console.error('Webhook Error: Missing userId in customer metadata or coins in product metadata.', { userId, coins });
             return new Response('Webhook Error: Missing metadata.', { status: 400 });
         }
 
@@ -189,11 +202,13 @@ export async function handleStripeWebhook(request: Request) {
             console.log(`Successfully credited ${coinsToAdd} coins to user ${userId}.`);
         } catch (error) {
             console.error(`Failed to update user's coin balance for user ${userId}:`, error);
-            return new Response('Webhook Error: Failed to update user balance.', { status: 500 });
+            // This is a critical error. We should return a 500 to let Stripe know something went wrong
+            // on our end, so it can retry the webhook.
+            return new Response('Webhook Error: Failed to update user balance in database.', { status: 500 });
         }
     }
 
-    return new Response(null, { status: 200 });
+    return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
 }
 
 

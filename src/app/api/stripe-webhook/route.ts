@@ -1,6 +1,5 @@
 
 import { handleStripeWebhook } from '@/lib/actions/paymentActions';
-import type { NextApiRequest, NextApiResponse } from 'next';
 
 /**
  * This route handler listens for incoming webhooks from Stripe.
