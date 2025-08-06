@@ -189,11 +189,13 @@ export async function handleStripeWebhook(request: Request) {
         
         const userId = session.metadata?.userId;
         const priceData = lineItems.data[0]?.price?.product as Stripe.Product;
-        const coinsStr = priceData?.metadata?.coins;
-
+        
+        // This was the bug: metadata with coin count is on the *product*, not the session
+        const productMetadata = (lineItems.data[0]?.price?.product as Stripe.Product | undefined)?.metadata;
+        const coinsStr = productMetadata?.coins;
 
         if (!userId || !coinsStr) {
-            console.error('Webhook Error: Missing userId or coins in session metadata.', { userId, coins: coinsStr, sessionId: session.id });
+            console.error('Webhook Error: Missing userId or coins in session or product metadata.', { userId, coins: coinsStr, sessionId: session.id });
             return new Response('Webhook Error: Missing metadata.', { status: 400 });
         }
 

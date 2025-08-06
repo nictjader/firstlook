@@ -1,5 +1,4 @@
 import { handleStripeWebhook } from '@/lib/actions/paymentActions';
-import { NextRequest } from 'next/server';
 
 /**
  * This route handler listens for incoming webhooks from Stripe.
@@ -9,6 +8,6 @@ import { NextRequest } from 'next/server';
  * It's crucial that the Next.js body parser is disabled for this route
  * so that we can verify the raw request body from Stripe.
  */
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   return handleStripeWebhook(request);
 }
