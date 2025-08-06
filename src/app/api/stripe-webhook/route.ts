@@ -1,4 +1,11 @@
 import { handleStripeWebhook } from '@/lib/actions/paymentActions';
+import { type NextRequest } from 'next/server';
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
 
 /**
  * This route handler listens for incoming webhooks from Stripe.
@@ -6,7 +13,6 @@ import { handleStripeWebhook } from '@/lib/actions/paymentActions';
  * This is the POST endpoint that you will provide to Stripe.
  */
 export async function POST(request: Request) {
+  // The handleStripeWebhook function now handles reading the raw body.
   return handleStripeWebhook(request);
 }
-
-    

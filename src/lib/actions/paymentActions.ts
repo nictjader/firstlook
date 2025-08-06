@@ -125,8 +125,9 @@ export async function createCheckoutSession(
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer: customerId,
-      // Store the coins in the session's metadata for the webhook
+      // Store the userId and coins directly in the session's metadata for the webhook
       metadata: {
+        userId: userId,
         coins: coinPackage.coins.toString(),
       },
     });
@@ -149,11 +150,12 @@ export async function createCheckoutSession(
  * @returns A response indicating the outcome.
  */
 export async function handleStripeWebhook(request: Request) {
+    console.log("Stripe webhook handler invoked.");
     const sig = request.headers.get('stripe-signature');
     const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
     if (!sig || !webhookSecret) {
-      console.error('Stripe signature or webhook secret is missing.');
+      console.error('CRITICAL: Stripe signature or webhook secret is missing.');
       return new Response('Webhook Error: Missing signature or secret.', { status: 400 });
     }
 
@@ -162,28 +164,27 @@ export async function handleStripeWebhook(request: Request) {
     
     try {
         event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
+        console.log("Stripe event signature verified successfully.");
     } catch (err: any) {
-        console.error(`Webhook signature verification failed: ${err.message}`);
+        console.error(`CRITICAL: Webhook signature verification failed: ${err.message}`);
         return new Response(`Webhook Error: ${err.message}`, { status: 400 });
     }
 
     // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
-        const sessionFromEvent = event.data.object as Stripe.Checkout.Session;
-
-        // Retrieve the full session object to ensure we have all the data we need
-        const session = await stripe.checkout.sessions.retrieve(sessionFromEvent.id, {
-          expand: ['customer'],
-        });
-
-        const coinsStr = session.metadata?.coins;
+        console.log("Processing 'checkout.session.completed' event.");
+        const session = event.data.object as Stripe.Checkout.Session;
         
-        // The customer object now contains the metadata with our Firebase UID
-        const customer = session.customer as Stripe.Customer;
-        const userId = customer.metadata?.firebaseUID;
+        console.log("Full session object from webhook:", JSON.stringify(session, null, 2));
+        
+        // Directly access metadata from the session object in the event
+        const userId = session.metadata?.userId;
+        const coinsStr = session.metadata?.coins;
+
+        console.log(`Extracted from metadata - UserID: ${userId}, Coins: ${coinsStr}`);
 
         if (!userId || !coinsStr) {
-            console.error('Webhook Error: Missing firebaseUID in customer metadata or coins in session metadata.', { userId, coins: coinsStr, sessionId: session.id });
+            console.error('CRITICAL: Webhook Error: Missing userId or coins in session metadata.', { userId, coins: coinsStr, sessionId: session.id });
             return new Response('Webhook Error: Missing required metadata.', { status: 400 });
         }
 
@@ -193,19 +194,22 @@ export async function handleStripeWebhook(request: Request) {
             
             const coinsToAdd = parseInt(coinsStr, 10);
             if (isNaN(coinsToAdd)) {
-                console.error(`Webhook Error: Invalid non-numeric coin value '${coinsStr}' for user ${userId}.`);
+                console.error(`CRITICAL: Webhook Error: Invalid non-numeric coin value '${coinsStr}' for user ${userId}.`);
                 return new Response('Webhook Error: Invalid coin value.', { status: 400 });
             }
             
+            console.log(`Attempting to add ${coinsToAdd} coins to user ${userId}.`);
             await userRef.update({
                 coins: FieldValue.increment(coinsToAdd)
             });
+            console.log(`SUCCESS: Credited ${coinsToAdd} coins to user ${userId}.`);
 
-            console.log(`Successfully credited ${coinsToAdd} coins to user ${userId}.`);
         } catch (error) {
-            console.error(`Failed to update user's coin balance for user ${userId}:`, error);
+            console.error(`CRITICAL: Failed to update user's coin balance for user ${userId}:`, error);
             return new Response('Webhook Error: Failed to update user balance in database.', { status: 500 });
         }
+    } else {
+        console.log(`Received unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -235,7 +239,6 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
         limit: 100,
-        expand: ['data.line_items'], // Expand line_items to get metadata
     });
 
     const successfulTransactions: CoinTransaction[] = [];
