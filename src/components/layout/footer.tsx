@@ -23,6 +23,9 @@ export default function Footer() {
           <Link href="/privacy" className="hover:text-primary transition-colors">
             Privacy Policy
           </Link>
+          <Link href="/feedback" className="hover:text-primary transition-colors">
+            Feedback
+          </Link>
         </div>
         {year ? (
           <p>&copy; {year} FirstLook. All rights reserved.</p>
