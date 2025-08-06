@@ -7,23 +7,92 @@ import { useAuth } from '@/contexts/auth-context';
 import { COIN_PACKAGES } from '@/lib/config';
 import { cn } from '@/lib/utils';
 import { Check, Gem, Loader2, Star, Trophy } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { createCheckoutSession } from '@/lib/actions/paymentActions';
+import { loadStripe } from '@stripe/stripe-js';
+
+// Load the Stripe.js script
+const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
+
 
 function CoinPurchaseContent() {
   const { user, loading: authLoading } = useAuth();
   const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    // Check for a successful purchase in the query params
+    const sessionId = searchParams.get('session_id');
+    if (sessionId) {
+      toast({
+        variant: 'success',
+        title: 'Purchase Successful!',
+        description: 'Your coins have been added to your account. Thank you!',
+      });
+      // Clean the URL
+      router.replace('/buy-coins');
+    }
+
+    // Check for a cancelled purchase
+    if (searchParams.get('cancelled')) {
+      toast({
+        variant: 'destructive',
+        title: 'Purchase Cancelled',
+        description: 'Your purchase was cancelled. You have not been charged.',
+      });
+      // Clean the URL
+      router.replace('/buy-coins');
+    }
+  }, [searchParams, router, toast]);
+
 
   const handlePurchase = async (packageId: string) => {
-    toast({
-        title: "Coming Soon!",
-        description: "Coin purchasing is not yet enabled. Please check back later.",
-        variant: "default",
-    });
-    return;
+    if (!user) {
+        toast({
+            title: "Please Sign In",
+            description: "You must be signed in to purchase coins.",
+            variant: "destructive",
+        });
+        router.push('/login?redirect=/buy-coins');
+        return;
+    }
+    setLoadingPackageId(packageId);
+
+    try {
+        const { sessionId, error } = await createCheckoutSession(packageId, user.uid);
+        
+        if (error || !sessionId) {
+            throw new Error(error || 'Failed to create checkout session.');
+        }
+
+        const stripe = await stripePromise;
+        if (!stripe) {
+            throw new Error('Stripe.js has not loaded yet.');
+        }
+
+        const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
+
+        if (stripeError) {
+            console.error('Stripe redirect error:', stripeError);
+            toast({
+                title: 'Payment Error',
+                description: stripeError.message || 'An error occurred during the payment process.',
+                variant: 'destructive',
+            });
+        }
+    } catch (error: any) {
+        toast({
+            title: "Purchase Failed",
+            description: error.message || "An unexpected error occurred. Please try again.",
+            variant: "destructive",
+        });
+    } finally {
+        setLoadingPackageId(null);
+    }
   };
 
   if (authLoading) {
@@ -58,6 +127,7 @@ function CoinPurchaseContent() {
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {COIN_PACKAGES.map((pkg) => {
         const labelInfo = getLabelInfo(pkg.label);
+        const isLoading = loadingPackageId === pkg.id;
         return (
             <Card key={pkg.id} className={cn(
             "flex flex-col shadow-lg transition-all duration-300 relative overflow-hidden",
@@ -87,9 +157,9 @@ function CoinPurchaseContent() {
                 <Button 
                     className="w-full h-12 text-lg" 
                     onClick={() => handlePurchase(pkg.id)}
-                    disabled // This button is currently disabled
+                    disabled={isLoading}
                 >
-                {loadingPackageId === pkg.id ? (
+                {isLoading ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                 ) : (
                     <Check className="mr-2 h-5 w-5" />
@@ -111,4 +181,3 @@ export default function CoinPurchase() {
         </Suspense>
     );
 }
-
