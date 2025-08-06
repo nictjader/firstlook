@@ -237,10 +237,29 @@ function AdminDashboardContent() {
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                <Button onClick={handleStandardizePrices} disabled={isToolRunning} variant="outline">
-                    {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
-                    {isPricing ? 'Updating...' : 'Standardize Prices'}
-                </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button disabled={isToolRunning} variant="outline">
+                            {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                            {isPricing ? 'Updating...' : 'Standardize Prices'}
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Confirm Bulk Price Update</AlertDialogTitle>
+                            <AlertDialogDescription>
+                            This will overwrite the prices of all chapters listed in the pricing data file. This action is irreversible. Are you sure you want to proceed?
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleStandardizePrices}>
+                                {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                Yes, Update Prices
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
                 <Button onClick={handleStandardizeGenres} disabled={isToolRunning} variant="outline">
                     {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
                     {isCleaning ? 'Cleaning...' : 'Standardize Genres'}

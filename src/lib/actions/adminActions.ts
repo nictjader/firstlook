@@ -13,6 +13,7 @@ import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
 import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/config';
+import { chapterPricingData } from '@/lib/pricing-data';
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -451,63 +452,32 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
 export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
   const db = getAdminDb();
-  const storiesRef = db.collection('stories');
-  const snapshot = await storiesRef.get();
+  const pricingMap = new Map(chapterPricingData.map(p => [p.chapterId, p.newCoinCost]));
 
-  if (snapshot.empty) {
-    return { success: true, message: 'No stories found to process.', checked: 0, updated: 0 };
+  if (pricingMap.size === 0) {
+    return { success: false, message: 'No pricing data provided. Operation cancelled.', checked: 0, updated: 0 };
   }
 
   const batch = db.batch();
   let updatedCount = 0;
 
-  snapshot.docs.forEach((doc) => {
-    const story = docToStory(doc);
-    let needsUpdate = false;
-    let newCoinCost = story.coinCost;
-
-    if (story.seriesId) {
-      if (story.partNumber === 1 && (story.coinCost !== 0 || story.isPremium !== false)) {
-        newCoinCost = 0;
-        needsUpdate = true;
-      } else if (story.partNumber && story.partNumber > 1 && (story.coinCost !== PREMIUM_STORY_COST || story.isPremium !== true)) {
-        newCoinCost = PREMIUM_STORY_COST;
-        needsUpdate = true;
-      }
-    }
-    else {
-      if (story.isPremium && story.coinCost !== PREMIUM_STORY_COST) {
-        newCoinCost = PREMIUM_STORY_COST;
-        needsUpdate = true;
-      }
-      if (!story.isPremium && story.coinCost !== 0) {
-        newCoinCost = 0;
-        needsUpdate = true;
-      }
-    }
-
-    if (needsUpdate) {
-      const storyRef = db.collection('stories').doc(doc.id);
-      batch.update(storyRef, {
-        coinCost: newCoinCost,
-        isPremium: newCoinCost > 0,
-      });
-      updatedCount++;
-    }
-  });
-
-  if (updatedCount > 0) {
-    await batch.commit();
+  for (const [chapterId, newCoinCost] of pricingMap.entries()) {
+    const storyRef = db.collection('stories').doc(chapterId);
+    batch.update(storyRef, {
+      coinCost: newCoinCost,
+      isPremium: newCoinCost > 0,
+    });
+    updatedCount++;
   }
+
+  await batch.commit();
   
-  const message = updatedCount > 0
-    ? `Successfully checked ${snapshot.size} stories and standardized the price for ${updatedCount} of them.`
-    : `Checked ${snapshot.size} stories. All prices were already standard.`;
+  const message = `Successfully updated the price for ${updatedCount} chapters based on the provided pricing data.`;
 
   return {
     success: true,
     message,
-    checked: snapshot.size,
+    checked: pricingMap.size,
     updated: updatedCount,
   };
 }
