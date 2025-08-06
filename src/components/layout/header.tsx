@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2 } from 'lucide-react';
+import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Gem } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
 import Logo from './logo';
 import {
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/tooltip';
 
 export default function Header() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
 
@@ -37,7 +37,23 @@ export default function Header() {
         <Logo />
 
         <div className="flex items-center space-x-1 sm:space-x-2">
-          <TooltipProvider>
+           <TooltipProvider>
+            {user && userProfile && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link href="/buy-coins">
+                    <Button variant="ghost" className="h-9 rounded-md text-xs sm:text-sm px-2 sm:px-3 text-primary hover:text-primary/80">
+                      <Gem className="h-4 w-4 mr-0 sm:mr-2" />
+                      <span className="hidden sm:inline-flex">{userProfile.coins} Coins</span>
+                    </Button>
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Buy Coins</p>
+                </TooltipContent>
+              </Tooltip>
+            )}
+
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -45,6 +61,7 @@ export default function Header() {
                   size="icon"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   aria-label="Toggle theme"
+                  className="text-primary hover:text-primary/80"
                 >
                   <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
                   <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
@@ -66,7 +83,7 @@ export default function Header() {
                   <TooltipTrigger asChild>
                     <Button asChild variant="ghost" size="icon" aria-label="Profile">
                       <Link href="/profile">
-                        <UserCircle className="h-5 w-5" />
+                        <UserCircle className="h-5 w-5 text-primary" />
                       </Link>
                     </Button>
                   </TooltipTrigger>
@@ -77,7 +94,7 @@ export default function Header() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign Out">
-                      <LogOut className="h-5 w-5" />
+                      <LogOut className="h-5 w-5 text-primary" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -90,7 +107,7 @@ export default function Header() {
                 <TooltipTrigger asChild>
                   <Button asChild variant="ghost" size="icon" aria-label="Sign In">
                     <Link href="/login">
-                      <LogIn className="h-5 w-5" />
+                      <LogIn className="h-5 w-5 text-primary" />
                     </Link>
                   </Button>
                 </TooltipTrigger>
