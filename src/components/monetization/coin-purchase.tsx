@@ -6,12 +6,14 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/auth-context';
 import { COIN_PACKAGES } from '@/lib/config';
 import { cn } from '@/lib/utils';
-import { Check, Gem, Loader2, Star, Trophy, ArrowRight } from 'lucide-react';
+import { Check, Gem, Loader2, Star, Trophy, ArrowRight, ExternalLink } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { createCheckoutSession } from '@/lib/actions/paymentActions';
 import Link from 'next/link';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+
 
 function CoinPurchaseContent() {
   const { user, loading: authLoading } = useAuth();
@@ -19,6 +21,8 @@ function CoinPurchaseContent() {
   const router = useRouter();
   const { toast } = useToast();
   const searchParams = useSearchParams();
+
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
@@ -28,7 +32,8 @@ function CoinPurchaseContent() {
         title: 'Purchase Successful!',
         description: 'Your coins have been added to your account. Thank you!',
       });
-      router.replace('/buy-coins');
+      // Use router.replace to remove the query params from the URL
+      router.replace('/buy-coins'); 
     }
 
     if (searchParams.get('cancelled')) {
@@ -61,18 +66,7 @@ function CoinPurchaseContent() {
             throw new Error(error || 'Failed to create checkout session.');
         }
         
-        toast({
-          variant: 'success',
-          title: "Checkout session created!",
-          duration: 15000,
-          description: (
-             <Button asChild variant="secondary" className="mt-2">
-                <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">
-                  Click here to complete purchase <ArrowRight className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-          ),
-        });
+        setCheckoutUrl(checkoutUrl);
 
     } catch (error: any) {
         toast({
@@ -114,6 +108,24 @@ function CoinPurchaseContent() {
   };
 
   return (
+    <>
+    <Dialog open={!!checkoutUrl} onOpenChange={(isOpen) => !isOpen && setCheckoutUrl(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Checkout Session Ready</DialogTitle>
+            <DialogDescription>
+              Your secure payment page is ready. Click the button below to complete your purchase with Stripe.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+             <Button asChild className="w-full h-12 text-lg">
+                <a href={checkoutUrl!} target="_blank" rel="noopener noreferrer" onClick={() => setCheckoutUrl(null)}>
+                  Proceed to Secure Checkout <ExternalLink className="ml-2 h-5 w-5" />
+                </a>
+              </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {COIN_PACKAGES.map((pkg) => {
         const labelInfo = getLabelInfo(pkg.label);
@@ -161,6 +173,7 @@ function CoinPurchaseContent() {
         );
       })}
     </div>
+    </>
   );
 }
 
