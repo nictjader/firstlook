@@ -38,9 +38,9 @@ async function getOrCreateStripeCustomerId(userId: string): Promise<string> {
   const userRef = db.collection('users').doc(userId);
   const userDoc = await userRef.get();
   
-  const stripeCustomerId = userDoc.data()?.stripeCustomerId;
-  if (stripeCustomerId) {
-    return stripeCustomerId;
+  const userData = userDoc.data();
+  if (userData && userData.stripeCustomerId) {
+    return userData.stripeCustomerId;
   }
 
   // If no Stripe customer ID exists, create one
@@ -81,11 +81,11 @@ export async function createCheckoutSession(
 
   const origin = headers().get('origin') || 'http://localhost:3000';
 
-  // The success URL now points to the profile page to show the user their new balance.
   let successUrl = `${origin}/profile?purchase_success=true`;
   if (redirectPath) {
+    // Ensure the redirect path is a valid relative path starting with '/'
     if (redirectPath.startsWith('/')) {
-        successUrl += `&redirect=${encodeURIComponent(redirectPath)}`;
+        successUrl = `${origin}${redirectPath}?purchase_success=true`;
     }
   }
 
@@ -114,7 +114,6 @@ export async function createCheckoutSession(
       cancel_url: `${origin}/buy-coins?cancelled=true`,
       customer: customerId, // Associate the checkout with the Stripe Customer
       metadata: {
-        // We still store metadata here. The webhook will use it as a primary source.
         userId: userId,
         packageId: packageId,
         coins: coinPackage.coins.toString(),
@@ -161,7 +160,6 @@ export async function handleStripeWebhook(request: Request) {
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;
         
-        // Use the metadata from the session object.
         const { userId, coins } = session.metadata || {};
 
         if (!userId || !coins) {
@@ -173,11 +171,18 @@ export async function handleStripeWebhook(request: Request) {
             const db = getAdminDb();
             const userRef = db.collection('users').doc(userId);
             
+            // CRITICAL FIX: The coins value from metadata is a string. It must be parsed to an integer.
+            const coinsToAdd = parseInt(coins, 10);
+            if (isNaN(coinsToAdd)) {
+                console.error(`Webhook Error: Invalid non-numeric coin value '${coins}' for user ${userId}.`);
+                return new Response('Webhook Error: Invalid coin value.', { status: 400 });
+            }
+            
             await userRef.update({
-                coins: FieldValue.increment(parseInt(coins, 10))
+                coins: FieldValue.increment(coinsToAdd)
             });
 
-            console.log(`Successfully credited ${coins} coins to user ${userId}.`);
+            console.log(`Successfully credited ${coinsToAdd} coins to user ${userId}.`);
         } catch (error) {
             console.error(`Failed to update user's coin balance for user ${userId}:`, error);
             return new Response('Webhook Error: Failed to update user balance.', { status: 500 });
@@ -201,11 +206,13 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
   try {
     const db = getAdminDb();
     const userDoc = await db.collection('users').doc(userId).get();
-    const stripeCustomerId = userDoc.data()?.stripeCustomerId;
-
-    if (!stripeCustomerId) {
+    const user = userDoc.data();
+    
+    if (!user || !user.stripeCustomerId) {
+      // User document might not exist yet or has no stripeCustomerId
       return [];
     }
+    const stripeCustomerId = user.stripeCustomerId;
 
     // Directly fetch all checkout sessions for the customer.
     const checkoutSessions = await stripe.checkout.sessions.list({
@@ -229,8 +236,6 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
         }
     }
     
-    // Sort descending by date, as Stripe returns them newest first already.
-    // This is just a safeguard.
     successfulTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     return successfulTransactions;
