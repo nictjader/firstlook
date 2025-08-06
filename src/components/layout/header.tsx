@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from 'next/link';
@@ -7,13 +6,18 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Gem } from 'lucide-react';
+import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2 } from 'lucide-react';
 import { useTheme } from '@/contexts/theme-context';
 import Logo from './logo';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export default function Header() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
 
@@ -57,21 +61,6 @@ export default function Header() {
               </Button>
             ) : user ? (
               <>
-                {userProfile && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button asChild variant="ghost" className="flex items-center space-x-2 px-3">
-                        <Link href="/buy-coins">
-                          <Gem className="h-4 w-4" />
-                          <span>{userProfile.coins}</span>
-                        </Link>
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Buy Coins</p>
-                    </TooltipContent>
-                  </Tooltip>
-                )}
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button asChild variant="ghost" size="icon" aria-label="Profile">
