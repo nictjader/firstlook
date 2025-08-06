@@ -4,6 +4,7 @@
 import { type ChapterAnalysis } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { capitalizeWords } from '@/lib/utils';
 
 interface ChapterAnalysisTableProps {
   data: ChapterAnalysis[];
@@ -21,6 +22,7 @@ export default function ChapterAnalysisTable({ data }: ChapterAnalysisTableProps
         <TableHeader>
           <TableRow>
             <TableHead>Chapter Title</TableHead>
+            <TableHead>Genre</TableHead>
             <TableHead>Story Type</TableHead>
             <TableHead>Part #</TableHead>
             <TableHead className="text-right">Word Count</TableHead>
@@ -32,6 +34,9 @@ export default function ChapterAnalysisTable({ data }: ChapterAnalysisTableProps
           {data.map((chapter) => (
             <TableRow key={chapter.chapterId}>
               <TableCell className="font-medium">{chapter.title}</TableCell>
+              <TableCell>
+                <Badge variant="outline">{capitalizeWords(chapter.subgenre)}</Badge>
+              </TableCell>
               <TableCell>
                 <Badge variant={chapter.storyType === 'Series' ? 'secondary' : 'outline'}>
                   {chapter.storyType}

@@ -1,5 +1,4 @@
 
-
 'use server';
 
 import { generateStory } from '@/ai/flows/story-generator';
@@ -536,5 +535,6 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         partNumber: chapter.partNumber,
         title: chapter.title,
         seriesTitle: chapter.seriesTitle,
+        subgenre: chapter.subgenre,
     }));
 }

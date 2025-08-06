@@ -1,5 +1,4 @@
 
-
 import { type Timestamp as ClientTimestamp, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
 import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
 
@@ -194,4 +193,5 @@ export interface ChapterAnalysis {
   partNumber?: number;
   title: string;
   seriesTitle?: string;
+  subgenre: Subgenre;
 }
