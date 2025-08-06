@@ -16,9 +16,9 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
  * Creates a Stripe Checkout Session for a given coin package and user.
  * @param packageId The ID of the coin package being purchased.
  * @param userId The ID of the user making the purchase.
- * @returns An object with the session ID if successful, or an error message.
+ * @returns An object with the checkout URL if successful, or an error message.
  */
-export async function createCheckoutSession(packageId: string, userId: string): Promise<{ sessionId?: string; error?: string }> {
+export async function createCheckoutSession(packageId: string, userId: string): Promise<{ checkoutUrl?: string; error?: string }> {
   if (!userId) {
     return { error: 'User is not authenticated.' };
   }
@@ -57,11 +57,11 @@ export async function createCheckoutSession(packageId: string, userId: string): 
       },
     });
 
-    if (!session.id) {
-        throw new Error('Failed to create Stripe session.');
+    if (!session.url) {
+        throw new Error('Failed to create Stripe checkout session URL.');
     }
 
-    return { sessionId: session.id };
+    return { checkoutUrl: session.url };
   } catch (error: any) {
     console.error('Error creating Stripe checkout session:', error);
     return { error: error.message };

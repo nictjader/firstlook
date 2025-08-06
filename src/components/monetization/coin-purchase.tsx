@@ -11,11 +11,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { createCheckoutSession } from '@/lib/actions/paymentActions';
-import { loadStripe } from '@stripe/stripe-js';
-
-// Load the Stripe.js script
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '');
-
 
 function CoinPurchaseContent() {
   const { user, loading: authLoading } = useAuth();
@@ -63,35 +58,27 @@ function CoinPurchaseContent() {
     setLoadingPackageId(packageId);
 
     try {
-        const { sessionId, error } = await createCheckoutSession(packageId, user.uid);
+        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid);
         
-        if (error || !sessionId) {
+        if (error || !checkoutUrl) {
             throw new Error(error || 'Failed to create checkout session.');
         }
-
-        const stripe = await stripePromise;
-        if (!stripe) {
-            throw new Error('Stripe.js has not loaded yet.');
+        
+        // Redirect the top-level window to the Stripe checkout page
+        // This is necessary to break out of the iframe in the prototyper
+        if (window.top) {
+          window.top.location.href = checkoutUrl;
+        } else {
+          window.location.href = checkoutUrl;
         }
 
-        const { error: stripeError } = await stripe.redirectToCheckout({ sessionId });
-
-        if (stripeError) {
-            console.error('Stripe redirect error:', stripeError);
-            toast({
-                title: 'Payment Error',
-                description: stripeError.message || 'An error occurred during the payment process.',
-                variant: 'destructive',
-            });
-        }
     } catch (error: any) {
         toast({
             title: "Purchase Failed",
             description: error.message || "An unexpected error occurred. Please try again.",
             variant: "destructive",
         });
-    } finally {
-        setLoadingPackageId(null);
+        setLoadingPackageId(null); // Ensure loading state is reset on error
     }
   };
 

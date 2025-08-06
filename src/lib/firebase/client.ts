@@ -32,12 +32,6 @@ for (const key of requiredConfigKeys) {
   }
 }
 
-// Add the Stripe publishable key to the environment variables check
-if (!process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY) {
-  throw new Error('Missing Stripe configuration: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY. Please check your .env file.');
-}
-
-
 // Initialize Firebase for the CLIENT
 let app: FirebaseApp;
 if (!getApps().length) {
