@@ -115,10 +115,6 @@ export async function createCheckoutSession(
             product_data: {
               name: `${coinPackage.name} - ${coinPackage.coins} Coins`,
               description: coinPackage.messaging,
-               // Store the number of coins in the product's metadata
-              metadata: {
-                coins: coinPackage.coins.toString(),
-              }
             },
             unit_amount: Math.round(coinPackage.priceUSD * 100), // Price in cents
           },
@@ -129,9 +125,10 @@ export async function createCheckoutSession(
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer: customerId,
-      // Store the userId in the session's metadata for the webhook
+      // Store the userId and coins directly in the session's metadata for the webhook
       metadata: {
         userId: userId,
+        coins: coinPackage.coins.toString(),
       },
     });
 
@@ -175,27 +172,12 @@ export async function handleStripeWebhook(request: Request) {
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;
         
-        // Retrieve the session with line_items expanded to get metadata
-        const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
-            session.id,
-            { expand: ['line_items'] }
-        );
-
-        const lineItems = sessionWithLineItems.line_items;
-        if (!lineItems) {
-            console.error('Webhook Error: line_items not found in session.', { sessionId: session.id });
-            return new Response('Webhook Error: Missing line_items.', { status: 400 });
-        }
-        
+        // Directly access metadata from the session object in the event
         const userId = session.metadata?.userId;
-        const priceData = lineItems.data[0]?.price?.product as Stripe.Product;
-        
-        // This was the bug: metadata with coin count is on the *product*, not the session
-        const productMetadata = (lineItems.data[0]?.price?.product as Stripe.Product | undefined)?.metadata;
-        const coinsStr = productMetadata?.coins;
+        const coinsStr = session.metadata?.coins;
 
         if (!userId || !coinsStr) {
-            console.error('Webhook Error: Missing userId or coins in session or product metadata.', { userId, coins: coinsStr, sessionId: session.id });
+            console.error('Webhook Error: Missing userId or coins in session metadata.', { userId, coins: coinsStr, sessionId: session.id });
             return new Response('Webhook Error: Missing metadata.', { status: 400 });
         }
 
@@ -247,7 +229,7 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
         limit: 100,
-        expand: ['data.line_items.data.price.product'], // Expand product data to get metadata
+        expand: ['data.line_items'], // Expand line_items to get metadata
     });
 
     const successfulTransactions: CoinTransaction[] = [];
@@ -255,18 +237,10 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const completedSessions = checkoutSessions.data.filter(session => session.payment_status === 'paid');
 
     for (const session of completedSessions) {
-      const lineItems = session.line_items;
-      if (!lineItems || lineItems.data.length === 0) {
-        continue;
-      }
-      
-      const product = lineItems.data[0].price?.product as Stripe.Product | undefined;
-      const coinsPurchased = product?.metadata?.coins;
-
-      if (coinsPurchased) {
+      if (session.metadata?.coins) {
             successfulTransactions.push({
               date: new Date(session.created * 1000).toISOString(),
-              coins: parseInt(coinsPurchased, 10),
+              coins: parseInt(session.metadata.coins, 10),
               amountUSD: session.amount_total ? session.amount_total / 100 : 0,
               stripeCheckoutId: session.id,
           });
