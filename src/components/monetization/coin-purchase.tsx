@@ -57,7 +57,8 @@ function CoinPurchaseContent() {
             throw new Error(error || 'Failed to create checkout session.');
         }
         
-        setCheckoutUrl(checkoutUrl);
+        // Instead of opening a dialog, navigate directly
+        window.location.href = checkoutUrl;
 
     } catch (error: any) {
         toast({
@@ -65,8 +66,7 @@ function CoinPurchaseContent() {
             description: error.message || "An unexpected error occurred. Please try again.",
             variant: "destructive",
         });
-    } finally {
-      setLoadingPackageId(null);
+        setLoadingPackageId(null);
     }
   };
 
@@ -99,24 +99,6 @@ function CoinPurchaseContent() {
   };
 
   return (
-    <>
-    <Dialog open={!!checkoutUrl} onOpenChange={(isOpen) => !isOpen && setCheckoutUrl(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Checkout Session Ready</DialogTitle>
-            <DialogDescription>
-              Your secure payment page is ready. Click the button below to complete your purchase with Stripe.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-             <Button asChild className="w-full h-12 text-lg">
-                <a href={checkoutUrl!}>
-                  Proceed to Secure Checkout <ExternalLink className="ml-2 h-5 w-5" />
-                </a>
-              </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {COIN_PACKAGES.map((pkg) => {
         const labelInfo = getLabelInfo(pkg.label);
@@ -150,7 +132,7 @@ function CoinPurchaseContent() {
                 <Button 
                     className="w-full h-12 text-lg" 
                     onClick={() => handlePurchase(pkg.id)}
-                    disabled={isLoading}
+                    disabled={isLoading || authLoading}
                 >
                 {isLoading ? (
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -164,7 +146,6 @@ function CoinPurchaseContent() {
         );
       })}
     </div>
-    </>
   );
 }
 

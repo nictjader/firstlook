@@ -41,10 +41,19 @@ async function getOrCreateStripeCustomerId(userId: string, email: string | null)
   
   const userData = userDoc.data();
   if (userData && userData.stripeCustomerId) {
-    return userData.stripeCustomerId;
+    // Verify the customer exists in Stripe before returning
+    try {
+        const customer = await stripe.customers.retrieve(userData.stripeCustomerId);
+        if (!customer.deleted) {
+            return userData.stripeCustomerId;
+        }
+    } catch (error) {
+        // Customer not found in Stripe, so we'll create a new one.
+        console.warn(`Stripe customer ID ${userData.stripeCustomerId} for user ${userId} not found in Stripe. A new one will be created.`);
+    }
   }
 
-  // If no Stripe customer ID exists, create one
+  // If no Stripe customer ID exists or it's invalid, create one
   const customer = await stripe.customers.create({
     email: email || undefined,
     metadata: {
@@ -79,15 +88,13 @@ export async function createCheckoutSession(
     return { error: 'Invalid coin package selected.' };
   }
 
-  const origin = headers().get('origin') || 'http://localhost:3000';
-  // Always redirect to profile on success now.
-  const successUrl = `${origin}/profile?purchase_success=true`;
-  const cancelUrl = redirectPath 
-    ? `${origin}${redirectPath}` // Go back to the story if they cancel
-    : `${origin}/buy-coins?cancelled=true`;
-
-
   try {
+    const origin = headers().get('origin') || 'http://localhost:3000';
+    const successUrl = `${origin}/profile?purchase_success=true`;
+    const cancelUrl = redirectPath 
+        ? `${origin}${redirectPath}` 
+        : `${origin}/buy-coins?cancelled=true`;
+        
     const db = getAdminDb();
     const userDoc = await db.collection('users').doc(userId).get();
     const userEmail = userDoc.data()?.email || null;
@@ -113,12 +120,12 @@ export async function createCheckoutSession(
       mode: 'payment',
       success_url: successUrl,
       cancel_url: cancelUrl,
-      customer: customerId, // Associate the checkout with the Stripe Customer
+      customer: customerId, 
        // Pass metadata that can be used by the webhook
       metadata: {
         packageId: packageId,
-        coins: coinPackage.coins.toString(), // Store as a string
-        userId: userId, // Pass the Firebase UID in metadata
+        coins: coinPackage.coins.toString(),
+        userId: userId, 
       },
     });
 
@@ -187,8 +194,6 @@ export async function handleStripeWebhook(request: Request) {
             console.log(`Successfully credited ${coinsToAdd} coins to user ${userId}.`);
         } catch (error) {
             console.error(`Failed to update user's coin balance for user ${userId}:`, error);
-            // This is a critical error. We should return a 500 to let Stripe know something went wrong
-            // on our end, so it can retry the webhook.
             return new Response('Webhook Error: Failed to update user balance in database.', { status: 500 });
         }
     }
@@ -213,24 +218,20 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const user = userDoc.data();
     
     if (!user || !user.stripeCustomerId) {
-      // User document might not exist yet or has no stripeCustomerId
       return [];
     }
     const stripeCustomerId = user.stripeCustomerId;
 
-    // Directly fetch all checkout sessions for the customer.
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
-        limit: 100, // Get up to 100 most recent sessions
+        limit: 100, 
     });
 
     const successfulTransactions: CoinTransaction[] = [];
 
-    // Filter for successfully completed payment sessions.
     const completedSessions = checkoutSessions.data.filter(session => session.payment_status === 'paid');
 
     for (const session of completedSessions) {
-        // The coin amount is now stored in the session metadata.
         const coinsPurchased = session.metadata?.coins;
         if (coinsPurchased) {
              successfulTransactions.push({
