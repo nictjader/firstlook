@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           preferences: { subgenres: [] },
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
+          stripeCustomerId: null, // Initialize stripeCustomerId
         };
         await setDoc(userDocRef, newUserProfileData);
         const finalDocSnap = await getDoc(userDocRef);

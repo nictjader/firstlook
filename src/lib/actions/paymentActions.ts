@@ -28,6 +28,38 @@ async function getRawBody(request: Request): Promise<Buffer> {
 
 
 /**
+ * Retrieves a Stripe Customer ID for a given user ID, creating one if it doesn't exist.
+ * This is crucial for tracking a user's purchase history reliably.
+ * @param userId The Firebase UID of the user.
+ * @returns The Stripe Customer ID.
+ */
+async function getOrCreateStripeCustomerId(userId: string): Promise<string> {
+  const db = getAdminDb();
+  const userRef = db.collection('users').doc(userId);
+  const userDoc = await userRef.get();
+  
+  const stripeCustomerId = userDoc.data()?.stripeCustomerId;
+  if (stripeCustomerId) {
+    return stripeCustomerId;
+  }
+
+  // If no Stripe customer ID exists, create one
+  const customer = await stripe.customers.create({
+    metadata: {
+      firebaseUID: userId,
+    },
+  });
+
+  // Save the new Stripe customer ID to the user's Firestore document
+  await userRef.update({
+    stripeCustomerId: customer.id,
+  });
+
+  return customer.id;
+}
+
+
+/**
  * Creates a Stripe Checkout Session for a given coin package and user.
  * @param packageId The ID of the coin package being purchased.
  * @param userId The ID of the user making the purchase.
@@ -60,6 +92,8 @@ export async function createCheckoutSession(
 
 
   try {
+    const customerId = await getOrCreateStripeCustomerId(userId);
+
     // Create a Checkout Session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -79,13 +113,13 @@ export async function createCheckoutSession(
       mode: 'payment',
       success_url: successUrl,
       cancel_url: `${origin}/buy-coins?cancelled=true`,
+      customer: customerId, // Associate the checkout with the Stripe Customer
       metadata: {
+        // Keep userId here for the webhook, which might not have the customer object expanded.
         userId: userId,
         packageId: packageId,
         coins: coinPackage.coins,
       },
-      // Associate the checkout session with the user for later retrieval
-      client_reference_id: userId,
     });
 
     if (!session.url) {
@@ -168,24 +202,41 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
   }
 
   try {
-    const sessions = await stripe.checkout.sessions.list({
-      client_reference_id: userId,
-      limit: 100, // Stripe limit
+    const db = getAdminDb();
+    const userDoc = await db.collection('users').doc(userId).get();
+    const stripeCustomerId = userDoc.data()?.stripeCustomerId;
+
+    if (!stripeCustomerId) {
+      // User has never made a purchase, so no history exists.
+      return [];
+    }
+
+    const paymentIntents = await stripe.paymentIntents.list({
+        customer: stripeCustomerId,
+        limit: 100,
     });
 
     const successfulTransactions: CoinTransaction[] = [];
 
-    for (const session of sessions.data) {
-      if (session.payment_status === 'paid' && session.metadata) {
-        successfulTransactions.push({
-          date: new Date(session.created * 1000).toISOString(),
-          coins: parseInt(session.metadata.coins, 10) || 0,
-          amountUSD: session.amount_total ? session.amount_total / 100 : 0,
-          stripeCheckoutId: session.id,
+    for (const intent of paymentIntents.data) {
+        // Find the associated checkout session if available
+        const checkoutSessions = await stripe.checkout.sessions.list({
+            payment_intent: intent.id,
+            expand: ['line_items'],
         });
-      }
-    }
+        
+        const session = checkoutSessions.data[0];
 
+        if (intent.status === 'succeeded' && session && session.metadata) {
+            successfulTransactions.push({
+                date: new Date(intent.created * 1000).toISOString(),
+                coins: parseInt(session.metadata.coins, 10) || 0,
+                amountUSD: intent.amount / 100,
+                stripeCheckoutId: session.id,
+            });
+        }
+    }
+    
     // Sort descending by date
     successfulTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
