@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Gem, Mail, UserCircle, LogOut, History, Heart, Loader2, RefreshCw } from 'lucide-react';
+import { Gem, Mail, UserCircle, LogOut, History, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signOut, verifyBeforeUpdateEmail } from 'firebase/auth';
@@ -37,7 +37,6 @@ export default function ProfileView() {
   const [storiesMap, setStoriesMap] = useState<Map<string, Story>>(new Map());
   const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-  const [isResyncing, setIsResyncing] = useState(false);
 
   // This effect runs once on mount to check for a successful purchase redirect.
   useEffectOnce(() => {
@@ -45,7 +44,7 @@ export default function ProfileView() {
         toast({
             variant: 'success',
             title: 'Purchase Successful!',
-            description: 'Your new coin balance may take a moment to update. Click "Resync Balance" if it doesn\'t appear.',
+            description: 'Your new coin balance has been updated.',
         });
         refreshUserProfile();
         // Clean the URL to avoid showing the toast on every refresh
@@ -90,7 +89,7 @@ export default function ProfileView() {
     if (!authLoading && user && userProfile) {
       fetchAllHistory();
     }
-  }, [user, userProfile, authLoading, refreshUserProfile, toast]);
+  }, [user, userProfile, authLoading, toast]);
 
 
   const handleSignOut = async () => {
@@ -103,33 +102,6 @@ export default function ProfileView() {
     }
   };
   
-  const handleResyncBalance = async () => {
-    if (!user) return;
-    setIsResyncing(true);
-    try {
-      const result = await resyncUserBalanceAction(user.uid);
-      if (result.success && result.finalBalance !== undefined) {
-        toast({
-          variant: 'success',
-          title: 'Balance Synced!',
-          description: `Your coin balance has been updated to ${result.finalBalance.toLocaleString()}.`,
-        });
-        await refreshUserProfile();
-      } else {
-        throw new Error(result.message);
-      }
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Sync Failed',
-        description: error.message || 'An unknown error occurred while syncing your balance.',
-      });
-    } finally {
-      setIsResyncing(false);
-    }
-  };
-
-
   const handleEmailChange = async () => {
     if (!user || !newEmail || newEmail === user.email) {
       toast({ title: "Invalid Email", description: "Please enter a new, valid email address.", variant: "destructive" });
@@ -200,59 +172,59 @@ export default function ProfileView() {
         </CardHeader>
         <CardContent className="p-6 space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="email" className="flex items-center text-sm font-semibold"><Mail className="w-4 h-4 mr-2 text-muted-foreground"/>Email Address</Label>
-            <div className="flex items-center justify-between">
-              <p className="text-muted-foreground bg-muted/50 px-3 py-2 rounded-md w-full">{userProfile.email || 'No email provided'}</p>
-               <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="ml-4 flex-shrink-0">Change</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Change Email Address</DialogTitle>
-                    <DialogDescription>
-                      We'll send a verification link to your new email. Your address won't be updated until you click the link.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="new-email" className="text-right">
-                        New Email
-                      </Label>
-                      <Input
-                        id="new-email"
-                        type="email"
-                        value={newEmail}
-                        onChange={(e) => setNewEmail(e.target.value)}
-                        className="col-span-3"
-                        placeholder="you@example.com"
-                      />
+            <Label className="flex items-center text-sm font-semibold"><Mail className="w-4 h-4 mr-2 text-muted-foreground"/>Email Address</Label>
+            <div className="flex items-center justify-between p-2 pl-4 bg-muted/30 rounded-lg">
+                <span className="text-muted-foreground">{userProfile.email || 'No email provided'}</span>
+                <Dialog open={isEmailDialogOpen} onOpenChange={setIsEmailDialogOpen}>
+                    <DialogTrigger asChild>
+                    <Button variant="secondary" className="flex-shrink-0">Change</Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Change Email Address</DialogTitle>
+                        <DialogDescription>
+                        We'll send a verification link to your new email. Your address won't be updated until you click the link.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-email" className="text-right">
+                            New Email
+                        </Label>
+                        <Input
+                            id="new-email"
+                            type="email"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            className="col-span-3"
+                            placeholder="you@example.com"
+                        />
+                        </div>
                     </div>
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="button" variant="secondary" disabled={isUpdatingEmail}>
-                        Cancel
-                      </Button>
-                    </DialogClose>
-                     <Button type="submit" onClick={handleEmailChange} disabled={isUpdatingEmail}>
-                      {isUpdatingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Send Verification
-                    </Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                    <DialogFooter>
+                        <DialogClose asChild>
+                        <Button type="button" variant="secondary" disabled={isUpdatingEmail}>
+                            Cancel
+                        </Button>
+                        </DialogClose>
+                        <Button type="submit" onClick={handleEmailChange} disabled={isUpdatingEmail}>
+                        {isUpdatingEmail ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        Send Verification
+                        </Button>
+                    </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
           </div>
 
           <div className="space-y-2">
             <Label className="flex items-center text-sm font-semibold"><Gem className="w-4 h-4 mr-2 text-yellow-500"/>Coin Balance</Label>
-            <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-              <span className="text-2xl font-bold text-primary">{userProfile.coins.toLocaleString()} Coins</span>
-               <Button asChild variant="secondary">
-                  <Link href="/buy-coins">
-                    Buy More Coins
-                  </Link>
+            <div className="flex items-center justify-between p-2 pl-4 bg-muted/30 rounded-lg">
+                <span className="text-xl font-bold text-primary">{userProfile.coins.toLocaleString()} Coins</span>
+                <Button asChild variant="secondary">
+                    <Link href="/buy-coins">
+                        Buy More Coins
+                    </Link>
                 </Button>
             </div>
           </div>
