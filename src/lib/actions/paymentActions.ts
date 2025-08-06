@@ -115,9 +115,6 @@ export async function createCheckoutSession(
             product_data: {
               name: `${coinPackage.name} - ${coinPackage.coins} Coins`,
               description: coinPackage.messaging,
-              metadata: {
-                coins: coinPackage.coins.toString(),
-              }
             },
             unit_amount: Math.round(coinPackage.priceUSD * 100), // Price in cents
           },
@@ -128,6 +125,10 @@ export async function createCheckoutSession(
       success_url: successUrl,
       cancel_url: cancelUrl,
       customer: customerId,
+      // Store the coins in the session's metadata for the webhook
+      metadata: {
+        coins: coinPackage.coins.toString(),
+      },
     });
 
     if (!session.url) {
@@ -168,30 +169,21 @@ export async function handleStripeWebhook(request: Request) {
 
     // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
-        const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
-            (event.data.object as Stripe.Checkout.Session).id,
-            {
-                expand: ['line_items.data.price.product', 'customer'],
-            }
-        );
+        const sessionFromEvent = event.data.object as Stripe.Checkout.Session;
 
-        if (!sessionWithLineItems) {
-            return new Response('Webhook Error: Could not retrieve session details.', { status: 400 });
-        }
+        // Retrieve the full session object to ensure we have all the data we need
+        const session = await stripe.checkout.sessions.retrieve(sessionFromEvent.id, {
+          expand: ['customer'],
+        });
 
-        const customer = sessionWithLineItems.customer as Stripe.Customer;
-        const userId = customer?.metadata?.firebaseUID;
+        const coinsStr = session.metadata?.coins;
         
-        const lineItems = sessionWithLineItems.line_items;
-        if (!lineItems || lineItems.data.length === 0) {
-           return new Response('Webhook Error: No line items found in session.', { status: 400 });
-        }
-        
-        const product = lineItems.data[0].price?.product as Stripe.Product;
-        const coinsStr = product?.metadata?.coins;
+        // The customer object now contains the metadata with our Firebase UID
+        const customer = session.customer as Stripe.Customer;
+        const userId = customer.metadata?.firebaseUID;
 
         if (!userId || !coinsStr) {
-            console.error('Webhook Error: Missing firebaseUID or coins in metadata.', { userId, coins: coinsStr, sessionId: sessionWithLineItems.id });
+            console.error('Webhook Error: Missing firebaseUID in customer metadata or coins in session metadata.', { userId, coins: coinsStr, sessionId: session.id });
             return new Response('Webhook Error: Missing required metadata.', { status: 400 });
         }
 
@@ -243,7 +235,7 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
         limit: 100,
-        expand: ['data.line_items.data.price.product'], // Expand product data to get metadata
+        expand: ['data.line_items'], // Expand line_items to get metadata
     });
 
     const successfulTransactions: CoinTransaction[] = [];
@@ -251,18 +243,13 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const completedSessions = checkoutSessions.data.filter(session => session.payment_status === 'paid');
 
     for (const session of completedSessions) {
-      const lineItems = session.line_items;
-      if (lineItems && lineItems.data.length > 0) {
-        const product = lineItems.data[0].price?.product as Stripe.Product;
-        const coinsStr = product?.metadata.coins;
-        if (coinsStr) {
-           successfulTransactions.push({
+      if (session.metadata?.coins) {
+            successfulTransactions.push({
               date: new Date(session.created * 1000).toISOString(),
-              coins: parseInt(coinsStr, 10),
+              coins: parseInt(session.metadata.coins, 10),
               amountUSD: session.amount_total ? session.amount_total / 100 : 0,
               stripeCheckoutId: session.id,
           });
-        }
       }
     }
     
@@ -275,5 +262,3 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     return [];
   }
 }
-
-    
