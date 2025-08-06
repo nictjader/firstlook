@@ -82,8 +82,6 @@ export async function createCheckoutSession(
   const origin = headers().get('origin') || 'http://localhost:3000';
 
   // The success URL now points to the profile page to show the user their new balance.
-  // The original redirect path for a story is passed along to be handled by the profile page if needed,
-  // though the primary flow is now to land on the profile.
   let successUrl = `${origin}/profile?purchase_success=true`;
   if (redirectPath) {
     if (redirectPath.startsWith('/')) {
@@ -116,10 +114,10 @@ export async function createCheckoutSession(
       cancel_url: `${origin}/buy-coins?cancelled=true`,
       customer: customerId, // Associate the checkout with the Stripe Customer
       metadata: {
-        // Keep userId here for the webhook, which might not have the customer object expanded.
+        // We still store metadata here. The webhook will use it as a primary source.
         userId: userId,
         packageId: packageId,
-        coins: coinPackage.coins,
+        coins: coinPackage.coins.toString(),
       },
     });
 
@@ -152,9 +150,7 @@ export async function handleStripeWebhook(request: Request) {
     let event: Stripe.Event;
     
     try {
-        // Read the raw body as a buffer
         const body = await getRawBody(request);
-        // Use the raw body to construct the event
         event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
     } catch (err: any) {
         console.error(`Webhook signature verification failed: ${err.message}`);
@@ -164,10 +160,12 @@ export async function handleStripeWebhook(request: Request) {
     // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;
+        
+        // Use the metadata from the session object.
         const { userId, coins } = session.metadata || {};
 
         if (!userId || !coins) {
-            console.error('Webhook Error: Missing metadata in session.', session);
+            console.error('Webhook Error: Missing userId or coins in session metadata.', session);
             return new Response('Webhook Error: Missing metadata.', { status: 400 });
         }
 
@@ -175,7 +173,6 @@ export async function handleStripeWebhook(request: Request) {
             const db = getAdminDb();
             const userRef = db.collection('users').doc(userId);
             
-            // Atomically increment the user's coin balance
             await userRef.update({
                 coins: FieldValue.increment(parseInt(coins, 10))
             });
@@ -183,7 +180,6 @@ export async function handleStripeWebhook(request: Request) {
             console.log(`Successfully credited ${coins} coins to user ${userId}.`);
         } catch (error) {
             console.error(`Failed to update user's coin balance for user ${userId}:`, error);
-            // You might want to add retry logic or alert for manual intervention here
             return new Response('Webhook Error: Failed to update user balance.', { status: 500 });
         }
     }
@@ -208,44 +204,39 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const stripeCustomerId = userDoc.data()?.stripeCustomerId;
 
     if (!stripeCustomerId) {
-      // User has never made a purchase, so no history exists.
       return [];
     }
 
-    const paymentIntents = await stripe.paymentIntents.list({
+    // Directly fetch all checkout sessions for the customer.
+    const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
-        limit: 100,
+        limit: 100, // Get up to 100 most recent sessions
     });
 
     const successfulTransactions: CoinTransaction[] = [];
 
-    for (const intent of paymentIntents.data) {
-        // Find the associated checkout session if available
-        const checkoutSessions = await stripe.checkout.sessions.list({
-            payment_intent: intent.id,
-            expand: ['line_items'],
-        });
-        
-        const session = checkoutSessions.data[0];
+    // Filter for successfully completed payment sessions.
+    const completedSessions = checkoutSessions.data.filter(session => session.payment_status === 'paid');
 
-        if (intent.status === 'succeeded' && session && session.metadata) {
+    for (const session of completedSessions) {
+        if (session.metadata && session.metadata.coins) {
             successfulTransactions.push({
-                date: new Date(intent.created * 1000).toISOString(),
-                coins: parseInt(session.metadata.coins, 10) || 0,
-                amountUSD: intent.amount / 100,
+                date: new Date(session.created * 1000).toISOString(),
+                coins: parseInt(session.metadata.coins, 10),
+                amountUSD: session.amount_total ? session.amount_total / 100 : 0,
                 stripeCheckoutId: session.id,
             });
         }
     }
     
-    // Sort descending by date
+    // Sort descending by date, as Stripe returns them newest first already.
+    // This is just a safeguard.
     successfulTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
     
     return successfulTransactions;
 
   } catch (error) {
     console.error("Failed to fetch Stripe purchase history:", error);
-    // Return empty array on error to prevent crashing the profile page
     return [];
   }
 }
