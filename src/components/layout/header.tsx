@@ -41,9 +41,9 @@ export default function Header() {
             {user && userProfile && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button asChild variant="ghost" className="h-9 rounded-md px-2 sm:px-3 text-primary">
+                  <Button asChild variant="outline" className="h-9 rounded-md px-2 sm:px-3">
                     <Link href="/buy-coins">
-                      <Gem className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                      <Gem className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0 text-primary" />
                       <span className="font-semibold">{userProfile.coins.toLocaleString()}</span>
                     </Link>
                   </Button>
