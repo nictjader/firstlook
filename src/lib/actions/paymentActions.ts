@@ -48,7 +48,7 @@ export async function createCheckoutSession(packageId: string, userId: string): 
         },
       ],
       mode: 'payment',
-      success_url: `${origin}/profile?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: `${origin}/buy-coins?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/buy-coins?cancelled=true`,
       metadata: {
         userId: userId,

@@ -1,7 +1,6 @@
 'use client';
 
 import CoinPurchase from '@/components/monetization/coin-purchase';
-import { Metadata } from 'next';
 import { Suspense } from 'react';
 
 // Note: Metadata export is still supported in Client Components,
@@ -18,7 +17,9 @@ export default function BuyCoinsPage() {
           Coins are used to unlock premium stories. Choose a package below to continue your adventure.
         </p>
       </div>
-      <CoinPurchase />
+      <Suspense fallback={<div>Loading...</div>}>
+        <CoinPurchase />
+      </Suspense>
     </div>
   );
 }

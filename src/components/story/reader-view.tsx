@@ -213,8 +213,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                                  {isLoadingUnlock ? "Unlocking..." : `Yes, Unlock for ${story.coinCost} Coins`}
                              </Button>
                              ) : (
-                              <Button disabled={true} className="bg-accent hover:bg-accent/90">
-                                Purchase Coins
+                              <Button asChild className="bg-accent hover:bg-accent/90">
+                                <Link href={`/buy-coins?redirect=/stories/${story.storyId}`}>Purchase Coins</Link>
                               </Button>
                              )}
                          </DialogFooter>
