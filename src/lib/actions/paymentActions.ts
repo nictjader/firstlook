@@ -8,6 +8,7 @@ import { getAdminDb } from '../firebase/admin';
 import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 import type { CoinTransaction, Story } from '@/lib/types';
 import { docToStory } from '@/lib/types';
+import { resyncUserBalanceAction } from './adminActions';
 
 
 // Initialize Stripe with the secret key
@@ -147,71 +148,6 @@ export async function createCheckoutSession(
 }
 
 /**
- * Recalculates and sets the correct coin balance for a user.
- * This function is called by the webhook to ensure data consistency.
- * @param userId The Firebase UID of the user.
- */
-async function recalibrateCoinBalance(userId: string): Promise<boolean> {
-    const db = getAdminDb();
-    const userRef = db.collection('users').doc(userId);
-    const storiesRef = db.collection('stories');
-
-    // 1. Get the user document
-    const userDoc = await userRef.get();
-    if (!userDoc.exists) {
-        console.error(`[Recalibrate] User with ID ${userId} not found.`);
-        return false;
-    }
-    const userProfile = userDoc.data()!;
-
-    // 2. Calculate total coins from all successful Stripe purchases
-    const purchaseHistory = await getCoinPurchaseHistory(userId);
-    const totalCoinsPurchased = purchaseHistory.reduce((acc, transaction) => acc + transaction.coins, 0);
-
-    // 3. Calculate total coins spent on unlocking stories
-    const unlockedStoryIds = (userProfile.unlockedStories || []).map((s: { storyId: string }) => s.storyId);
-    let totalCoinsSpent = 0;
-    
-    if (unlockedStoryIds.length > 0) {
-        // Firestore 'in' query is limited to 30 items. We need to fetch in chunks.
-        const storyChunks: string[][] = [];
-        for (let i = 0; i < unlockedStoryIds.length; i += 30) {
-            storyChunks.push(unlockedStoryIds.slice(i, i + 30));
-        }
-
-        const storyDocsPromises = storyChunks.map(chunk => 
-            storiesRef.where(FieldPath.documentId(), 'in', chunk).get()
-        );
-        
-        const storySnapshots = await Promise.all(storyDocsPromises);
-        
-        const storiesMap = new Map<string, Story>();
-        storySnapshots.forEach(snapshot => {
-            snapshot.docs.forEach(doc => {
-                const story = docToStory(doc);
-                storiesMap.set(doc.id, story);
-            });
-        });
-
-        unlockedStoryIds.forEach(storyId => {
-            const story = storiesMap.get(storyId);
-            if (story) {
-                totalCoinsSpent += story.coinCost;
-            }
-        });
-    }
-
-    // 4. Calculate the correct final balance
-    const finalBalance = totalCoinsPurchased - totalCoinsSpent;
-
-    // 5. Update the user's balance in Firestore
-    await userRef.update({ coins: finalBalance });
-    console.log(`[Recalibrate] SUCCESS: Recalibrated balance for user ${userId}. New balance: ${finalBalance}`);
-    return true;
-}
-
-
-/**
  * Handles the Stripe webhook to process successful payments.
  * This function now triggers a full balance recalibration on every successful purchase.
  * @param request The incoming request from Stripe.
@@ -241,30 +177,24 @@ export async function handleStripeWebhook(request: Request) {
     // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log(`Processing 'checkout.session.completed' for session ID: ${session.id}`);
-        
         const userId = session.metadata?.userId;
-        const packageId = session.metadata?.packageId;
 
-        if (!userId || !packageId) {
-            console.error(`CRITICAL: Webhook Error: Missing userId or packageId in session metadata.`, { sessionId: session.id, metadata: session.metadata });
+        if (!userId) {
+            console.error(`CRITICAL: Webhook Error: Missing userId in session metadata.`, { sessionId: session.id, metadata: session.metadata });
             return new Response('Webhook Error: Missing required metadata.', { status: 400 });
         }
         
-        console.log(`Metadata found: UserID=${userId}, PackageID=${packageId}`);
+        console.log(`[Webhook] Processing 'checkout.session.completed' for user: ${userId}`);
 
         try {
-            const recalibrationSuccess = await recalibrateCoinBalance(userId);
-            if (!recalibrationSuccess) {
-                 console.error(`CRITICAL: Recalibration failed for user ${userId} after purchase. Manual intervention may be required.`);
-            }
+            await resyncUserBalanceAction(userId);
         } catch (error: any) {
-            console.error(`CRITICAL: Failed to recalibrate user's coin balance for user ${userId}:`, error.message);
+            console.error(`[Webhook] CRITICAL: Failed to run resync action for user ${userId}:`, error.message);
             // Don't return a 500 to Stripe, as it might retry a failed recalibration logic indefinitely.
             // Log the error for manual intervention.
         }
     } else {
-        console.log(`Received and acknowledged unhandled event type: ${event.type}`);
+        console.log(`[Webhook] Received and acknowledged unhandled event type: ${event.type}`);
     }
 
     return new Response(JSON.stringify({ received: true }), { status: 200, headers: { 'Content-Type': 'application/json' } });
@@ -287,18 +217,20 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const user = userDoc.data();
     
     if (!user || !user.stripeCustomerId) {
-      return [];
+        console.log(`[PurchaseHistory] No Stripe customer ID found for user ${userId}.`);
+        return [];
     }
     const stripeCustomerId = user.stripeCustomerId;
+    console.log(`[PurchaseHistory] Fetching history for Stripe customer ${stripeCustomerId}`);
 
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
-        limit: 100,
+        limit: 100, // Fetch up to 100 most recent sessions
     });
 
     const successfulTransactions: CoinTransaction[] = [];
-
     const completedSessions = checkoutSessions.data.filter(session => session.payment_status === 'paid');
+    console.log(`[PurchaseHistory] Found ${completedSessions.length} completed checkout sessions.`);
 
     for (const session of completedSessions) {
       if (session.metadata?.coins) {
@@ -316,7 +248,7 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     return successfulTransactions;
 
   } catch (error) {
-    console.error("Failed to fetch Stripe purchase history:", error);
+    console.error(`[PurchaseHistory] Failed to fetch Stripe purchase history for user ${userId}:`, error);
     return [];
   }
 }

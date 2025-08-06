@@ -7,7 +7,7 @@ import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { FieldValue } from 'firebase-admin/firestore';
+import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
@@ -514,6 +514,7 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
 /**
  * A server action to recalculate and correct a user's coin balance
  * based on their complete Stripe purchase history and Firestore unlock history.
+ * This can be triggered by a developer tool or a webhook.
  */
 export async function resyncUserBalanceAction(userId: string): Promise<{ success: boolean; message: string; finalBalance?: number; }> {
   if (!userId) {
@@ -521,6 +522,7 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
   }
   
   try {
+    console.log(`[Resync] Starting balance resync for user: ${userId}`);
     const db = getAdminDb();
     const userRef = db.collection('users').doc(userId);
     const storiesRef = db.collection('stories');
@@ -528,13 +530,16 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
     // 1. Get the user document
     const userDoc = await userRef.get();
     if (!userDoc.exists) {
+      console.error(`[Resync] Error: User with ID ${userId} not found.`);
       return { success: false, message: `Error: User with ID ${userId} not found.` };
     }
     const userProfile = userDoc.data()!;
+    console.log(`[Resync] User found. Current balance: ${userProfile.coins}`);
 
     // 2. Calculate total coins from all successful Stripe purchases
     const purchaseHistory = await getCoinPurchaseHistory(userId);
     const totalCoinsPurchased = purchaseHistory.reduce((acc, transaction) => acc + transaction.coins, 0);
+    console.log(`[Resync] Total coins purchased from Stripe: ${totalCoinsPurchased}`);
 
     // 3. Calculate total coins spent on unlocking stories
     const unlockedStoryIds = (userProfile.unlockedStories || []).map((s: { storyId: string }) => s.storyId);
@@ -542,10 +547,12 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
     
     if (unlockedStoryIds.length > 0) {
         // Fetch all unlocked stories in chunks of 30 (Firestore 'in' query limit)
-        const storyChunks = [];
+        const storyChunks: string[][] = [];
         for (let i = 0; i < unlockedStoryIds.length; i += 30) {
             storyChunks.push(unlockedStoryIds.slice(i, i + 30));
         }
+        
+        console.log(`[Resync] Fetching costs for ${unlockedStoryIds.length} unlocked stories in ${storyChunks.length} chunks.`);
 
         const storyDocsPromises = storyChunks.map(chunk => 
             storiesRef.where(FieldPath.documentId(), 'in', chunk).get()
@@ -564,24 +571,32 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
             const story = storiesMap.get(storyId);
             if (story) {
                 totalCoinsSpent += story.coinCost;
+            } else {
+                console.warn(`[Resync] Unlocked story with ID ${storyId} not found in database. Cost cannot be calculated.`);
             }
         });
     }
+    console.log(`[Resync] Total coins spent on unlocks: ${totalCoinsSpent}`);
 
     // 4. Calculate the correct final balance
     const finalBalance = totalCoinsPurchased - totalCoinsSpent;
+    console.log(`[Resync] Calculated final balance: ${finalBalance} (Purchased: ${totalCoinsPurchased} - Spent: ${totalCoinsSpent})`);
 
     // 5. Update the user's balance in Firestore
     await userRef.update({ coins: finalBalance });
 
+    const successMessage = `Resync successful for user ${userId}. Final balance of ${finalBalance} has been set.`;
+    console.log(`[Resync] SUCCESS: ${successMessage}`);
     return { 
       success: true, 
-      message: `Resync successful for user ${userId}. Final balance of ${finalBalance} has been set.`,
+      message: successMessage,
       finalBalance: finalBalance,
     };
 
   } catch (error: any) {
-    console.error("Error during balance resync:", error);
+    console.error(`[Resync] CRITICAL: An unexpected error occurred during balance resync for user ${userId}:`, error);
     return { success: false, message: `An unexpected error occurred: ${error.message}` };
   }
 }
+
+    

@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Gem, Mail, UserCircle, LogOut, History, Heart, Loader2 } from 'lucide-react';
+import { Gem, Mail, UserCircle, LogOut, History, Heart, Loader2, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signOut, verifyBeforeUpdateEmail } from 'firebase/auth';
@@ -22,6 +22,9 @@ import { getStoriesByIds } from '@/lib/actions/storyActions.client';
 import { getCoinPurchaseHistory } from '@/lib/actions/paymentActions';
 import { Skeleton } from '../ui/skeleton';
 import { useEffectOnce } from '@/hooks/use-effect-once';
+import { resyncUserBalanceAction } from '@/lib/actions/adminActions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 export default function ProfileView() {
   const { user, userProfile, loading: authLoading, refreshUserProfile } = useAuth();
@@ -34,6 +37,7 @@ export default function ProfileView() {
   const [storiesMap, setStoriesMap] = useState<Map<string, Story>>(new Map());
   const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [isResyncing, setIsResyncing] = useState(false);
 
   // This effect runs once on mount to check for a successful purchase redirect.
   useEffectOnce(() => {
@@ -41,7 +45,7 @@ export default function ProfileView() {
         toast({
             variant: 'success',
             title: 'Purchase Successful!',
-            description: 'Your new coin balance is reflected below. Thank you!',
+            description: 'Your new coin balance may take a moment to update. Click "Resync Balance" if it doesn\'t appear.',
         });
         refreshUserProfile();
         // Clean the URL to avoid showing the toast on every refresh
@@ -98,6 +102,33 @@ export default function ProfileView() {
       toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
     }
   };
+  
+  const handleResyncBalance = async () => {
+    if (!user) return;
+    setIsResyncing(true);
+    try {
+      const result = await resyncUserBalanceAction(user.uid);
+      if (result.success) {
+        toast({
+          variant: 'success',
+          title: 'Balance Synced!',
+          description: `Your coin balance has been updated to ${result.finalBalance}.`,
+        });
+        await refreshUserProfile();
+      } else {
+        throw new Error(result.message);
+      }
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Sync Failed',
+        description: error.message || 'An unknown error occurred while syncing your balance.',
+      });
+    } finally {
+      setIsResyncing(false);
+    }
+  };
+
 
   const handleEmailChange = async () => {
     if (!user || !newEmail || newEmail === user.email) {
@@ -155,6 +186,21 @@ export default function ProfileView() {
 
   return (
     <div className="space-y-8">
+       {process.env.NODE_ENV === 'development' && (
+         <Alert variant="warning">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Developer Tool</AlertTitle>
+          <div className="flex justify-between items-center">
+            <AlertDescription>
+                Click this button to manually sync your coin balance after a test purchase.
+            </AlertDescription>
+            <Button onClick={handleResyncBalance} disabled={isResyncing} size="sm">
+              {isResyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+              Resync Balance
+            </Button>
+          </div>
+        </Alert>
+       )}
        <Card className="overflow-hidden shadow-lg">
         <CardHeader className="bg-gradient-to-br from-primary/10 to-accent/10 p-6">
           <div className="flex items-center space-x-4">
@@ -261,3 +307,5 @@ export default function ProfileView() {
     </div>
   );
 }
+
+    
