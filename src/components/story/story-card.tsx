@@ -24,6 +24,7 @@ export default function StoryCard({ story, isPriority = false, showChapterInfo =
   const [isRead, setIsRead] = useState(false);
 
   const isFavorited = userProfile?.favoriteStories?.includes(storyId) ?? false;
+  const isUnlocked = userProfile?.unlockedStories?.some(s => s.storyId === storyId) ?? false;
   
   useEffect(() => {
     if (userProfile) {
@@ -87,7 +88,7 @@ export default function StoryCard({ story, isPriority = false, showChapterInfo =
             )}
           </div>
           <div className="flex-shrink-0 flex items-center gap-3">
-              {isPremium && <Lock className="w-4 h-4" />}
+              {isPremium && !isUnlocked && <Lock className="w-4 h-4" />}
               {isRead && <CheckCircle2 className="w-4 h-4 text-primary" />}
               <button onClick={handleFavoriteClick} className="p-1 -m-1 rounded-full hover:bg-secondary">
                   <Heart className={`w-5 h-5 transition-colors duration-200 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
