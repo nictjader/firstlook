@@ -15,7 +15,7 @@
       "maxInstances": 100,
       "concurrency": 80,
       "cpu": 1,
-      "name": "ssrsirenh2y45-v2",
+      "name": "studio",
       "environment": {
         "STRIPE_SECRET_KEY": "${env.STRIPE_SECRET_KEY}",
         "STRIPE_WEBHOOK_SECRET": "${env.STRIPE_WEBHOOK_SECRET}"
@@ -25,7 +25,7 @@
       {
         "source": "**",
         "function": {
-          "serviceId": "ssrsirenh2y45-v2",
+          "serviceId": "studio",
           "region": "us-central1"
         }
       }
