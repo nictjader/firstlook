@@ -44,7 +44,7 @@ export default function Header() {
                   <Link href="/buy-coins">
                     <Button variant="ghost" className="h-9 rounded-md text-xs sm:text-sm px-2 sm:px-3 text-primary hover:text-primary/80">
                       <Gem className="h-4 w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline-flex">{userProfile.coins} Coins</span>
+                      <span className="hidden sm:inline-flex">{userProfile.coins.toLocaleString()} Coins</span>
                     </Button>
                   </Link>
                 </TooltipTrigger>

@@ -319,8 +319,8 @@ function AdminDashboardContent() {
                                     <div className="p-2">
                                       <h4 className="font-semibold text-base flex items-center mb-2"><Layers className="mr-2 h-4 w-4 text-primary" />Story Types</h4>
                                       <div className="text-sm space-y-2">
-                                        <p className="flex justify-between"><span>Standalone Stories:</span> <strong>{analysisResult.standaloneStories}</strong></p>
-                                        <p className="flex justify-between"><span>Multi-Chapter Series:</span> <strong>{analysisResult.multiPartSeriesCount}</strong></p>
+                                        <p className="flex justify-between"><span>Standalone Stories:</span> <strong>{analysisResult.standaloneStories.toLocaleString()}</strong></p>
+                                        <p className="flex justify-between"><span>Multi-Chapter Series:</span> <strong>{analysisResult.multiPartSeriesCount.toLocaleString()}</strong></p>
                                       </div>
                                     </div>
                                     <div className="p-2 pt-4 md:pt-2 md:pl-4">
@@ -330,7 +330,7 @@ function AdminDashboardContent() {
                                           Object.entries(analysisResult.storiesPerGenre).map(([genre, count]) => (
                                             <div key={genre} className="flex justify-between">
                                               <span>{capitalizeWords(genre)}:</span>
-                                              <strong>{count}</strong>
+                                              <strong>{count.toLocaleString()}</strong>
                                             </div>
                                           ))
                                         ) : (
@@ -363,8 +363,8 @@ function AdminDashboardContent() {
                                         <p className="text-2xl font-bold">{analysisResult.totalPaidChapters.toLocaleString()}</p>
                                         <Separator />
                                         <div className="text-sm text-muted-foreground pt-2">
-                                            <p className="flex justify-between"><span>Standalone:</span> <strong>{analysisResult.paidStandaloneStories}</strong></p>
-                                            <p className="flex justify-between"><span>Series Chapters:</span> <strong>{analysisResult.paidSeriesChapters}</strong></p>
+                                            <p className="flex justify-between"><span>Standalone:</span> <strong>{analysisResult.paidStandaloneStories.toLocaleString()}</strong></p>
+                                            <p className="flex justify-between"><span>Series Chapters:</span> <strong>{analysisResult.paidSeriesChapters.toLocaleString()}</strong></p>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -376,7 +376,7 @@ function AdminDashboardContent() {
                                 />
                                 <MetricCard 
                                     title="Avg. Cost / Paid Chapter" 
-                                    value={`${analysisResult.avgCoinCostPerPaidChapter} Coins`}
+                                    value={`${analysisResult.avgCoinCostPerPaidChapter.toLocaleString()} Coins`}
                                     icon={Coins}
                                     description={`~$${analysisResult.avgValuePerPaidChapterUSD.toFixed(2)} USD, based on the 50-coin premium price.`}
                                 />
@@ -393,7 +393,7 @@ function AdminDashboardContent() {
                                 <CardContent>
                                     <ul className="list-disc pl-5 text-sm text-destructive">
                                         {Object.entries(analysisResult.duplicateTitles).map(([title, count]) => (
-                                            <li key={title}>{title} ({count} entries)</li>
+                                            <li key={title}>{title} ({count.toLocaleString()} entries)</li>
                                         ))}
                                     </ul>
                                 </CardContent>

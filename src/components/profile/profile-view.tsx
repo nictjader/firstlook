@@ -108,11 +108,11 @@ export default function ProfileView() {
     setIsResyncing(true);
     try {
       const result = await resyncUserBalanceAction(user.uid);
-      if (result.success) {
+      if (result.success && result.finalBalance !== undefined) {
         toast({
           variant: 'success',
           title: 'Balance Synced!',
-          description: `Your coin balance has been updated to ${result.finalBalance}.`,
+          description: `Your coin balance has been updated to ${result.finalBalance.toLocaleString()}.`,
         });
         await refreshUserProfile();
       } else {
@@ -248,7 +248,7 @@ export default function ProfileView() {
           <div className="space-y-2">
             <Label className="flex items-center text-sm font-semibold"><Gem className="w-4 h-4 mr-2 text-yellow-500"/>Coin Balance</Label>
             <div className="flex items-center justify-between p-4 bg-muted/50 rounded-lg">
-              <span className="text-2xl font-bold text-primary">{userProfile.coins} Coins</span>
+              <span className="text-2xl font-bold text-primary">{userProfile.coins.toLocaleString()} Coins</span>
                <Button asChild variant="secondary">
                   <Link href="/buy-coins">
                     Buy More Coins
