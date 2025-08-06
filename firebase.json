@@ -24,7 +24,7 @@
     "rewrites": [
       {
         "source": "**",
-        "function": {
+        "run": {
           "serviceId": "studio",
           "region": "us-central1"
         }
