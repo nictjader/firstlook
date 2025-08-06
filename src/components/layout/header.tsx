@@ -41,8 +41,8 @@ export default function Header() {
             {user && userProfile && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button asChild variant="ghost" className="h-9 rounded-md px-2 sm:px-3">
-                    <Link href="/buy-coins" className="flex items-center text-primary hover:text-primary/80">
+                  <Button asChild variant="ghost" className="h-9 rounded-md px-2 sm:px-3 text-primary">
+                    <Link href="/buy-coins">
                       <Gem className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
                       <span className="font-semibold">{userProfile.coins.toLocaleString()}</span>
                     </Link>
@@ -61,9 +61,10 @@ export default function Header() {
                   size="icon"
                   onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
                   aria-label="Toggle theme"
+                  className="text-primary"
                 >
-                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0 text-primary" />
-                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100 text-primary" />
+                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                   <span className="sr-only">Toggle theme</span>
                 </Button>
               </TooltipTrigger>
@@ -80,9 +81,9 @@ export default function Header() {
               <>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button asChild variant="ghost" size="icon" aria-label="Profile">
+                    <Button asChild variant="ghost" size="icon" aria-label="Profile" className="text-primary">
                       <Link href="/profile">
-                        <UserCircle className="h-5 w-5 text-primary" />
+                        <UserCircle className="h-5 w-5" />
                       </Link>
                     </Button>
                   </TooltipTrigger>
@@ -92,8 +93,8 @@ export default function Header() {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign Out">
-                      <LogOut className="h-5 w-5 text-primary" />
+                    <Button variant="ghost" size="icon" onClick={handleSignOut} aria-label="Sign Out" className="text-primary">
+                      <LogOut className="h-5 w-5" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -104,9 +105,9 @@ export default function Header() {
             ) : (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button asChild variant="ghost" size="icon" aria-label="Sign In">
+                  <Button asChild variant="ghost" size="icon" aria-label="Sign In" className="text-primary">
                     <Link href="/login">
-                      <LogIn className="h-5 w-5 text-primary" />
+                      <LogIn className="h-5 w-5" />
                     </Link>
                   </Button>
                 </TooltipTrigger>
