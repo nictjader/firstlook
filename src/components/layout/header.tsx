@@ -37,13 +37,13 @@ export default function Header() {
         <Logo />
 
         <div className="flex items-center space-x-1 sm:space-x-2">
-           <TooltipProvider>
+          <TooltipProvider>
             {user && userProfile && (
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Link href="/buy-coins">
                     <Button variant="ghost" className="h-9 rounded-md text-xs sm:text-sm px-2 sm:px-3 text-primary hover:text-primary/80">
-                      <Gem className="h-4 w-4 mr-0 sm:mr-2" />
+                      <Gem className="h-4 w-4 mr-1 sm:mr-2" />
                       <span className="hidden sm:inline-flex">{userProfile.coins} Coins</span>
                     </Button>
                   </Link>
@@ -63,8 +63,8 @@ export default function Header() {
                   aria-label="Toggle theme"
                   className="text-primary hover:text-primary/80"
                 >
-                  <Sun className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-                  <Moon className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+                  <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
                   <span className="sr-only">Toggle theme</span>
                 </Button>
               </TooltipTrigger>
