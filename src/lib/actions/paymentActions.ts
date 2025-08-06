@@ -5,8 +5,10 @@ import { Stripe } from 'stripe';
 import { headers } from 'next/headers';
 import { COIN_PACKAGES } from '@/lib/config';
 import { getAdminDb } from '../firebase/admin';
-import { FieldValue } from 'firebase-admin/firestore';
-import type { CoinTransaction } from '@/lib/types';
+import { FieldValue, FieldPath } from 'firebase-admin/firestore';
+import type { CoinTransaction, Story } from '@/lib/types';
+import { docToStory } from '@/lib/types';
+
 
 // Initialize Stripe with the secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -144,8 +146,71 @@ export async function createCheckoutSession(
 }
 
 /**
+ * Recalculates and sets the correct coin balance for a user.
+ * This function is called by the webhook to ensure data consistency.
+ * @param userId The Firebase UID of the user.
+ */
+async function recalibrateCoinBalance(userId: string) {
+    const db = getAdminDb();
+    const userRef = db.collection('users').doc(userId);
+    const storiesRef = db.collection('stories');
+
+    // 1. Get the user document
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+        throw new Error(`User with ID ${userId} not found during recalibration.`);
+    }
+    const userProfile = userDoc.data()!;
+
+    // 2. Calculate total coins from all successful Stripe purchases
+    const purchaseHistory = await getCoinPurchaseHistory(userId);
+    const totalCoinsPurchased = purchaseHistory.reduce((acc, transaction) => acc + transaction.coins, 0);
+
+    // 3. Calculate total coins spent on unlocking stories
+    const unlockedStoryIds = (userProfile.unlockedStories || []).map((s: { storyId: string }) => s.storyId);
+    let totalCoinsSpent = 0;
+    
+    if (unlockedStoryIds.length > 0) {
+        // Firestore 'in' query is limited to 30 items. We need to fetch in chunks.
+        const storyChunks: string[][] = [];
+        for (let i = 0; i < unlockedStoryIds.length; i += 30) {
+            storyChunks.push(unlockedStoryIds.slice(i, i + 30));
+        }
+
+        const storyDocsPromises = storyChunks.map(chunk => 
+            storiesRef.where(FieldPath.documentId(), 'in', chunk).get()
+        );
+        
+        const storySnapshots = await Promise.all(storyDocsPromises);
+        
+        const storiesMap = new Map<string, Story>();
+        storySnapshots.forEach(snapshot => {
+            snapshot.docs.forEach(doc => {
+                const story = docToStory(doc);
+                storiesMap.set(doc.id, story);
+            });
+        });
+
+        unlockedStoryIds.forEach(storyId => {
+            const story = storiesMap.get(storyId);
+            if (story) {
+                totalCoinsSpent += story.coinCost;
+            }
+        });
+    }
+
+    // 4. Calculate the correct final balance
+    const finalBalance = totalCoinsPurchased - totalCoinsSpent;
+
+    // 5. Update the user's balance in Firestore
+    await userRef.update({ coins: finalBalance });
+    console.log(`SUCCESS: Recalibrated balance for user ${userId}. New balance: ${finalBalance}`);
+}
+
+
+/**
  * Handles the Stripe webhook to process successful payments.
- * This function is called by the API route.
+ * This function now triggers a full balance recalibration on every successful purchase.
  * @param request The incoming request from Stripe.
  * @returns A response indicating the outcome.
  */
@@ -175,38 +240,20 @@ export async function handleStripeWebhook(request: Request) {
         console.log("Processing 'checkout.session.completed' event.");
         const session = event.data.object as Stripe.Checkout.Session;
         
-        console.log("Full session object from webhook:", JSON.stringify(session, null, 2));
-        
-        // Directly access metadata from the session object in the event
         const userId = session.metadata?.userId;
-        const coinsStr = session.metadata?.coins;
 
-        console.log(`Extracted from metadata - UserID: ${userId}, Coins: ${coinsStr}`);
-
-        if (!userId || !coinsStr) {
-            console.error('CRITICAL: Webhook Error: Missing userId or coins in session metadata.', { userId, coins: coinsStr, sessionId: session.id });
+        if (!userId) {
+            console.error('CRITICAL: Webhook Error: Missing userId in session metadata.', { sessionId: session.id });
             return new Response('Webhook Error: Missing required metadata.', { status: 400 });
         }
 
         try {
-            const db = getAdminDb();
-            const userRef = db.collection('users').doc(userId);
-            
-            const coinsToAdd = parseInt(coinsStr, 10);
-            if (isNaN(coinsToAdd)) {
-                console.error(`CRITICAL: Webhook Error: Invalid non-numeric coin value '${coinsStr}' for user ${userId}.`);
-                return new Response('Webhook Error: Invalid coin value.', { status: 400 });
-            }
-            
-            console.log(`Attempting to add ${coinsToAdd} coins to user ${userId}.`);
-            await userRef.update({
-                coins: FieldValue.increment(coinsToAdd)
-            });
-            console.log(`SUCCESS: Credited ${coinsToAdd} coins to user ${userId}.`);
-
+            // Instead of just incrementing, we run a full recalibration.
+            await recalibrateCoinBalance(userId);
         } catch (error) {
-            console.error(`CRITICAL: Failed to update user's coin balance for user ${userId}:`, error);
-            return new Response('Webhook Error: Failed to update user balance in database.', { status: 500 });
+            console.error(`CRITICAL: Failed to recalibrate user's coin balance for user ${userId}:`, error);
+            // Don't return a 500 to Stripe, as it might retry a failed recalibration logic indefinitely.
+            // Log the error for manual intervention.
         }
     } else {
         console.log(`Received unhandled event type: ${event.type}`);
@@ -239,7 +286,6 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
         limit: 100,
-        expand: ['data.line_items'],
     });
 
     const successfulTransactions: CoinTransaction[] = [];
