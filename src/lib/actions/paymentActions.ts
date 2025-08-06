@@ -89,7 +89,7 @@ export async function createCheckoutSession(
   }
 
   try {
-    const origin = headers().get('origin') || 'http://localhost:3000';
+    const origin = process.env.NEXT_PUBLIC_SITE_URL || headers().get('origin') || 'http://localhost:3000';
     
     // On success, always redirect to the profile page to show the updated balance.
     const successUrl = `${origin}/profile?purchase_success=true`;
@@ -239,6 +239,7 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
         limit: 100,
+        expand: ['data.line_items'],
     });
 
     const successfulTransactions: CoinTransaction[] = [];
