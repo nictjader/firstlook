@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Loader2, Send, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 export default function FeedbackPage() {
   const [submitted, setSubmitted] = useState(false);
@@ -23,11 +24,8 @@ export default function FeedbackPage() {
     const formData = new FormData(form);
     
     // IMPORTANT: Replace this with your Google Form's action URL.
-    // To get this, open your Google Form, click "Send", go to the link tab, and get the link.
-    // Then, open the live form, inspect the <form> element, and copy its `action` attribute.
     const googleFormActionUrl = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID_HERE/formResponse';
     
-    // This is a placeholder. You must replace it or the form will not work.
     if (googleFormActionUrl.includes('YOUR_FORM_ID_HERE')) {
         toast({
             variant: 'destructive',
@@ -42,7 +40,7 @@ export default function FeedbackPage() {
       await fetch(googleFormActionUrl, {
         method: 'POST',
         body: formData,
-        mode: 'no-cors', // Important: 'no-cors' is required for this to work without errors.
+        mode: 'no-cors', 
       });
       setSubmitted(true);
     } catch (error) {
@@ -85,51 +83,58 @@ export default function FeedbackPage() {
         {/* 
           This form submits data to a Google Form. You need to configure two things:
           1. The `action` URL in the handleSubmit function above.
-          2. The `name` attribute for each input/textarea below.
+          2. The `name` attribute for each textarea below.
           
           To get the `name` attributes:
           - Open your live Google Form.
           - Right-click on an input field and select "Inspect".
-          - Find the `name` attribute of the <input> element (e.g., `entry.123456789`).
+          - Find the `name` attribute of the <input> or <textarea> element (e.g., `entry.123456789`).
           - Copy that and use it for the corresponding field below.
         */}
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="space-y-2">
-            <Label htmlFor="feedback-type">Type of Feedback</Label>
-            <select
-              id="feedback-type"
-              name="entry.YOUR_FEEDBACK_TYPE_ID" // <-- REPLACE THIS
-              required
-              className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <option value="Suggestion">Suggestion</option>
-              <option value="Bug Report">Bug Report</option>
-              <option value="Praise">Praise</option>
-              <option value="Other">Other</option>
-            </select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="feedback-message">Your Message</Label>
-            <Textarea
-              id="feedback-message"
-              name="entry.YOUR_MESSAGE_ID" // <-- REPLACE THIS
-              placeholder="Tell us what's on your mind..."
-              required
-              rows={6}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="feedback-email">Your Email (Optional)</Label>
-            <Input
-              id="feedback-email"
-              name="entry.YOUR_EMAIL_ID" // <-- REPLACE THIS
-              type="email"
-              placeholder="you@example.com"
-            />
-             <p className="text-xs text-muted-foreground">
-              Provide your email if you'd like us to be able to contact you about your feedback.
-            </p>
-          </div>
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="suggestion">
+                <AccordionTrigger className="text-lg font-semibold">Suggestion</AccordionTrigger>
+                <AccordionContent>
+                   <Textarea
+                    name="entry.YOUR_SUGGESTION_ID" // <-- REPLACE THIS
+                    placeholder="Have an idea to improve the app? Let us know!"
+                    rows={4}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="bug">
+                <AccordionTrigger className="text-lg font-semibold">Bug Report</AccordionTrigger>
+                <AccordionContent>
+                   <Textarea
+                    name="entry.YOUR_BUG_REPORT_ID" // <-- REPLACE THIS
+                    placeholder="Something not working right? Please describe the issue."
+                    rows={4}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="praise">
+                <AccordionTrigger className="text-lg font-semibold">Praise</AccordionTrigger>
+                <AccordionContent>
+                  <Textarea
+                    name="entry.YOUR_PRAISE_ID" // <-- REPLACE THIS
+                    placeholder="Enjoying the app? We'd love to hear what you like!"
+                    rows={4}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+               <AccordionItem value="other">
+                <AccordionTrigger className="text-lg font-semibold">Other</AccordionTrigger>
+                <AccordionContent>
+                   <Textarea
+                    name="entry.YOUR_OTHER_ID" // <-- REPLACE THIS
+                    placeholder="Have some other feedback? Share it here."
+                    rows={4}
+                  />
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          
           <Button type="submit" className="w-full h-11 text-base" disabled={isSubmitting}>
             {isSubmitting ? (
               <><Loader2 className="mr-2 h-5 w-5 animate-spin" /> Submitting...</>
