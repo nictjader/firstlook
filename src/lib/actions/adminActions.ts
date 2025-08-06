@@ -568,7 +568,7 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
             snapshot.docs.forEach(doc => storiesMap.set(doc.id, docToStory(doc)));
         });
 
-        unlockedStoryIds.forEach(storyId => {
+        unlockedStoryIds.forEach((storyId: string) => {
             const story = storiesMap.get(storyId);
             if (story) {
                 totalCoinsSpent += story.coinCost;
