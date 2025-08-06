@@ -42,12 +42,9 @@ export default function Header() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button asChild variant="ghost" className="h-9 rounded-md px-2 sm:px-3 text-primary hover:text-primary/80">
-                    <Link href="/buy-coins">
+                    <Link href="/buy-coins" className="flex items-center">
                       <Gem className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
-                      <div className="flex flex-col items-start -space-y-1 text-xs sm:text-sm">
-                        <span className="hidden md:inline-flex font-semibold">Buy Coins</span>
-                        <span className="font-semibold">{userProfile.coins.toLocaleString()}</span>
-                      </div>
+                      <span className="font-semibold">{userProfile.coins.toLocaleString()}</span>
                     </Link>
                   </Button>
                 </TooltipTrigger>
