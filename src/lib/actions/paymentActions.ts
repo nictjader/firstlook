@@ -12,6 +12,20 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
   apiVersion: '2024-06-20',
 });
 
+
+// Helper function to read the raw body from a request.
+async function getRawBody(request: Request): Promise<Buffer> {
+  const reader = request.body!.getReader();
+  const chunks: Uint8Array[] = [];
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    chunks.push(value);
+  }
+  return Buffer.concat(chunks);
+}
+
+
 /**
  * Creates a Stripe Checkout Session for a given coin package and user.
  * @param packageId The ID of the coin package being purchased.
@@ -84,9 +98,11 @@ export async function handleStripeWebhook(request: Request) {
     }
 
     let event: Stripe.Event;
-
+    
     try {
-        const body = await request.text();
+        // Read the raw body as a buffer
+        const body = await getRawBody(request);
+        // Use the raw body to construct the event
         event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
     } catch (err: any) {
         console.error(`Webhook signature verification failed: ${err.message}`);
