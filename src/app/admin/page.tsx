@@ -4,11 +4,11 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine, BarChart3 } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine, BarChart3, User, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction, getChapterAnalysisAction } from '@/lib/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction, getChapterAnalysisAction, resyncUserBalanceAction } from '@/lib/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
@@ -36,6 +36,9 @@ function AdminDashboardContent() {
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [isAnalyzingChapters, setIsAnalyzingChapters] = useState(false);
   const [chapterAnalysisData, setChapterAnalysisData] = useState<ChapterAnalysis[] | null>(null);
+  const [isResyncing, setIsResyncing] = useState(false);
+  const [resyncUserId, setResyncUserId] = useState('');
+  const [resyncResult, setResyncResult] = useState<{success: boolean; message: string} | null>(null);
   
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -175,8 +178,26 @@ function AdminDashboardContent() {
     await Promise.all(promises);
     setIsGenerating(false);
   };
+  
+  const handleResyncBalance = async () => {
+    if (!resyncUserId) {
+      setResyncResult({ success: false, message: 'Please enter a User ID.' });
+      return;
+    }
+    setIsResyncing(true);
+    setResyncResult(null);
+    try {
+      const result = await resyncUserBalanceAction(resyncUserId);
+      setResyncResult(result);
+    } catch (error: any) {
+      setResyncResult({ success: false, message: error.message || 'An unknown error occurred.' });
+    } finally {
+      setIsResyncing(false);
+    }
+  };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters;
+
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters || isResyncing;
   
   return (
     <>
@@ -198,6 +219,39 @@ function AdminDashboardContent() {
             </AlertDescription>
           </Alert>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center text-xl"><User className="mr-2 h-5 w-5" /> User Tools</CardTitle>
+            <CardDescription>Manually correct user data if issues arise.</CardDescription>
+          </CardHeader>
+          <Separator/>
+          <CardContent className="pt-6 space-y-4">
+              <div>
+                <Label htmlFor="resync-userid">User ID to Resynchronize</Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    id="resync-userid"
+                    type="text"
+                    placeholder="Enter Firebase User ID"
+                    value={resyncUserId}
+                    onChange={(e) => setResyncUserId(e.target.value)}
+                    disabled={isResyncing}
+                  />
+                  <Button onClick={handleResyncBalance} disabled={isToolRunning}>
+                    {isResyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                    Resync Balance
+                  </Button>
+                </div>
+              </div>
+              {resyncResult && (
+                <Alert variant={resyncResult.success ? 'success' : 'destructive'} className="mt-4">
+                  <AlertTitle>{resyncResult.success ? 'Operation Successful' : 'Operation Failed'}</AlertTitle>
+                  <AlertDescription>{resyncResult.message}</AlertDescription>
+                </Alert>
+              )}
+          </CardContent>
+        </Card>
         
         <Card>
           <CardHeader>

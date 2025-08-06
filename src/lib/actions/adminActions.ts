@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
 import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 import { chapterPricingData } from '@/lib/pricing-data';
+import { getCoinPurchaseHistory } from './paymentActions';
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -507,4 +508,80 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         seriesTitle: chapter.seriesTitle,
         subgenre: chapter.subgenre,
     }));
+}
+
+
+/**
+ * A server action to recalculate and correct a user's coin balance
+ * based on their complete Stripe purchase history and Firestore unlock history.
+ */
+export async function resyncUserBalanceAction(userId: string): Promise<{ success: boolean; message: string; finalBalance?: number; }> {
+  if (!userId) {
+    return { success: false, message: 'Error: User ID is required.' };
+  }
+  
+  try {
+    const db = getAdminDb();
+    const userRef = db.collection('users').doc(userId);
+    const storiesRef = db.collection('stories');
+    
+    // 1. Get the user document
+    const userDoc = await userRef.get();
+    if (!userDoc.exists) {
+      return { success: false, message: `Error: User with ID ${userId} not found.` };
+    }
+    const userProfile = userDoc.data()!;
+
+    // 2. Calculate total coins from all successful Stripe purchases
+    const purchaseHistory = await getCoinPurchaseHistory(userId);
+    const totalCoinsPurchased = purchaseHistory.reduce((acc, transaction) => acc + transaction.coins, 0);
+
+    // 3. Calculate total coins spent on unlocking stories
+    const unlockedStoryIds = (userProfile.unlockedStories || []).map((s: { storyId: string }) => s.storyId);
+    let totalCoinsSpent = 0;
+    
+    if (unlockedStoryIds.length > 0) {
+        // Fetch all unlocked stories in chunks of 30 (Firestore 'in' query limit)
+        const storyChunks = [];
+        for (let i = 0; i < unlockedStoryIds.length; i += 30) {
+            storyChunks.push(unlockedStoryIds.slice(i, i + 30));
+        }
+
+        const storyDocsPromises = storyChunks.map(chunk => 
+            storiesRef.where(FieldPath.documentId(), 'in', chunk).get()
+        );
+        const storySnapshots = await Promise.all(storyDocsPromises);
+        
+        const storiesMap = new Map<string, Story>();
+        storySnapshots.forEach(snapshot => {
+            snapshot.docs.forEach(doc => {
+                const story = docToStory(doc);
+                storiesMap.set(doc.id, story);
+            });
+        });
+
+        unlockedStoryIds.forEach(storyId => {
+            const story = storiesMap.get(storyId);
+            if (story) {
+                totalCoinsSpent += story.coinCost;
+            }
+        });
+    }
+
+    // 4. Calculate the correct final balance
+    const finalBalance = totalCoinsPurchased - totalCoinsSpent;
+
+    // 5. Update the user's balance in Firestore
+    await userRef.update({ coins: finalBalance });
+
+    return { 
+      success: true, 
+      message: `Resync successful for user ${userId}. Final balance of ${finalBalance} has been set.`,
+      finalBalance: finalBalance,
+    };
+
+  } catch (error: any) {
+    console.error("Error during balance resync:", error);
+    return { success: false, message: `An unexpected error occurred: ${error.message}` };
+  }
 }

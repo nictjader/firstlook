@@ -1,6 +1,6 @@
 
-import { type Timestamp as ClientTimestamp, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot } from 'firebase/firestore'; // For client-side
-import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot } from 'firebase-admin/firestore'; // For server-side
+import { type Timestamp as ClientTimestamp, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot, FieldPath } from 'firebase/firestore'; // For client-side
+import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot, FieldPath as AdminFieldPath } from 'firebase-admin/firestore'; // For server-side
 
 // --- Type Definitions ---
 
