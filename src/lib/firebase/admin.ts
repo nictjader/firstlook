@@ -9,32 +9,19 @@ let adminDb: Firestore;
 
 const ADMIN_APP_NAME = 'firebase-admin-app-firstlook-singleton-v2';
 
+// Simplified initialization using Application Default Credentials.
+// This is the standard and recommended way for services running on Google Cloud.
 if (!getAdminApps().some(app => app?.name === ADMIN_APP_NAME)) {
   const projectId = 'siren-h2y45';
   
   if (!projectId) {
     throw new Error("Critical: Project ID is not set.");
   }
+  
+  // This will automatically use the service account associated with the App Hosting backend.
+  // No need to manage service account keys in environment variables.
+  adminApp = initializeAdminApp({ projectId: projectId }, ADMIN_APP_NAME);
 
-  // Option 1: Using service account key (recommended for production)
-  const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (serviceAccountKey) {
-    try {
-      const serviceAccount = JSON.parse(serviceAccountKey);
-      adminApp = initializeAdminApp({
-        credential: cert(serviceAccount),
-        projectId: projectId,
-      }, ADMIN_APP_NAME);
-    } catch (e) {
-      console.error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Initializing with default credentials.", e);
-      adminApp = initializeAdminApp({ projectId: projectId }, ADMIN_APP_NAME);
-    }
-  } else {
-    // Option 2: Using Application Default Credentials (for Cloud Run)
-    adminApp = initializeAdminApp({
-      projectId: projectId,
-    }, ADMIN_APP_NAME);
-  }
 } else {
   adminApp = getAdminApp(ADMIN_APP_NAME);
 }
