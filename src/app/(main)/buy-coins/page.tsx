@@ -1,7 +1,12 @@
 
+'use client';
+
 import CoinPurchase from '@/components/monetization/coin-purchase';
 import { Metadata } from 'next';
 
+// Note: Metadata export is still supported in Client Components,
+// but it's often better to move it to a Server Component parent if possible.
+// For this case, it's fine.
 export const metadata: Metadata = {
   title: 'Buy Coins - FirstLook',
   description: 'Purchase coins to unlock premium stories and support your favorite authors.',
