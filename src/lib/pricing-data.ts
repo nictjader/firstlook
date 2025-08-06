@@ -114,7 +114,7 @@ export const chapterPricingData: ChapterPrice[] = [
     { chapterId: "94238cfd-22f7-4202-acfe-8526f88c1655", newCoinCost: 70 },
     { chapterId: "96989e5e-555c-44c2-a191-a1d74f01b487", newCoinCost: 70 },
     { chapterId: "9888bdc2-c09d-4cc2-aed4-47f5fdfe62c0", newCoinCost: 70 },
-    { chapterId: "9965a780-edc6-489d-8438-cde59746a35", newCoinCost: 70 },
+    { chapterId: "9965a780-edc6-489d-8438-cde597466a35", newCoinCost: 70 },
     { chapterId: "9a9d58ce-8f3f-48ca-9b4a-2aedc4f073e0", newCoinCost: 0 },
     { chapterId: "9c4037e3-ba3f-4e41-8295-88adacc919a7", newCoinCost: 70 },
     { chapterId: "9c8b5df8-ac0c-4827-a325-67937943b17b", newCoinCost: 70 },
