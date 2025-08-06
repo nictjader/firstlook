@@ -119,7 +119,7 @@ function CoinPurchaseContent() {
           </DialogHeader>
           <DialogFooter>
              <Button asChild className="w-full h-12 text-lg">
-                <a href={checkoutUrl!} target="_blank" rel="noopener noreferrer" onClick={() => setCheckoutUrl(null)}>
+                <a href={checkoutUrl!} target="_blank" rel="noopener noreferrer">
                   Proceed to Secure Checkout <ExternalLink className="ml-2 h-5 w-5" />
                 </a>
               </Button>
