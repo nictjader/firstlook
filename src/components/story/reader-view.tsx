@@ -135,7 +135,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
               src={story.coverImageUrl || PLACEHOLDER_IMAGE_URL}
               alt={`Cover for ${story.title}`}
               fill
-              className="object-cover"
+              className="object-cover object-top"
               priority
               data-ai-hint="romance book cover"
             />
