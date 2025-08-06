@@ -31,9 +31,10 @@ async function getRawBody(request: Request): Promise<Buffer> {
  * Retrieves a Stripe Customer ID for a given user ID, creating one if it doesn't exist.
  * This is crucial for tracking a user's purchase history reliably.
  * @param userId The Firebase UID of the user.
+ * @param email The user's email address.
  * @returns The Stripe Customer ID.
  */
-async function getOrCreateStripeCustomerId(userId: string): Promise<string> {
+async function getOrCreateStripeCustomerId(userId: string, email: string | null): Promise<string> {
   const db = getAdminDb();
   const userRef = db.collection('users').doc(userId);
   const userDoc = await userRef.get();
@@ -45,15 +46,14 @@ async function getOrCreateStripeCustomerId(userId: string): Promise<string> {
 
   // If no Stripe customer ID exists, create one
   const customer = await stripe.customers.create({
+    email: email || undefined,
     metadata: {
       firebaseUID: userId,
     },
   });
 
   // Save the new Stripe customer ID to the user's Firestore document
-  await userRef.update({
-    stripeCustomerId: customer.id,
-  });
+  await userRef.set({ stripeCustomerId: customer.id }, { merge: true });
 
   return customer.id;
 }
@@ -83,7 +83,11 @@ export async function createCheckoutSession(
 
 
   try {
-    const customerId = await getOrCreateStripeCustomerId(userId);
+    const db = getAdminDb();
+    const userDoc = await db.collection('users').doc(userId).get();
+    const userEmail = userDoc.data()?.email || null;
+
+    const customerId = await getOrCreateStripeCustomerId(userId, userEmail);
 
     // Create a Checkout Session
     const session = await stripe.checkout.sessions.create({
@@ -154,10 +158,10 @@ export async function handleStripeWebhook(request: Request) {
         const session = event.data.object as Stripe.Checkout.Session;
         
         const userId = session.metadata?.userId;
-        const coins = session.metadata?.coins;
+        const coinsStr = session.metadata?.coins;
 
-        if (!userId || !coins) {
-            console.error('Webhook Error: Missing userId or coins in session metadata.', { userId, coins });
+        if (!userId || !coinsStr) {
+            console.error('Webhook Error: Missing userId or coins in session metadata.', { userId, coins: coinsStr });
             return new Response('Webhook Error: Missing metadata.', { status: 400 });
         }
 
@@ -165,9 +169,9 @@ export async function handleStripeWebhook(request: Request) {
             const db = getAdminDb();
             const userRef = db.collection('users').doc(userId);
             
-            const coinsToAdd = parseInt(coins, 10);
+            const coinsToAdd = parseInt(coinsStr, 10);
             if (isNaN(coinsToAdd)) {
-                console.error(`Webhook Error: Invalid non-numeric coin value '${coins}' for user ${userId}.`);
+                console.error(`Webhook Error: Invalid non-numeric coin value '${coinsStr}' for user ${userId}.`);
                 return new Response('Webhook Error: Invalid coin value.', { status: 400 });
             }
             
@@ -213,7 +217,6 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
         limit: 100, // Get up to 100 most recent sessions
-        expand: ['data.line_items.data.price.product'],
     });
 
     const successfulTransactions: CoinTransaction[] = [];
@@ -222,19 +225,15 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const completedSessions = checkoutSessions.data.filter(session => session.payment_status === 'paid');
 
     for (const session of completedSessions) {
-        const lineItems = session.line_items?.data;
-        if (lineItems && lineItems.length > 0) {
-            const product = lineItems[0].price?.product as Stripe.Product;
-            // The coin amount is now stored in the session metadata, not product metadata.
-            const coinsPurchased = session.metadata?.coins;
-            if (coinsPurchased) {
-                 successfulTransactions.push({
-                    date: new Date(session.created * 1000).toISOString(),
-                    coins: parseInt(coinsPurchased, 10),
-                    amountUSD: session.amount_total ? session.amount_total / 100 : 0,
-                    stripeCheckoutId: session.id,
-                });
-            }
+        // The coin amount is now stored in the session metadata.
+        const coinsPurchased = session.metadata?.coins;
+        if (coinsPurchased) {
+             successfulTransactions.push({
+                date: new Date(session.created * 1000).toISOString(),
+                coins: parseInt(coinsPurchased, 10),
+                amountUSD: session.amount_total ? session.amount_total / 100 : 0,
+                stripeCheckoutId: session.id,
+            });
         }
     }
     
