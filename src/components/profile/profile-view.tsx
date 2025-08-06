@@ -17,8 +17,9 @@ import TransactionHistoryCard from './transaction-history-card';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
-import { type Story } from '@/lib/types';
+import { type Story, type CoinTransaction } from '@/lib/types';
 import { getStoriesByIds } from '@/lib/actions/storyActions.client';
+import { getCoinPurchaseHistory } from '@/lib/actions/paymentActions';
 import { Skeleton } from '../ui/skeleton';
 
 export default function ProfileView() {
@@ -29,31 +30,37 @@ export default function ProfileView() {
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [storiesMap, setStoriesMap] = useState<Map<string, Story>>(new Map());
-  const [isLoadingStories, setIsLoadingStories] = useState(true);
+  const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
 
   useEffect(() => {
-    const fetchAllStoryDetails = async () => {
-      if (!userProfile) return;
+    const fetchAllHistory = async () => {
+      if (!user || !userProfile) return;
 
-      setIsLoadingStories(true);
+      setIsLoadingHistory(true);
+      
       const favoriteIds = userProfile.favoriteStories || [];
       const readIds = userProfile.readStories || [];
       const unlockedIds = (userProfile.unlockedStories || []).map(s => s.storyId);
-      
       const allUniqueStoryIds = [...new Set([...favoriteIds, ...readIds, ...unlockedIds])];
 
-      if (allUniqueStoryIds.length > 0) {
-        const fetchedStories = await getStoriesByIds(allUniqueStoryIds);
-        const newStoriesMap = new Map(fetchedStories.map(s => [s.storyId, s]));
-        setStoriesMap(newStoriesMap);
-      }
-      setIsLoadingStories(false);
+      // Fetch story details and coin purchase history in parallel
+      const [fetchedStories, fetchedTransactions] = await Promise.all([
+        allUniqueStoryIds.length > 0 ? getStoriesByIds(allUniqueStoryIds) : Promise.resolve([]),
+        getCoinPurchaseHistory(user.uid)
+      ]);
+
+      const newStoriesMap = new Map(fetchedStories.map(s => [s.storyId, s]));
+      setStoriesMap(newStoriesMap);
+      setCoinTransactions(fetchedTransactions);
+
+      setIsLoadingHistory(false);
     };
     
-    if (!authLoading && userProfile) {
-        fetchAllStoryDetails();
+    if (!authLoading && user && userProfile) {
+      fetchAllHistory();
     }
-  }, [userProfile, authLoading]);
+  }, [user, userProfile, authLoading]);
 
 
   const handleSignOut = async () => {
@@ -198,23 +205,24 @@ export default function ProfileView() {
       <StoryListCard 
         title="Favorite Stories" 
         stories={favoriteStories}
-        isLoading={isLoadingStories}
+        isLoading={isLoadingHistory}
         icon={Heart}
         emptyMessage="You haven't favorited any stories yet. Tap the heart on a story page to add it here!"
       />
 
       <StoryListCard 
         title="Reading History"
-        stories={readStories}
-        isLoading={isLoadingStories}
+        stories={readStories.slice(0, 10)} // Show most recent 10
+        isLoading={isLoadingHistory}
         icon={History}
         emptyMessage="You haven't read any stories yet. Start reading to build your history!"
       />
-
+      
       <TransactionHistoryCard 
         unlockedStories={userProfile.unlockedStories}
+        coinPurchases={coinTransactions}
         storiesMap={storiesMap}
-        isLoading={isLoadingStories}
+        isLoading={isLoadingHistory}
       />
 
       <Separator />

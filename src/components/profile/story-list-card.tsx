@@ -1,12 +1,11 @@
 
 "use client";
 
-import Link from 'next/link';
 import type { Story } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LucideIcon } from "lucide-react";
-import { ChevronRight } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import StoryCard from "../story/story-card";
 
 interface StoryListCardProps {
   title: string;
@@ -16,10 +15,22 @@ interface StoryListCardProps {
   emptyMessage: string;
 }
 
+const StoryRowSkeleton = () => (
+    <div className="flex space-x-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex-shrink-0 w-1/3 sm:w-1/4 md:w-1/5 lg:w-1/6 space-y-2">
+                <Skeleton className="aspect-[2/3] w-full rounded-lg" />
+                <Skeleton className="h-4 w-3/4" />
+            </div>
+        ))}
+    </div>
+);
+
+
 export default function StoryListCard({ title, stories, isLoading, icon: Icon, emptyMessage }: StoryListCardProps) {
   return (
     <Card className="shadow-lg">
-       <CardHeader>
+      <CardHeader>
         <CardTitle className="text-xl font-headline flex items-center">
             <Icon className="w-5 h-5 mr-2 text-primary" />
             {title}
@@ -28,28 +39,16 @@ export default function StoryListCard({ title, stories, isLoading, icon: Icon, e
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-8 w-full rounded-md" />
-            <Skeleton className="h-8 w-full rounded-md" />
-            <Skeleton className="h-8 w-5/6 rounded-md" />
-          </div>
+          <StoryRowSkeleton />
         ) : stories.length > 0 ? (
-          <div className="border rounded-lg">
-            <ul className="divide-y divide-border">
-              {stories.map((story) => (
-                <li key={story.storyId}>
-                  <Link href={`/stories/${story.storyId}`} className="group flex items-center justify-between p-3 hover:bg-muted/50 transition-colors">
-                    <div className="flex-grow">
-                      <p className="font-semibold text-primary group-hover:underline">{story.seriesTitle ? story.seriesTitle : story.title}</p>
-                      {story.seriesTitle && story.partNumber && (
-                         <p className="text-xs text-muted-foreground">{`Chapter ${story.partNumber} of ${story.totalPartsInSeries}`}</p>
-                      )}
+          <div className="relative">
+            <div className="flex space-x-4 overflow-x-auto pb-4 -mb-4">
+                {stories.map((story) => (
+                    <div key={story.storyId} className="flex-shrink-0 w-1/3 sm:w-1/4 md:w-1/5 lg:w-1/6">
+                        <StoryCard story={story} />
                     </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground ml-4 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Link>
-                </li>
-              ))}
-            </ul>
+                ))}
+            </div>
           </div>
         ) : (
            <div className="w-full text-center py-8 col-span-full space-y-3">

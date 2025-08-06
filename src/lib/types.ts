@@ -9,6 +9,13 @@ export interface UnlockedStoryInfo {
     unlockedAt: string;
 }
 
+export interface CoinTransaction {
+    date: string;
+    coins: number;
+    amountUSD: number;
+    stripeCheckoutId: string;
+}
+
 export interface UserProfile {
   userId: string;
   email: string | null;

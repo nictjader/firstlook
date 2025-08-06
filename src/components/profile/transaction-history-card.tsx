@@ -1,16 +1,16 @@
 
 "use client";
 
-import type { UnlockedStoryInfo, Story } from "@/lib/types";
+import type { UnlockedStoryInfo, Story, CoinTransaction } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BookLock, History } from "lucide-react";
+import { BookLock, History, Gem } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { useState, useEffect } from "react";
 import { Skeleton } from "../ui/skeleton";
 
 type Transaction = {
   date: string;
-  type: 'unlock';
+  type: 'unlock' | 'purchase';
   description: string;
   amount: string;
   amountColor: string;
@@ -19,29 +19,38 @@ type Transaction = {
 
 interface TransactionHistoryCardProps {
   unlockedStories: UnlockedStoryInfo[];
+  coinPurchases: CoinTransaction[];
   storiesMap: Map<string, Story>;
   isLoading: boolean;
 }
 
-export default function TransactionHistoryCard({ unlockedStories, storiesMap, isLoading }: TransactionHistoryCardProps) {
+export default function TransactionHistoryCard({ unlockedStories, coinPurchases, storiesMap, isLoading }: TransactionHistoryCardProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
 
   useEffect(() => {
     const generateTransactions = () => {
-
       const unlockTransactions: Transaction[] = (unlockedStories || []).map(unlocked => {
         const story = storiesMap.get(unlocked.storyId);
         return {
           date: unlocked.unlockedAt,
           type: 'unlock',
           description: story ? `Unlocked: ${story.title}` : `Unlocked Story ID: ${unlocked.storyId}`,
-          amount: `-${story?.coinCost ?? 50}`,
+          amount: `-${story?.coinCost ?? '??'}`,
           amountColor: "text-red-600 dark:text-red-500",
           icon: BookLock
         };
       });
 
-      const allTransactions = [...unlockTransactions];
+      const purchaseTransactions: Transaction[] = (coinPurchases || []).map(purchase => ({
+        date: purchase.date,
+        type: 'purchase',
+        description: `Purchased ${purchase.coins} Coins`,
+        amount: `+${purchase.coins}`,
+        amountColor: 'text-green-600 dark:text-green-500',
+        icon: Gem
+      }));
+
+      const allTransactions = [...unlockTransactions, ...purchaseTransactions];
       allTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
       
       setTransactions(allTransactions);
@@ -50,16 +59,16 @@ export default function TransactionHistoryCard({ unlockedStories, storiesMap, is
     if (!isLoading) {
       generateTransactions();
     }
-  }, [unlockedStories, storiesMap, isLoading]);
+  }, [unlockedStories, coinPurchases, storiesMap, isLoading]);
 
   return (
     <Card className="shadow-lg">
       <CardHeader>
         <CardTitle className="text-xl font-headline flex items-center">
             <History className="w-5 h-5 mr-2 text-primary" />
-            Unlock History
+            Transaction History
         </CardTitle>
-        <CardDescription>A complete ledger of your story unlocks.</CardDescription>
+        <CardDescription>A complete ledger of your coin activity.</CardDescription>
       </CardHeader>
       <CardContent>
         {isLoading ? (
@@ -75,7 +84,7 @@ export default function TransactionHistoryCard({ unlockedStories, storiesMap, is
                 <TableRow>
                   <TableHead className="w-[100px]">Date</TableHead>
                   <TableHead>Description</TableHead>
-                  <TableHead className="text-right">Cost</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -104,9 +113,9 @@ export default function TransactionHistoryCard({ unlockedStories, storiesMap, is
                 <History className="h-8 w-8 text-muted-foreground" />
             </div>
             <div className="space-y-1">
-                <h3 className="text-xl font-semibold tracking-tight">No Unlocks Found</h3>
+                <h3 className="text-xl font-semibold tracking-tight">No Transactions Found</h3>
                 <p className="text-muted-foreground max-w-md mx-auto text-sm">
-                   You have not unlocked any premium stories yet.
+                   Your coin purchases and story unlocks will appear here.
                 </p>
             </div>
           </div>

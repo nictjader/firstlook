@@ -6,6 +6,7 @@ import { headers } from 'next/headers';
 import { COIN_PACKAGES } from '@/lib/config';
 import { getAdminDb } from '../firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import type { CoinTransaction } from '@/lib/types';
 
 // Initialize Stripe with the secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
@@ -83,6 +84,8 @@ export async function createCheckoutSession(
         packageId: packageId,
         coins: coinPackage.coins,
       },
+      // Associate the checkout session with the user for later retrieval
+      client_reference_id: userId,
     });
 
     if (!session.url) {
@@ -151,4 +154,46 @@ export async function handleStripeWebhook(request: Request) {
     }
 
     return new Response(null, { status: 200 });
+}
+
+
+/**
+ * Fetches a user's successful coin purchase history from Stripe.
+ * @param userId The Firebase UID of the user.
+ * @returns An array of CoinTransaction objects.
+ */
+export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransaction[]> {
+  if (!userId) {
+    return [];
+  }
+
+  try {
+    const sessions = await stripe.checkout.sessions.list({
+      client_reference_id: userId,
+      limit: 100, // Stripe limit
+    });
+
+    const successfulTransactions: CoinTransaction[] = [];
+
+    for (const session of sessions.data) {
+      if (session.payment_status === 'paid' && session.metadata) {
+        successfulTransactions.push({
+          date: new Date(session.created * 1000).toISOString(),
+          coins: parseInt(session.metadata.coins, 10) || 0,
+          amountUSD: session.amount_total ? session.amount_total / 100 : 0,
+          stripeCheckoutId: session.id,
+        });
+      }
+    }
+
+    // Sort descending by date
+    successfulTransactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    
+    return successfulTransactions;
+
+  } catch (error) {
+    console.error("Failed to fetch Stripe purchase history:", error);
+    // Return empty array on error to prevent crashing the profile page
+    return [];
+  }
 }
