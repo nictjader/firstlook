@@ -68,6 +68,7 @@ async function getOrCreateStripeCustomerId(userId: string, email: string | null)
 export async function createCheckoutSession(
   packageId: string,
   userId: string,
+  redirectPath?: string | null,
 ): Promise<{ checkoutUrl?: string; error?: string }> {
   if (!userId) {
     return { error: 'User is not authenticated.' };
@@ -79,7 +80,11 @@ export async function createCheckoutSession(
   }
 
   const origin = headers().get('origin') || 'http://localhost:3000';
+  // Always redirect to profile on success now.
   const successUrl = `${origin}/profile?purchase_success=true`;
+  const cancelUrl = redirectPath 
+    ? `${origin}${redirectPath}` // Go back to the story if they cancel
+    : `${origin}/buy-coins?cancelled=true`;
 
 
   try {
@@ -107,12 +112,12 @@ export async function createCheckoutSession(
       ],
       mode: 'payment',
       success_url: successUrl,
-      cancel_url: `${origin}/buy-coins?cancelled=true`,
+      cancel_url: cancelUrl,
       customer: customerId, // Associate the checkout with the Stripe Customer
        // Pass metadata that can be used by the webhook
       metadata: {
         packageId: packageId,
-        coins: coinPackage.coins,
+        coins: coinPackage.coins.toString(), // Store as a string
         userId: userId, // Pass the Firebase UID in metadata
       },
     });
