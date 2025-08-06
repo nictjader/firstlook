@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 
 
 function CoinPurchaseContent() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, refreshUserProfile } = useAuth();
   const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
@@ -26,14 +26,19 @@ function CoinPurchaseContent() {
 
   useEffect(() => {
     const sessionId = searchParams.get('session_id');
+    const redirectPath = searchParams.get('redirect');
+
     if (sessionId) {
       toast({
         variant: 'success',
         title: 'Purchase Successful!',
         description: 'Your coins have been added to your account. Thank you!',
       });
-      // Use router.replace to remove the query params from the URL
-      router.replace('/buy-coins'); 
+      // Refresh user profile to get the new coin balance
+      refreshUserProfile();
+      
+      // Navigate to the appropriate page
+      router.replace(redirectPath || '/'); 
     }
 
     if (searchParams.get('cancelled')) {
@@ -44,7 +49,7 @@ function CoinPurchaseContent() {
       });
       router.replace('/buy-coins');
     }
-  }, [searchParams, router, toast]);
+  }, [searchParams, router, toast, refreshUserProfile]);
 
 
   const handlePurchase = async (packageId: string) => {
@@ -58,9 +63,12 @@ function CoinPurchaseContent() {
         return;
     }
     setLoadingPackageId(packageId);
+    
+    // Get the redirect path from the current URL if it exists
+    const redirectPath = searchParams.get('redirect');
 
     try {
-        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid);
+        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid, redirectPath);
         
         if (error || !checkoutUrl) {
             throw new Error(error || 'Failed to create checkout session.');

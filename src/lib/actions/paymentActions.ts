@@ -32,7 +32,11 @@ async function getRawBody(request: Request): Promise<Buffer> {
  * @param userId The ID of the user making the purchase.
  * @returns An object with the checkout URL if successful, or an error message.
  */
-export async function createCheckoutSession(packageId: string, userId: string): Promise<{ checkoutUrl?: string; error?: string }> {
+export async function createCheckoutSession(
+  packageId: string,
+  userId: string,
+  redirectPath: string | null
+): Promise<{ checkoutUrl?: string; error?: string }> {
   if (!userId) {
     return { error: 'User is not authenticated.' };
   }
@@ -43,6 +47,16 @@ export async function createCheckoutSession(packageId: string, userId: string): 
   }
 
   const origin = headers().get('origin') || 'http://localhost:3000';
+
+  // Construct the success URL with an optional redirect path
+  let successUrl = `${origin}/buy-coins?session_id={CHECKOUT_SESSION_ID}`;
+  if (redirectPath) {
+    // Ensure the redirect path is a valid relative path before appending
+    if (redirectPath.startsWith('/')) {
+        successUrl += `&redirect=${encodeURIComponent(redirectPath)}`;
+    }
+  }
+
 
   try {
     // Create a Checkout Session
@@ -62,7 +76,7 @@ export async function createCheckoutSession(packageId: string, userId: string): 
         },
       ],
       mode: 'payment',
-      success_url: `${origin}/buy-coins?session_id={CHECKOUT_SESSION_ID}`,
+      success_url: successUrl,
       cancel_url: `${origin}/buy-coins?cancelled=true`,
       metadata: {
         userId: userId,
