@@ -11,6 +11,13 @@
 export const PREMIUM_STORY_COST = 70;
 
 /**
+ * The base URL for the application.
+ * Used for generating absolute URLs for sitemaps and metadata.
+ */
+export const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tryfirstlook.com';
+
+
+/**
  * A fallback placeholder image URL for story covers.
  */
 export const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900/D87093/F9E4EB.png';
