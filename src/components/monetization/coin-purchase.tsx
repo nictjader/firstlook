@@ -49,11 +49,8 @@ function CoinPurchaseContent() {
     }
     setLoadingPackageId(packageId);
     
-    // Get the redirect path from the current URL if it exists
-    const redirectPath = searchParams.get('redirect');
-
     try {
-        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid, redirectPath);
+        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid);
         
         if (error || !checkoutUrl) {
             throw new Error(error || 'Failed to create checkout session.');

@@ -191,7 +191,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                        if (user) {
                          setShowUnlockModal(true);
                        } else {
-                         router.push('/login');
+                         router.push(`/login?redirect=/stories/${story.storyId}`);
                        }
                      }}>
                          <Lock className="mr-2 h-5 w-5"/>Unlock to Read

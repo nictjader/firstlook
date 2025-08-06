@@ -68,7 +68,6 @@ async function getOrCreateStripeCustomerId(userId: string): Promise<string> {
 export async function createCheckoutSession(
   packageId: string,
   userId: string,
-  redirectPath: string | null
 ): Promise<{ checkoutUrl?: string; error?: string }> {
   if (!userId) {
     return { error: 'User is not authenticated.' };
@@ -80,14 +79,7 @@ export async function createCheckoutSession(
   }
 
   const origin = headers().get('origin') || 'http://localhost:3000';
-
-  let successUrl = `${origin}/profile?purchase_success=true`;
-  if (redirectPath) {
-    // Ensure the redirect path is a valid relative path starting with '/'
-    if (redirectPath.startsWith('/')) {
-        successUrl = `${origin}${redirectPath}?purchase_success=true`;
-    }
-  }
+  const successUrl = `${origin}/profile?purchase_success=true`;
 
 
   try {
@@ -103,6 +95,11 @@ export async function createCheckoutSession(
             product_data: {
               name: `${coinPackage.name} - ${coinPackage.coins} Coins`,
               description: coinPackage.messaging,
+              // Store metadata in the product, which is reliably accessible later
+              metadata: {
+                packageId: packageId,
+                coins: coinPackage.coins,
+              }
             },
             unit_amount: Math.round(coinPackage.priceUSD * 100), // Price in cents
           },
@@ -113,11 +110,8 @@ export async function createCheckoutSession(
       success_url: successUrl,
       cancel_url: `${origin}/buy-coins?cancelled=true`,
       customer: customerId, // Associate the checkout with the Stripe Customer
-      metadata: {
-        userId: userId,
-        packageId: packageId,
-        coins: coinPackage.coins.toString(),
-      },
+       // Pass the user ID in the session metadata for the webhook
+      client_reference_id: userId,
     });
 
     if (!session.url) {
@@ -158,12 +152,23 @@ export async function handleStripeWebhook(request: Request) {
 
     // Handle the checkout.session.completed event
     if (event.type === 'checkout.session.completed') {
-        const session = event.data.object as Stripe.Checkout.Session;
-        
-        const { userId, coins } = session.metadata || {};
+        const sessionWithLineItems = await stripe.checkout.sessions.retrieve(
+            (event.data.object as Stripe.Checkout.Session).id,
+            { expand: ['line_items'] }
+        );
+
+        const lineItems = sessionWithLineItems.line_items;
+        if (!lineItems || !lineItems.data.length) {
+            console.error('Webhook Error: No line items found in session.', sessionWithLineItems);
+            return new Response('Webhook Error: No line items found.', { status: 400 });
+        }
+
+        const product = lineItems.data[0].price?.product as Stripe.Product;
+        const userId = sessionWithLineItems.client_reference_id;
+        const coins = product?.metadata?.coins;
 
         if (!userId || !coins) {
-            console.error('Webhook Error: Missing userId or coins in session metadata.', session);
+            console.error('Webhook Error: Missing userId or coins in session metadata.', sessionWithLineItems);
             return new Response('Webhook Error: Missing metadata.', { status: 400 });
         }
 
@@ -171,7 +176,6 @@ export async function handleStripeWebhook(request: Request) {
             const db = getAdminDb();
             const userRef = db.collection('users').doc(userId);
             
-            // CRITICAL FIX: The coins value from metadata is a string. It must be parsed to an integer.
             const coinsToAdd = parseInt(coins, 10);
             if (isNaN(coinsToAdd)) {
                 console.error(`Webhook Error: Invalid non-numeric coin value '${coins}' for user ${userId}.`);
@@ -218,6 +222,7 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const checkoutSessions = await stripe.checkout.sessions.list({
         customer: stripeCustomerId,
         limit: 100, // Get up to 100 most recent sessions
+        expand: ['data.line_items.data.price.product'],
     });
 
     const successfulTransactions: CoinTransaction[] = [];
@@ -226,13 +231,17 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     const completedSessions = checkoutSessions.data.filter(session => session.payment_status === 'paid');
 
     for (const session of completedSessions) {
-        if (session.metadata && session.metadata.coins) {
-            successfulTransactions.push({
-                date: new Date(session.created * 1000).toISOString(),
-                coins: parseInt(session.metadata.coins, 10),
-                amountUSD: session.amount_total ? session.amount_total / 100 : 0,
-                stripeCheckoutId: session.id,
-            });
+        const lineItems = session.line_items?.data;
+        if (lineItems && lineItems.length > 0) {
+            const product = lineItems[0].price?.product as Stripe.Product;
+            if (product && product.metadata.coins) {
+                 successfulTransactions.push({
+                    date: new Date(session.created * 1000).toISOString(),
+                    coins: parseInt(product.metadata.coins, 10),
+                    amountUSD: session.amount_total ? session.amount_total / 100 : 0,
+                    stripeCheckoutId: session.id,
+                });
+            }
         }
     }
     
