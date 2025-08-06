@@ -186,21 +186,6 @@ export default function ProfileView() {
 
   return (
     <div className="space-y-8">
-       {process.env.NODE_ENV === 'development' && (
-         <Alert variant="warning">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Developer Tool</AlertTitle>
-          <div className="flex justify-between items-center">
-            <AlertDescription>
-                Click this button to manually sync your coin balance after a test purchase.
-            </AlertDescription>
-            <Button onClick={handleResyncBalance} disabled={isResyncing} size="sm">
-              {isResyncing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Resync Balance
-            </Button>
-          </div>
-        </Alert>
-       )}
        <Card className="overflow-hidden shadow-lg">
         <CardHeader className="bg-gradient-to-br from-primary/10 to-accent/10 p-6">
           <div className="flex items-center space-x-4">
@@ -307,5 +292,3 @@ export default function ProfileView() {
     </div>
   );
 }
-
-    
