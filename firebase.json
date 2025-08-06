@@ -19,16 +19,7 @@
         "STRIPE_SECRET_KEY": "${env.STRIPE_SECRET_KEY}",
         "STRIPE_WEBHOOK_SECRET": "${env.STRIPE_WEBHOOK_SECRET}"
       }
-    },
-    "rewrites": [
-      {
-        "source": "**",
-        "run": {
-          "serviceId": "studio",
-          "region": "us-central1"
-        }
-      }
-    ]
+    }
   },
   "firestore": {
     "rules": "firestore.rules"
