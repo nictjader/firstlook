@@ -93,6 +93,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshUserProfile = useCallback(async () => {
+    if (user) {
+        const profile = await fetchUserProfile(user.uid);
+        setUserProfile(profile);
+    }
+  }, [user, fetchUserProfile]);
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
@@ -131,23 +138,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [fetchUserProfile, createUserProfile, syncLocalReadHistory]);
   
-  const refreshUserProfile = useCallback(async () => {
-    if (user) {
-        setLoading(true);
-        const profile = await fetchUserProfile(user.uid);
-        setUserProfile(profile);
-        setLoading(false);
-    }
-  }, [user, fetchUserProfile]);
-
   const updateUserProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (user) {
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, updates);
+      // After any update, refresh the profile to ensure UI is in sync
+      await refreshUserProfile();
     } else {
       throw new Error("User must be logged in to update profile.");
     }
-  }, [user]);
+  }, [user, refreshUserProfile]);
 
   const toggleFavoriteStory = useCallback(async (storyId: string) => {
       if (user && userProfile) {
