@@ -6,11 +6,12 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/auth-context';
 import { COIN_PACKAGES } from '@/lib/config';
 import { cn } from '@/lib/utils';
-import { Check, Gem, Loader2, Star, Trophy } from 'lucide-react';
+import { Check, Gem, Loader2, Star, Trophy, ArrowRight } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { createCheckoutSession } from '@/lib/actions/paymentActions';
+import Link from 'next/link';
 
 function CoinPurchaseContent() {
   const { user, loading: authLoading } = useAuth();
@@ -20,7 +21,6 @@ function CoinPurchaseContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    // Check for a successful purchase in the query params
     const sessionId = searchParams.get('session_id');
     if (sessionId) {
       toast({
@@ -28,18 +28,15 @@ function CoinPurchaseContent() {
         title: 'Purchase Successful!',
         description: 'Your coins have been added to your account. Thank you!',
       });
-      // Clean the URL
       router.replace('/buy-coins');
     }
 
-    // Check for a cancelled purchase
     if (searchParams.get('cancelled')) {
       toast({
         variant: 'destructive',
         title: 'Purchase Cancelled',
         description: 'Your purchase was cancelled. You have not been charged.',
       });
-      // Clean the URL
       router.replace('/buy-coins');
     }
   }, [searchParams, router, toast]);
@@ -64,13 +61,18 @@ function CoinPurchaseContent() {
             throw new Error(error || 'Failed to create checkout session.');
         }
         
-        // Redirect the top-level window to the Stripe checkout page
-        // This is necessary to break out of the iframe in the prototyper
-        if (window.top) {
-          window.top.location.href = checkoutUrl;
-        } else {
-          window.location.href = checkoutUrl;
-        }
+        toast({
+          variant: 'success',
+          title: "Checkout session created!",
+          duration: 15000,
+          description: (
+             <Button asChild variant="secondary" className="mt-2">
+                <a href={checkoutUrl} target="_blank" rel="noopener noreferrer">
+                  Click here to complete purchase <ArrowRight className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+          ),
+        });
 
     } catch (error: any) {
         toast({
@@ -78,7 +80,8 @@ function CoinPurchaseContent() {
             description: error.message || "An unexpected error occurred. Please try again.",
             variant: "destructive",
         });
-        setLoadingPackageId(null); // Ensure loading state is reset on error
+    } finally {
+      setLoadingPackageId(null);
     }
   };
 

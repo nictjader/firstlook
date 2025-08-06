@@ -33,7 +33,7 @@ export function Toaster() {
         const icon = <ToastIcon variant={variant} />;
         return (
           <Toast key={id} variant={variant} {...props}>
-             <div className="flex items-start space-x-3">
+             <div className="flex items-start space-x-3 w-full">
               <div className="flex-shrink-0 mt-0.5">{icon}</div>
               <div className="grid gap-1 flex-grow">
                 {title && <ToastTitle>{title}</ToastTitle>}
