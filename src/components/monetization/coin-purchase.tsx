@@ -50,7 +50,8 @@ function CoinPurchaseContent() {
     setLoadingPackageId(packageId);
     
     try {
-        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid);
+        const redirectPath = searchParams.get('redirect');
+        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid, redirectPath);
         
         if (error || !checkoutUrl) {
             throw new Error(error || 'Failed to create checkout session.');
@@ -109,7 +110,7 @@ function CoinPurchaseContent() {
           </DialogHeader>
           <DialogFooter>
              <Button asChild className="w-full h-12 text-lg">
-                <a href={checkoutUrl!} target="_blank" rel="noopener noreferrer">
+                <a href={checkoutUrl!}>
                   Proceed to Secure Checkout <ExternalLink className="ml-2 h-5 w-5" />
                 </a>
               </Button>
