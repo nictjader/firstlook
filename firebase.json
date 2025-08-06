@@ -17,8 +17,8 @@
       "cpu": 1,
       "name": "studio",
       "environment": {
-        "STRIPE_SECRET_KEY": "${env.STRIPE_SECRET_KEY}",
-        "STRIPE_WEBHOOK_SECRET": "${env.STRIPE_WEBHOOK_SECRET}"
+        "STRIPE_SECRET_KEY": "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",
+        "STRIPE_WEBHOOK_SECRET": "whsec_..."
       }
     }
   },
@@ -28,4 +28,3 @@
   "storage": {
     "rules": "storage.rules"
   }
-}
