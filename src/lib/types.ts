@@ -185,4 +185,13 @@ export interface DatabaseMetrics {
   duplicateTitles: Record<string, number>;
 }
 
-    
+export interface ChapterAnalysis {
+  chapterId: string;
+  storyId: string;
+  wordCount: number;
+  currentCoinCost: number;
+  storyType: 'Standalone' | 'Series';
+  partNumber?: number;
+  title: string;
+  seriesTitle?: string;
+}

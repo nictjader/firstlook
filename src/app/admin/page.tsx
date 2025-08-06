@@ -4,19 +4,20 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine, BarChart3 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction } from '@/lib/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction, getChapterAnalysisAction } from '@/lib/actions/adminActions';
 import { useAuth } from '@/contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { capitalizeWords } from '@/lib/utils';
-import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetrics } from '@/lib/types';
+import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetrics, type ChapterAnalysis } from '@/lib/types';
 import { Separator } from '@/components/ui/separator';
 import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import ChapterAnalysisTable from '@/components/admin/chapter-analysis-table';
 
 
 function AdminDashboardContent() {
@@ -33,6 +34,8 @@ function AdminDashboardContent() {
   const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
+  const [isAnalyzingChapters, setIsAnalyzingChapters] = useState(false);
+  const [chapterAnalysisData, setChapterAnalysisData] = useState<ChapterAnalysis[] | null>(null);
   
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -51,6 +54,21 @@ function AdminDashboardContent() {
       setAnalysisError(error.message || "An unknown error occurred while analyzing the database.");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleChapterAnalysis = async () => {
+    setIsAnalyzingChapters(true);
+    setChapterAnalysisData(null);
+    setAnalysisError(null);
+    try {
+      const result = await getChapterAnalysisAction();
+      setChapterAnalysisData(result);
+    } catch (error: any) {
+      console.error("Failed to analyze chapters:", error);
+      setAnalysisError(error.message || "An unknown error occurred during chapter analysis.");
+    } finally {
+        setIsAnalyzingChapters(false);
     }
   };
 
@@ -158,7 +176,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters;
   
   return (
     <>
@@ -369,6 +387,27 @@ function AdminDashboardContent() {
         </Card>
         
         <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center text-xl"><BarChart3 className="mr-2 h-5 w-5" /> Chapter Analysis</CardTitle>
+            <CardDescription>
+              Generate a detailed list of all chapters for strategic re-pricing.
+            </CardDescription>
+          </CardHeader>
+          <Separator/>
+          <CardContent className="pt-6">
+            <Button onClick={handleChapterAnalysis} disabled={isToolRunning} className="w-full">
+                {isAnalyzingChapters ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+                {isAnalyzingChapters ? 'Analyzing Chapters...' : 'Run Chapter Analysis'}
+            </Button>
+            {chapterAnalysisData && (
+                <div className="mt-6">
+                    <ChapterAnalysisTable data={chapterAnalysisData} />
+                </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
            <CardHeader>
             <CardTitle className="flex items-center text-xl"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
             <CardDescription>
@@ -405,5 +444,3 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
-
-    

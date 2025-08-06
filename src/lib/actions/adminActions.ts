@@ -9,7 +9,7 @@ import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
 import { FieldValue } from 'firebase-admin/firestore';
-import type { CleanupResult, Story, DatabaseMetrics } from '@/lib/types';
+import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '@/lib/types';
@@ -513,4 +513,28 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
   };
 }
 
-    
+/**
+ * Fetches and formats data for all chapters for strategic analysis.
+ */
+export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
+    const db = getAdminDb();
+    const storiesRef = db.collection('stories');
+    const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+
+    if (snapshot.empty) {
+        return [];
+    }
+
+    const allChapters = snapshot.docs.map(doc => docToStory(doc));
+
+    return allChapters.map(chapter => ({
+        chapterId: chapter.storyId,
+        storyId: chapter.seriesId || chapter.storyId,
+        wordCount: chapter.wordCount,
+        currentCoinCost: chapter.coinCost,
+        storyType: chapter.seriesId ? 'Series' : 'Standalone',
+        partNumber: chapter.partNumber,
+        title: chapter.title,
+        seriesTitle: chapter.seriesTitle,
+    }));
+}
