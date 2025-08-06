@@ -81,10 +81,11 @@ export async function createCheckoutSession(
 
   const origin = headers().get('origin') || 'http://localhost:3000';
 
-  // Construct the success URL with an optional redirect path
-  let successUrl = `${origin}/buy-coins?session_id={CHECKOUT_SESSION_ID}`;
+  // The success URL now points to the profile page to show the user their new balance.
+  // The original redirect path for a story is passed along to be handled by the profile page if needed,
+  // though the primary flow is now to land on the profile.
+  let successUrl = `${origin}/profile?purchase_success=true`;
   if (redirectPath) {
-    // Ensure the redirect path is a valid relative path before appending
     if (redirectPath.startsWith('/')) {
         successUrl += `&redirect=${encodeURIComponent(redirectPath)}`;
     }

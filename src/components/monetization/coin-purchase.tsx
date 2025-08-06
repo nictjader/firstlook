@@ -6,17 +6,16 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/auth-context';
 import { COIN_PACKAGES } from '@/lib/config';
 import { cn } from '@/lib/utils';
-import { Check, Gem, Loader2, Star, Trophy, ArrowRight, ExternalLink } from 'lucide-react';
+import { Check, Gem, Loader2, Star, Trophy, ExternalLink } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { createCheckoutSession } from '@/lib/actions/paymentActions';
-import Link from 'next/link';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 
 function CoinPurchaseContent() {
-  const { user, loading: authLoading, refreshUserProfile } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
@@ -24,32 +23,18 @@ function CoinPurchaseContent() {
 
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
+  // This effect handles showing a cancellation message if the user returns from Stripe.
   useEffect(() => {
-    const sessionId = searchParams.get('session_id');
-    const redirectPath = searchParams.get('redirect');
-
-    if (sessionId) {
-      toast({
-        variant: 'success',
-        title: 'Purchase Successful!',
-        description: 'Your coins have been added to your account. Thank you!',
-      });
-      // Refresh user profile to get the new coin balance
-      refreshUserProfile();
-      
-      // Navigate to the appropriate page
-      router.replace(redirectPath || '/'); 
-    }
-
     if (searchParams.get('cancelled')) {
       toast({
         variant: 'destructive',
         title: 'Purchase Cancelled',
         description: 'Your purchase was cancelled. You have not been charged.',
       });
+      // Use router.replace to clean the URL
       router.replace('/buy-coins');
     }
-  }, [searchParams, router, toast, refreshUserProfile]);
+  }, [searchParams, router, toast]);
 
 
   const handlePurchase = async (packageId: string) => {
