@@ -18,10 +18,10 @@ export async function generateMetadata({ params }: { params: { storyId: string }
 
   return {
     title: `${story.title} - FirstLook`,
-    description: story.previewText,
+    description: story.synopsis,
     openGraph: {
       title: story.title,
-      description: story.previewText,
+      description: story.synopsis,
       images: [
         {
           url: story.coverImageUrl || PLACEHOLDER_IMAGE_URL,

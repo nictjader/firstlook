@@ -80,10 +80,10 @@ const AIStoryResponseSchema = z.object({
     .describe(
       'The full story content in well-formatted HTML, including <p>, <h2>, and <h3> tags for paragraphs and section breaks. The story should be engaging, romantic, and follow the provided plot synopsis. The approximate word count should be {{approxWordCount}} words.'
     ),
-  previewText: z
+  synopsis: z
     .string()
     .describe(
-      'A short, enticing preview of the story (around 150-200 characters) to attract readers.'
+      'A short, enticing summary of the generated story (around 2-3 sentences) to attract readers. This should accurately reflect the final story content.'
     ),
   subgenre: z
     .string()
@@ -122,14 +122,15 @@ const storyGenerationPrompt = ai.definePrompt({
     **Important Instructions:**
     1.  **Originality & Completeness:** The story must be original and have a satisfying romantic conclusion.
     2.  **Formatting:** The story content MUST be in HTML format (using <p>, <h2>, etc.).
-    3.  **Series Logic:**
+    3.  **Synopsis:** After writing the story, you MUST generate a new, short (2-3 sentence) synopsis that accurately summarizes the story you just wrote. This will be used as the story's description.
+    4.  **Series Logic:**
         - Most stories should be standalone.
         - **If and only if** you create a multi-part series (e.g., a two-part story), you MUST use this exact pre-defined ID for the 'seriesId' field for ALL parts of the series: \`{{{potentialSeriesId}}}\`.
         - For standalone stories, the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields MUST all be null.
-    4.  **Monetization Logic:**
+    5.  **Monetization Logic:**
         - A standalone story can be free (coinCost: 0) or premium (coinCost: ${PREMIUM_STORY_COST}).
         - For a series, Part 1 MUST be free (coinCost: 0). Subsequent parts MUST cost exactly ${PREMIUM_STORY_COST} coins.
-    5.  **Output Format:** You MUST return the output in the specified JSON format. Do not deviate from the schema.
+    6.  **Output Format:** You MUST return the output in the specified JSON format. Do not deviate from the schema.
 
     Now, write the story.
   `,
@@ -169,7 +170,7 @@ const storyGenerationFlow = ai.defineFlow(
         isPremium: (output.coinCost ?? 0) > 0,
         coinCost: output.coinCost,
         content: output.content,
-        previewText: output.previewText,
+        synopsis: output.synopsis,
         subgenre: output.subgenre as Subgenre,
         wordCount: output.wordCount,
         author: output.author,

@@ -35,7 +35,7 @@ export interface Story {
   isPremium: boolean;
   coinCost: number;
   content: string;
-  previewText: string;
+  synopsis: string;
   subgenre: Subgenre;
   wordCount: number;
   publishedAt: string;
@@ -93,7 +93,7 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
       isPremium: data.isPremium || false,
       coinCost: data.coinCost || 0,
       content: data.content || '',
-      previewText: data.previewText || '',
+      synopsis: data.synopsis || data.previewText || '',
       subgenre: data.subgenre || 'contemporary',
       wordCount: data.wordCount || 0,
       publishedAt: safeToISOString(data.publishedAt),

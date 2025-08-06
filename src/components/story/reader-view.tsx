@@ -159,6 +159,9 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
                      Chapter {story.partNumber} of {story.totalPartsInSeries}
                   </p>
                 )}
+                 <div className="mt-4 text-muted-foreground">
+                    {story.synopsis}
+                </div>
             </div>
             <div className="flex-shrink-0 flex items-center">
                <Button variant="ghost" size="icon" onClick={handleFavoriteClick} aria-label="Favorite this story">
@@ -179,11 +182,8 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
           </>
         ) : (
            <div className="relative">
-             <div className="py-6 px-6 prose dark:prose-invert max-w-none max-h-80 overflow-hidden font-body">
-               <p>{story.previewText}</p>
-             </div>
-             <div className="absolute bottom-0 left-0 right-0 h-48 bg-gradient-to-t from-card to-transparent" />
-             <div className="p-6 text-center bg-card">
+             <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-t from-card via-card/80 to-transparent" />
+             <div className="p-6 text-center relative">
                  <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
                  <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
                  <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
