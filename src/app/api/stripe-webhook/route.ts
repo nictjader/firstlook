@@ -9,12 +9,3 @@ import { handleStripeWebhook } from '@/lib/actions/paymentActions';
 export async function POST(request: Request) {
   return handleStripeWebhook(request);
 }
-
-// By exporting this object, we tell Next.js to disable the default body parser
-// for this route. This is crucial because Stripe's signature verification
-// requires the raw, unparsed request body.
-export const config = {
-  api: {
-    bodyParser: false,
-  },
-};

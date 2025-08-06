@@ -21,8 +21,6 @@ function CoinPurchaseContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
 
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
-
   // This effect handles showing a cancellation message if the user returns from Stripe.
   useEffect(() => {
     if (searchParams.get('cancelled')) {
@@ -57,7 +55,7 @@ function CoinPurchaseContent() {
             throw new Error(error || 'Failed to create checkout session.');
         }
         
-        // Instead of opening a dialog, navigate directly
+        // Navigate directly in the same tab
         window.location.href = checkoutUrl;
 
     } catch (error: any) {

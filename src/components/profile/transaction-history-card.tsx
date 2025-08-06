@@ -44,8 +44,8 @@ export default function TransactionHistoryCard({ unlockedStories, coinPurchases,
       const purchaseTransactions: Transaction[] = (coinPurchases || []).map(purchase => ({
         date: purchase.date,
         type: 'purchase',
-        description: `Purchased ${purchase.coins} Coins`,
-        amount: `+${purchase.coins}`,
+        description: `Purchased ${purchase.coins.toLocaleString()} Coins`,
+        amount: `+${purchase.coins.toLocaleString()}`,
         amountColor: 'text-green-600 dark:text-green-500',
         icon: Gem
       }));

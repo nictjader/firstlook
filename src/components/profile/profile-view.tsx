@@ -61,23 +61,32 @@ export default function ProfileView() {
       const unlockedIds = (userProfile.unlockedStories || []).map(s => s.storyId);
       const allUniqueStoryIds = [...new Set([...favoriteIds, ...readIds, ...unlockedIds])];
 
-      // Fetch story details and coin purchase history in parallel
-      const [fetchedStories, fetchedTransactions] = await Promise.all([
-        allUniqueStoryIds.length > 0 ? getStoriesByIds(allUniqueStoryIds) : Promise.resolve([]),
-        getCoinPurchaseHistory(user.uid)
-      ]);
+      try {
+        // Fetch story details and coin purchase history in parallel
+        const [fetchedStories, fetchedTransactions] = await Promise.all([
+          allUniqueStoryIds.length > 0 ? getStoriesByIds(allUniqueStoryIds) : Promise.resolve([]),
+          getCoinPurchaseHistory(user.uid)
+        ]);
 
-      const newStoriesMap = new Map(fetchedStories.map(s => [s.storyId, s]));
-      setStoriesMap(newStoriesMap);
-      setCoinTransactions(fetchedTransactions);
-
-      setIsLoadingHistory(false);
+        const newStoriesMap = new Map(fetchedStories.map(s => [s.storyId, s]));
+        setStoriesMap(newStoriesMap);
+        setCoinTransactions(fetchedTransactions);
+      } catch (error) {
+        console.error("Failed to fetch user history:", error);
+        toast({
+            variant: "destructive",
+            title: "Error fetching history",
+            description: "Could not load all your stories and transactions. Please try refreshing."
+        });
+      } finally {
+        setIsLoadingHistory(false);
+      }
     };
     
     if (!authLoading && user && userProfile) {
       fetchAllHistory();
     }
-  }, [user, userProfile, authLoading]);
+  }, [user, userProfile, authLoading, refreshUserProfile, toast]);
 
 
   const handleSignOut = async () => {
