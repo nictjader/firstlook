@@ -68,44 +68,42 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
 
-  // This effect initializes the Google Sign-In button
+  // This effect initializes Google One Tap and the Sign In button
   useEffect(() => {
-    if (typeof window.google === 'undefined' || !document.getElementById('g_id_signin')) {
-      // If google script or div not loaded, retry after a short delay
-      const timeoutId = setTimeout(() => {
-        if (typeof window.google !== 'undefined' && document.getElementById('g_id_signin')) {
-           initializeGoogleSignIn();
-        }
-      }, 100);
-      return () => clearTimeout(timeoutId);
-    } else {
-      initializeGoogleSignIn();
+    if (typeof window.google === 'undefined') {
+        // If google script not loaded, this will be handled once it is.
+        // We can add a retry or a listener for the script load event if needed.
+        return;
     }
-  }, []);
 
-
-  const initializeGoogleSignIn = () => {
     try {
-      if (typeof window.google === 'undefined' || !window.google.accounts || !window.google.accounts.id) {
-          console.error("Google accounts library not available.");
-          return;
-      }
-      
-      window.google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
-          login_uri: `${window.location.origin}/api/auth/google`,
-          ux_mode: 'redirect',
-      });
+        if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+            throw new Error("Google Client ID is not configured.");
+        }
+        
+        // Initialize the GSI client
+        window.google.accounts.id.initialize({
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+            // This is the endpoint that will handle the credential from Google
+            login_uri: `${window.location.origin}/api/auth/google`,
+            // This enables the One Tap and automatic sign-in UX
+            auto_select: true,
+        });
 
-      const googleButtonParent = document.getElementById('g_id_signin');
-      if (googleButtonParent) {
-        googleButtonParent.innerHTML = ''; // Clear previous button
-        window.google.accounts.id.renderButton(
-            googleButtonParent,
-            { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-        );
-      }
-    } catch (error) {
+        // Render the "Sign In With Google" button
+        const googleButtonParent = document.getElementById('g_id_signin');
+        if (googleButtonParent) {
+            googleButtonParent.innerHTML = ''; // Clear previous button
+            window.google.accounts.id.renderButton(
+                googleButtonParent,
+                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+            );
+        }
+        
+        // Prompt the user with One Tap UI for automatic sign-in
+        window.google.accounts.id.prompt();
+
+    } catch (error: any) {
         console.error("Error initializing Google Sign-In", error);
         toast({
             title: "Could not load Google Sign-In",
@@ -113,7 +111,7 @@ export default function AuthForm() {
             variant: "destructive"
         })
     }
-  };
+  }, []);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -173,7 +171,7 @@ export default function AuthForm() {
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         
-        {/* Google Sign-In Button Container */}
+        {/* Google Sign-In Button Container (rendered by the GSI script) */}
         <div id="g_id_signin" className="w-full flex justify-center"></div>
 
         <div className="relative">

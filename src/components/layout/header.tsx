@@ -24,6 +24,13 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
+      // This is part of the Google One Tap implementation
+      // It tells Google that the user has signed out of this website,
+      // preventing the One Tap prompt from appearing automatically on the next visit.
+      if (typeof window.google !== 'undefined' && window.google.accounts && window.google.accounts.id) {
+          window.google.accounts.id.disableAutoSelect();
+      }
+
       await signOut(auth);
       router.push('/');
     } catch (error) {
