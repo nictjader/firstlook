@@ -3,7 +3,7 @@
 
 import type { UnlockedStoryInfo, Story, CoinTransaction } from "@/lib/types";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { BookLock, History, Gem } from "lucide-react";
+import { BookLock, History, Coins } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
 import { useState, useEffect } from "react";
 import { Skeleton } from "../ui/skeleton";
@@ -47,7 +47,7 @@ export default function TransactionHistoryCard({ unlockedStories, coinPurchases,
         description: `Purchased ${purchase.coins.toLocaleString()} Coins`,
         amount: `+${purchase.coins.toLocaleString()}`,
         amountColor: 'text-green-600 dark:text-green-500',
-        icon: Gem
+        icon: Coins
       }));
 
       const allTransactions = [...unlockTransactions, ...purchaseTransactions];

@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowLeft, Lock, Gem, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Lock, Coins, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -185,7 +185,7 @@ export default function ReaderView({ story, seriesParts }: { story: Story; serie
              <div className="absolute top-0 left-0 right-0 h-full bg-gradient-to-t from-card via-card/80 to-transparent" />
              <div className="p-6 text-center relative">
                  <p className="text-lg font-semibold text-primary">This is a Premium Story</p>
-                 <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Gem className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
+                 <p className="flex items-center justify-center text-muted-foreground">Unlock this story for <Coins className="text-yellow-500 mx-1.5 h-5 w-5" /> {story.coinCost} coins.</p>
                  <Dialog open={showUnlockModal} onOpenChange={setShowUnlockModal}>
                      <Button size="lg" className="w-full max-w-xs h-12 text-lg mt-4" onClick={() => {
                        if (user) {

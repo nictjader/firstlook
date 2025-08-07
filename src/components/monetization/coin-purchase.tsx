@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/auth-context';
 import { COIN_PACKAGES } from '@/lib/config';
 import { cn } from '@/lib/utils';
-import { Check, Coin, Loader2, Star, Trophy } from 'lucide-react';
+import { Check, Coins, Loader2, Star, Trophy } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
@@ -114,7 +114,7 @@ function CoinPurchaseContent() {
                 </div>
             )}
             <CardHeader className="text-center pt-12">
-                <Coin className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
+                <Coins className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
                 <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
                 <CardDescription className="text-primary text-3xl font-headline font-semibold">
                 {pkg.coins.toLocaleString()} Coins

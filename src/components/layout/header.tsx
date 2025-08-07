@@ -7,8 +7,8 @@ import { useAuth } from '@/contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
-import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Gem, MessageSquareHeart } from 'lucide-react';
-import { useTheme } from '@/contexts/theme-context';
+import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Coins, MessageSquareHeart } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import Logo from './logo';
 import {
   Tooltip,
@@ -43,7 +43,7 @@ export default function Header() {
                 <TooltipTrigger asChild>
                   <Button asChild variant="ghost" className="h-9 rounded-md px-2 sm:px-3 text-primary font-semibold">
                     <Link href="/buy-coins">
-                      <Gem className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                      <Coins className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
                       <span>{userProfile.coins.toLocaleString()}</span>
                     </Link>
                   </Button>

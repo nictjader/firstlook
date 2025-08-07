@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Gem, Mail, UserCircle, LogOut, History, Heart, Loader2 } from 'lucide-react';
+import { Coins, Mail, UserCircle, LogOut, History, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signOut, verifyBeforeUpdateEmail } from 'firebase/auth';
@@ -218,7 +218,7 @@ export default function ProfileView() {
           </div>
 
           <div className="space-y-2">
-            <Label className="flex items-center text-sm font-semibold"><Gem className="w-4 h-4 mr-2 text-yellow-500"/>Coin Balance</Label>
+            <Label className="flex items-center text-sm font-semibold"><Coins className="w-4 h-4 mr-2 text-yellow-500"/>Coin Balance</Label>
             <div className="flex items-center justify-between p-2 pl-4 bg-muted/30 rounded-lg">
                 <span className="text-xl font-bold text-primary">{userProfile.coins.toLocaleString()} Coins</span>
                 <Button asChild variant="secondary">
