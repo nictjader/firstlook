@@ -1,6 +1,6 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { getAdminApp } from 'firebase-admin/app';
+import { getApp } from 'firebase-admin/app';
 import { getAuth as getAdminAuth } from 'firebase-admin/auth';
 import { getFirestore as getAdminDb } from 'firebase-admin/firestore';
 import { cookies } from 'next/headers';
@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Ensure the Firebase Admin app is initialized
-    const adminApp = getAdminApp();
+    const adminApp = getApp();
     const auth = getAdminAuth(adminApp);
     const db = getAdminDb(adminApp);
 

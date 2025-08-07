@@ -10,7 +10,7 @@ import { getStorage } from 'firebase-admin/storage';
 // IMPORTANT: This initialization logic is designed to work in a serverless environment.
 // It checks if an app is already initialized to prevent re-initialization on hot reloads.
 // It uses environment variables for configuration, which is the standard and secure way.
-function initializeAdmin() {
+function initializeAdmin(): App {
     const apps = getApps();
     if (apps.length > 0) {
         return apps[0];
@@ -29,7 +29,7 @@ function initializeAdmin() {
     });
 }
 
-const adminApp = initializeAdmin();
+const adminApp: App = initializeAdmin();
 
 export function getAdminDb(): Firestore {
   return getFirestore(adminApp);
