@@ -1,6 +1,5 @@
-
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -20,6 +19,7 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -30,6 +30,39 @@ export default function AuthForm() {
       router.push(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
+
+  useEffect(() => {
+    if (authLoading || user || !googleClientId) {
+      return; // Don't run if loading, user is logged in, or client ID is missing.
+    }
+
+    if (typeof window.google === 'undefined' || !window.google.accounts) {
+      console.error("Google GSI script not loaded. Ensure it's in layout.tsx.");
+      // Optionally, show a toast or error message to the user.
+      return;
+    }
+    
+    // Initialize the GSI client for One Tap and Redirect flow
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      ux_mode: 'redirect',
+      login_uri: `${window.location.origin}/api/auth/google`,
+      auto_select: true,
+    });
+    
+    // Manually render the button in our target div
+    if (googleButtonRef.current) {
+        window.google.accounts.id.renderButton(
+          googleButtonRef.current,
+          { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
+        );
+    }
+    
+    // Display the One Tap prompt for returning users
+    window.google.accounts.id.prompt();
+
+  }, [authLoading, user, googleClientId]);
+
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,22 +110,8 @@ export default function AuthForm() {
     );
   }
   
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const loginUri = `${appUrl}/api/auth/google`;
-
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
-      {/* This div configures and enables Google One Tap. It is not visible to the user. */}
-      {googleClientId && (
-        <div id="g_id_onload"
-           data-client_id={googleClientId}
-           data-ux_mode="redirect"
-           data-login_uri={loginUri}
-           data-auto_select="true"
-           style={{ display: 'none' }}>
-        </div>
-      )}
-
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />
@@ -103,15 +122,8 @@ export default function AuthForm() {
       <CardContent className="flex flex-col gap-4">
         {googleClientId ? (
             <>
-            {/* This div is where the "Sign in with Google" button will be rendered by the script */}
-            <div className="g_id_signin"
-                data-type="standard"
-                data-shape="rectangular"
-                data-theme="outline"
-                data-text="continue_with"
-                data-size="large"
-                data-logo_alignment="left">
-            </div>
+            {/* This div is the target for our manual button rendering */}
+            <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
 
             <div className="relative">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
