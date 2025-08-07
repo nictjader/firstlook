@@ -19,14 +19,10 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  // **THE FIX: Part 1 - Create a stable reference for the button's container**
-  // This ref will persist across re-renders, so Google's button won't disappear.
   const googleButtonRef = useRef<HTMLDivElement>(null);
-  const gsiInitialized = useRef(false); // Prevents re-initializing the script
+  const gsiInitialized = useRef(false);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -35,42 +31,35 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
 
-  // **THE FIX: Part 2 - A single, controlled effect for all Google GSI logic**
   useEffect(() => {
-    // 1. Wait for all conditions to be right before running
-    if (authLoading || user || !googleClientId || !appUrl || gsiInitialized.current) {
+    if (authLoading || user || !googleClientId || gsiInitialized.current) {
       return;
     }
-
-    // 2. Check if the Google script has loaded
     if (typeof window.google === 'undefined' || !window.google.accounts) {
       console.error("Google GSI script not loaded.");
       return;
     }
-
-    // 3. Mark as initialized to prevent this from running again
     gsiInitialized.current = true;
 
-    // 4. Initialize the GSI client
+    // **THE FIX:** Use window.location.origin to build a reliable redirect URI
+    // This avoids issues with environment variables.
+    const loginUri = `${window.location.origin}/api/auth/google`;
+
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       ux_mode: 'redirect',
-      login_uri: `${appUrl}/api/auth/google`,
+      login_uri: loginUri, // Use the dynamically created URI
       auto_select: true,
     });
 
-    // 5. Render the button inside our stable ref container
     if (googleButtonRef.current) {
         window.google.accounts.id.renderButton(
           googleButtonRef.current,
           { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
         );
     }
-
-    // 6. Display the One Tap prompt
     window.google.accounts.id.prompt();
-
-  }, [authLoading, user, googleClientId, appUrl]); // Dependencies for the effect
+  }, [authLoading, user, googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -117,7 +106,7 @@ export default function AuthForm() {
     );
   }
 
-  if (!googleClientId || !appUrl) {
+  if (!googleClientId) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
             <CardHeader>
@@ -128,11 +117,11 @@ export default function AuthForm() {
             </CardHeader>
             <CardContent>
                 <p className="text-sm text-destructive-foreground">
-                    A required environment variable is missing. Please ensure both 
+                    The Google Client ID is missing. Please add the 
                     <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    and
-                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_APP_URL</code>
-                    are set in your <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> file.
+                    variable to your 
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> 
+                    file and restart your server.
                 </p>
             </CardContent>
         </Card>
@@ -149,10 +138,7 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* **THE FIX: Part 3 - Use the ref on the container div** */}
-        {/* We removed the old HTML API divs and now use this single container */}
         <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
-
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
