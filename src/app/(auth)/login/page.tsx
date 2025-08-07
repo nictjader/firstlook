@@ -6,7 +6,7 @@ import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useToast } from '@/hooks/use-toast';
 import Header from '@/components/layout/header';
@@ -14,6 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { useEffectOnce } from '@/hooks/use-effect-once';
+
 
 function LoginContent() {
   const searchParams = useSearchParams();
@@ -24,84 +26,78 @@ function LoginContent() {
   const [showEmailPrompt, setShowEmailPrompt] = useState(false);
   const emailInputRef = useRef<HTMLInputElement>(null);
   
-  const effectRan = useRef(false);
+  // This effect handles both Google redirect and email link sign-in flows.
+  // It uses a custom hook `useEffectOnce` to ensure it runs only once,
+  // preventing issues with React's Strict Mode double-invoking effects.
+  useEffectOnce(() => {
+    const processAuth = async () => {
+        const fullUrl = window.location.href;
 
-  // This effect handles ONLY the email link verification flow.
-  useEffect(() => {
-    const fullUrl = window.location.href;
-    if (isSignInWithEmailLink(auth, fullUrl)) {
-      let email = window.localStorage.getItem('emailForSignIn');
-      if (email) {
-        signInWithEmailLink(auth, email, fullUrl)
-          .then((result) => {
-            window.localStorage.removeItem('emailForSignIn');
+        // --- 1. Check for Google Redirect Result ---
+        try {
+            const result = await getRedirectResult(auth);
+            if (result && result.user) {
+                toast({
+                    variant: "success",
+                    title: "Sign In Successful!",
+                    description: "Welcome! You're now signed in with Google."
+                });
+                router.push(searchParams.get('redirect') || '/');
+                // Since we succeeded, we don't need to check for other methods.
+                return;
+            }
+        } catch (error: any) {
             toast({
-              variant: "success",
-              title: "Sign In Successful!",
-              description: "Welcome! You're now signed in."
+                variant: "destructive",
+                title: "Sign In Failed",
+                description: `Google Sign-In Error: ${error.message}`,
             });
-            router.push(searchParams.get('redirect') || '/');
-          })
-          .catch((error) => {
-             let description = "An unknown error occurred. Please try again.";
-             if (error.code === 'auth/invalid-action-code') {
-               description = "This sign-in link may be expired or already used. Please request a new one.";
-             }
-             toast({
-               variant: "destructive",
-               title: "Sign In Failed",
-               description: description,
-             });
-             setVerifying(false);
-          });
-      } else {
-        // If the email is missing, we need to ask for it.
-        setShowEmailPrompt(true);
-        setVerifying(false);
-      }
-    }
-  }, [router, searchParams, toast]);
-
-  // This effect runs once on mount to handle ONLY the Google redirect result.
-  useEffect(() => {
-    // Prevent this from running multiple times in strict mode
-    if (effectRan.current || !auth) return;
-    effectRan.current = true;
-
-    // Check for Google redirect result first
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result && result.user) {
-          // User successfully signed in with Google
-          toast({
-            variant: "success",
-            title: "Sign In Successful!",
-            description: "Welcome! You're now signed in with Google."
-          });
-          router.push(searchParams.get('redirect') || '/');
-        } else {
-            // No Google redirect result, so we can stop verifying.
-            // Email link flow is handled in the other effect.
-            // If it's not a google redirect or an email link, we are done.
-             if (!isSignInWithEmailLink(auth, window.location.href)) {
-                setVerifying(false);
-             }
+            // Continue to check for email link even if Google fails.
         }
-      })
-      .catch((error) => {
-        // Handle Errors here.
-        const errorCode = error.code;
-        const errorMessage = error.message;
-        toast({
-          variant: "destructive",
-          title: "Sign In Failed",
-          description: `Google Sign-In Error: ${errorMessage}`,
-        });
-        setVerifying(false); // Stop loading on error
-      });
-  }, [router, searchParams, toast]);
 
-  // This effect handles displaying toasts for specific redirect reasons
+        // --- 2. Check for Email Link Sign-In ---
+        if (isSignInWithEmailLink(auth, fullUrl)) {
+            let email = window.localStorage.getItem('emailForSignIn');
+            if (email) {
+                // Email is in storage, so we can sign in directly.
+                signInWithEmailLink(auth, email, fullUrl)
+                    .then(() => {
+                        window.localStorage.removeItem('emailForSignIn');
+                        toast({
+                            variant: "success",
+                            title: "Sign In Successful!",
+                            description: "Welcome! You're now signed in."
+                        });
+                        router.push(searchParams.get('redirect') || '/');
+                    })
+                    .catch((error) => {
+                        let description = "An unknown error occurred. Please try again.";
+                        if (error.code === 'auth/invalid-action-code') {
+                            description = "This sign-in link may be expired or already used. Please request a new one.";
+                        }
+                        toast({
+                            variant: "destructive",
+                            title: "Sign In Failed",
+                            description: description,
+                        });
+                        setVerifying(false);
+                    });
+            } else {
+                // Email is not in storage, we need to prompt the user for it.
+                setShowEmailPrompt(true);
+                setVerifying(false);
+            }
+        } else {
+            // --- 3. No sign-in attempt detected ---
+            // If it's not a Google redirect and not an email link, stop verifying.
+            setVerifying(false);
+        }
+    };
+    processAuth();
+  });
+
+
+  // This separate effect handles displaying toasts for specific redirect reasons
   useEffect(() => {
     const reason = searchParams.get('reason');
     if (reason === 'favorite') {
