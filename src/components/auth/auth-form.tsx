@@ -20,6 +20,7 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
   
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
@@ -30,6 +31,38 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
   
+  useEffect(() => {
+    if (authLoading || user || !googleClientId) {
+        return; // Don't render if loading, logged in, or no client ID
+    }
+
+    if (typeof window.google === 'undefined' || !window.google.accounts) {
+        // This can happen if the script fails to load.
+        console.error("Google GSI script not loaded.");
+        return;
+    }
+
+    // Initialize the GSI client
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      ux_mode: 'redirect',
+      login_uri: `${window.location.origin}/api/auth/google`,
+    });
+
+    // Render the button in the ref div
+    if (googleButtonRef.current) {
+        window.google.accounts.id.renderButton(
+            googleButtonRef.current,
+            { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+        );
+    }
+
+    // Display the One Tap prompt
+    window.google.accounts.id.prompt();
+
+  }, [authLoading, user, googleClientId]);
+
+
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -87,19 +120,8 @@ export default function AuthForm() {
       <CardContent className="flex flex-col gap-4">
         {googleClientId ? (
           <>
-            <div id="g_id_onload"
-                 data-client_id={googleClientId}
-                 data-ux_mode="redirect"
-                 data-login_uri={`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/auth/google`}>
-            </div>
-            <div className="g_id_signin"
-                 data-type="standard"
-                 data-size="large"
-                 data-theme="outline"
-                 data-text="continue_with"
-                 data-shape="rectangular"
-                 data-logo_alignment="left">
-            </div>
+            <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
+            
             <div className="relative">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs uppercase">
