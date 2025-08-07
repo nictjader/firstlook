@@ -21,7 +21,7 @@ import { useRouter } from 'next/navigation';
 import { capitalizeWords } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { useTheme } from '@/contexts/theme-context';
+import { useTheme } from 'next-themes';
 import StoryCard from './story-card';
 import { arrayUnion } from 'firebase/firestore';
 import { useEffectOnce } from '@/hooks/use-effect-once';
