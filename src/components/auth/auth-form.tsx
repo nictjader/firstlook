@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,8 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
     // This effect handles redirecting the user if they are already logged in.
@@ -73,9 +76,23 @@ export default function AuthForm() {
         </Card>
     );
   }
+  
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const loginUri = `${appUrl}/api/auth/google`;
 
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
+      {/* This div configures and enables Google One Tap. It is not visible to the user. */}
+      {googleClientId && (
+        <div id="g_id_onload"
+           data-client_id={googleClientId}
+           data-ux_mode="redirect"
+           data-login_uri={loginUri}
+           data-auto_select="true"
+           style={{ display: 'none' }}>
+        </div>
+      )}
+
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />
@@ -84,6 +101,32 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {googleClientId ? (
+            <>
+            {/* This div is where the "Sign in with Google" button will be rendered by the script */}
+            <div className="g_id_signin"
+                data-type="standard"
+                data-shape="rectangular"
+                data-theme="outline"
+                data-text="continue_with"
+                data-size="large"
+                data-logo_alignment="left">
+            </div>
+
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
+            </div>
+            </>
+        ) : (
+            <div className="text-center text-sm text-muted-foreground p-4 bg-muted/50 rounded-md">
+                <AlertTriangle className="inline-block h-4 w-4 mr-1.5 mb-0.5" />
+                Google Sign-In is not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your environment variables.
+            </div>
+        )}
+
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
