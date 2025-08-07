@@ -86,48 +86,6 @@ export default function AuthForm() {
     }
   };
 
-  if (!googleClientId) {
-    return (
-        <Card className="w-full max-w-md text-center shadow-2xl">
-            <CardHeader>
-                <CardTitle>Sign In</CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground mb-4">
-                    Google Sign-In is not configured. Please use email sign-in.
-                </p>
-                {linkSentTo ? (
-                  <div className="space-y-4 text-center">
-                     <div className="text-center space-y-2">
-                        <MailCheck className="h-8 w-8 text-green-500 mx-auto" />
-                        <p className="text-muted-foreground">
-                           A sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
-                        </p>
-                    </div>
-                    <Button variant="link" onClick={() => setLinkSentTo(null)} disabled={loading}>Use a different email</Button>
-                  </div>
-                ) : (
-                  <form onSubmit={handleEmailSignIn} className="space-y-4">
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email address"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={loading}
-                    />
-                    <Button type="submit" className="w-full h-11" disabled={loading}>
-                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                      Continue with Email
-                    </Button>
-                  </form>
-                )}
-            </CardContent>
-        </Card>
-    );
-  }
-
   if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
