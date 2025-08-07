@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -20,34 +20,57 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // **THE FIX: Part 1 - Create a stable reference for the button's container**
+  // This ref will persist across re-renders, so Google's button won't disappear.
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const gsiInitialized = useRef(false); // Prevents re-initializing the script
+
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL; // Add your app URL to .env.local
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   useEffect(() => {
-    // This effect handles redirecting the user if they are already logged in.
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
       router.push(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
 
-  // This effect ensures the Google button is always rendered, even after re-renders.
+  // **THE FIX: Part 2 - A single, controlled effect for all Google GSI logic**
   useEffect(() => {
-    if (authLoading || user || !googleClientId) return;
-
-    if (typeof window.google !== 'undefined' && window.google.accounts) {
-        const googleButtonContainer = document.querySelector('.g_id_signin');
-        // If the container exists but is empty, re-render the button.
-        // This prevents the button from disappearing on component re-renders.
-        if (googleButtonContainer && googleButtonContainer.innerHTML === '') {
-            window.google.accounts.id.renderButton(
-                googleButtonContainer as HTMLElement,
-                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-            );
-        }
+    // 1. Wait for all conditions to be right before running
+    if (authLoading || user || !googleClientId || !appUrl || gsiInitialized.current) {
+      return;
     }
-  }, [authLoading, user, googleClientId]);
 
+    // 2. Check if the Google script has loaded
+    if (typeof window.google === 'undefined' || !window.google.accounts) {
+      console.error("Google GSI script not loaded.");
+      return;
+    }
+
+    // 3. Mark as initialized to prevent this from running again
+    gsiInitialized.current = true;
+
+    // 4. Initialize the GSI client
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      ux_mode: 'redirect',
+      login_uri: `${appUrl}/api/auth/google`,
+      auto_select: true,
+    });
+
+    // 5. Render the button inside our stable ref container
+    if (googleButtonRef.current) {
+        window.google.accounts.id.renderButton(
+          googleButtonRef.current,
+          { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
+        );
+    }
+
+    // 6. Display the One Tap prompt
+    window.google.accounts.id.prompt();
+
+  }, [authLoading, user, googleClientId, appUrl]); // Dependencies for the effect
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -76,7 +99,6 @@ export default function AuthForm() {
     }
   };
 
-  // Show a loading spinner while checking auth status
   if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
@@ -95,7 +117,6 @@ export default function AuthForm() {
     );
   }
 
-  // Show an error if the Google Client ID or App URL is missing
   if (!googleClientId || !appUrl) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
@@ -120,15 +141,6 @@ export default function AuthForm() {
 
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
-      {/* This div configures and enables Google One Tap using the HTML API */}
-      <div id="g_id_onload"
-         data-client_id={googleClientId}
-         data-ux_mode="redirect"
-         data-login_uri={`${appUrl}/api/auth/google`}
-         data-auto_select="true"
-         style={{ display: 'none' }}>
-      </div>
-
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />
@@ -137,15 +149,9 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* This div is where the "Sign in with Google" button will be rendered automatically by the script */}
-        <div className="g_id_signin"
-             data-type="standard"
-             data-shape="rectangular"
-             data-theme="outline"
-             data-text="continue_with"
-             data-size="large"
-             data-logo_alignment="left">
-        </div>
+        {/* **THE FIX: Part 3 - Use the ref on the container div** */}
+        {/* We removed the old HTML API divs and now use this single container */}
+        <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
 
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
@@ -153,7 +159,6 @@ export default function AuthForm() {
                 <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
         </div>
-
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
