@@ -35,7 +35,7 @@ export default function AuthForm() {
 
   useEffect(() => {
     // Wait until auth state is resolved and we know the Client ID exists.
-    if (authLoading || !googleClientId || googleClientId === 'YOUR_GOOGLE_CLIENT_ID' || user) {
+    if (authLoading || !googleClientId || user) {
       return;
     }
 
@@ -105,7 +105,25 @@ export default function AuthForm() {
     }
   };
 
-  const hasGoogleSignIn = googleClientId && googleClientId !== 'YOUR_GOOGLE_CLIENT_ID';
+  if (!googleClientId) {
+    return (
+        <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
+            <CardHeader>
+                <CardTitle className="text-destructive flex items-center justify-center">
+                  <AlertTriangle className="mr-2 h-6 w-6" />
+                  Configuration Error
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-destructive-foreground">
+                    The Google Client ID is missing. To enable Google Sign-In, please add the 
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> 
+                    variable to your environment and restart your server.
+                </p>
+            </CardContent>
+        </Card>
+    );
+  }
 
   if (authLoading || (user && !authLoading)) {
      return (
@@ -135,17 +153,13 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {hasGoogleSignIn && (
-            <>
-                <div id="g_id_signin" className="w-full flex justify-center min-h-[40px]"></div>
-                <div className="relative">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                    </div>
-                </div>
-            </>
-        )}
+        <div id="g_id_signin" className="w-full flex justify-center min-h-[40px]"></div>
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+            </div>
+        </div>
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
