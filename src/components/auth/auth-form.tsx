@@ -1,18 +1,19 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect, isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
+import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffectOnce } from '@/hooks/use-effect-once';
+import { useAuth } from '@/contexts/auth-context';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -25,6 +26,7 @@ const GoogleIcon = () => (
 
 
 export default function AuthForm() {
+  const { user, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
@@ -32,67 +34,61 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // This effect runs once on mount to handle any pending authentication redirects.
+  // This effect handles the email link sign-in process
   useEffectOnce(() => {
-    setLoading(true);
-    getRedirectResult(auth).then((result) => {
-        if (result) {
-            toast({
-                variant: "success",
-                title: "Sign In Successful!",
-                description: `Welcome back, ${result.user.displayName || 'friend'}!`,
-            });
-            router.push(searchParams.get('redirect') || '/');
-        } else {
-            setLoading(false);
-        }
-    }).catch(error => {
-        console.error("Auth redirect error:", error);
-        toast({
-            title: "Sign In Error",
-            description: error.message || "Could not complete sign-in. Please try again.",
-            variant: "destructive",
-        });
-        setLoading(false);
-    });
-
-    if (isSignInWithEmailLink(auth, window.location.href)) {
-        let storedEmail = window.localStorage.getItem('emailForSignIn');
-        if (storedEmail) {
-             setLoading(true);
-             signInWithEmailLink(auth, storedEmail, window.location.href)
-                .then(() => {
-                    window.localStorage.removeItem('emailForSignIn');
-                    toast({
-                        variant: "success",
-                        title: "Sign In Successful!",
-                        description: "Welcome! You're now signed in."
-                    });
-                     router.push(searchParams.get('redirect') || '/');
-                })
-                .catch((error) => {
-                    toast({
-                        title: "Sign In Failed",
-                        description: "The sign-in link is invalid or has expired. Please try again.",
-                        variant: "destructive",
-                    });
-                    setLoading(false);
+    const processEmailLink = async () => {
+        if (isSignInWithEmailLink(auth, window.location.href)) {
+            let storedEmail = window.localStorage.getItem('emailForSignIn');
+            if (!storedEmail) {
+                // If the email is not in local storage, we can't complete the sign-in.
+                // This can happen if the user uses a different device or clears their storage.
+                toast({
+                    title: "Sign In Incomplete",
+                    description: "Your sign-in link is valid, but we couldn't find your email. Please re-enter your email and try again.",
+                    variant: "destructive",
                 });
+                return;
+            }
+            setLoading(true);
+            try {
+                await signInWithEmailLink(auth, storedEmail, window.location.href);
+                window.localStorage.removeItem('emailForSignIn');
+                toast({
+                    variant: "success",
+                    title: "Sign In Successful!",
+                    description: "Welcome! You're now signed in."
+                });
+                // The AuthProvider will detect the signed-in state and redirect automatically.
+            } catch (error) {
+                toast({
+                    title: "Sign In Failed",
+                    description: "The sign-in link is invalid or has expired. Please try again.",
+                    variant: "destructive",
+                });
+            } finally {
+                setLoading(false);
+            }
         }
-    }
+    };
+    processEmailLink();
   });
+  
+  // This effect handles redirecting logged-in users
+  useEffect(() => {
+    if (user && !authLoading) {
+      const redirectUrl = searchParams.get('redirect') || '/';
+      router.push(redirectUrl);
+    }
+  }, [user, authLoading, router, searchParams]);
+
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    const redirectUrl = searchParams.get('redirect');
-    const finalRedirect = redirectUrl 
-      ? `${window.location.origin}/login?redirect=${encodeURIComponent(redirectUrl)}`
-      : `${window.location.origin}/login`;
-
+    // The redirect URL is now handled by the server-side auth handler after link verification
     const actionCodeSettings = {
-      url: finalRedirect, 
+      url: window.location.href, // The link will return the user to the same login page
       handleCodeInApp: true,
     };
 
@@ -116,22 +112,10 @@ export default function AuthForm() {
     }
   };
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithRedirect(auth, provider);
-    } catch (error: any) {
-       toast({
-          title: "Google Sign-In Error",
-          description: error.message || "An error occurred during Google Sign-In setup.",
-          variant: "destructive",
-      });
-       setLoading(false);
-    }
-  };
+  const loginUri = process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/google` : 'http://localhost:3000/api/auth/google';
 
-  if (loading) {
+
+  if (authLoading || user) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
@@ -201,10 +185,20 @@ export default function AuthForm() {
                     </span>
                 </div>
             </div>
-             <Button variant="outline" className="w-full h-11" onClick={handleGoogleSignIn} disabled={loading}>
-              <GoogleIcon />
-              Continue with Google
-            </Button>
+             <div id="g_id_onload"
+                 data-client_id={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
+                 data-login_uri={loginUri}
+                 data-ux_mode="redirect"
+                 data-auto_prompt="false">
+            </div>
+            <div className="g_id_signin"
+                 data-type="standard"
+                 data-shape="rectangular"
+                 data-theme="outline"
+                 data-text="continue_with"
+                 data-size="large"
+                 data-logo_alignment="left">
+            </div>
           </div>
         )}
       </CardContent>

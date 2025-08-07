@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import { Playfair_Display } from 'next/font/google';
 import './globals.css';
@@ -6,7 +5,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-context';
 import GoogleAnalytics from '@/components/analytics/google-analytics';
-import AuthHandler from '@/components/auth/auth-handler';
+import Script from 'next/script';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -32,6 +31,7 @@ export default function RootLayout({
       <body
         className={`${playfairDisplay.variable} font-body`}
       >
+        <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" />
         <GoogleAnalytics measurementId="G-TCQE0Z6MKG" />
         <ThemeProvider
           attribute="class"
@@ -40,7 +40,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <AuthHandler />
             {children}
             <Toaster />
           </AuthProvider>

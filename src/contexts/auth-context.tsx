@@ -9,8 +9,6 @@ import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestam
 import { auth, db } from '@/lib/firebase/client';
 import { docToUserProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-
 
 const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
 
@@ -32,7 +30,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const router = useRouter();
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
@@ -62,7 +59,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           preferences: { subgenres: [] },
           createdAt: serverTimestamp(),
           lastLogin: serverTimestamp(),
-          stripeCustomerId: null, // Initialize stripeCustomerId
+          stripeCustomerId: null,
         };
         await setDoc(userDocRef, newUserProfileData);
         const finalDocSnap = await getDoc(userDocRef);
@@ -112,11 +109,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const userDocRef = doc(db, "users", user.uid);
             await updateDoc(userDocRef, { 
                 lastLogin: serverTimestamp(),
-                // Also update email and name in Firestore if they have changed in Auth
                 email: user.email,
                 displayName: user.displayName 
             });
-            // Refetch after update to get the latest data
             profile = await fetchUserProfile(user.uid);
           } else {
             profile = await createUserProfile(user);
@@ -127,7 +122,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserProfile(null);
         }
       } catch (error) {
-          // Ensure user state is cleared on error
           setUser(null);
           setUserProfile(null);
       } finally {
@@ -142,7 +136,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user) {
       const userDocRef = doc(db, "users", user.uid);
       await updateDoc(userDocRef, updates);
-      // After any update, refresh the profile to ensure UI is in sync
       await refreshUserProfile();
     } else {
       throw new Error("User must be logged in to update profile.");
@@ -156,7 +149,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await updateDoc(userDocRef, {
               favoriteStories: isFavorited ? arrayRemove(storyId) : arrayUnion(storyId)
           });
-          // Optimistically update UI
           setUserProfile(prevProfile => {
               if (!prevProfile) return null;
               const newFavorites = isFavorited
@@ -171,19 +163,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
           toast({
             variant: "default",
-            title: "Sign in to Favorite",
+            title: "Please sign in",
             description: "You need an account to save your favorite stories.",
           });
-          router.push('/login?reason=favorite');
       }
-  }, [user, userProfile, toast, router]);
+  }, [user, userProfile, toast]);
 
   const markStoryAsRead = useCallback((storyId: string) => {
     if (user && userProfile) {
       if (!userProfile.readStories.includes(storyId)) {
         const userDocRef = doc(db, 'users', user.uid);
         updateDoc(userDocRef, { readStories: arrayUnion(storyId) });
-        // Optimistically update UI
         setUserProfile(prev => prev ? { ...prev, readStories: [...prev.readStories, storyId] } : null);
       }
     } else {
@@ -195,7 +185,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(LOCAL_STORAGE_READ_KEY, JSON.stringify(localReadStories));
         }
       } catch (error) {
-        // Silently fail on local storage error
       }
     }
   }, [user, userProfile]);
