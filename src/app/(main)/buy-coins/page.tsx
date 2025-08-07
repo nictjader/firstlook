@@ -1,7 +1,9 @@
+
 'use client';
 
 import CoinPurchase from '@/components/monetization/coin-purchase';
 import { Suspense } from 'react';
+import { Loader2 } from 'lucide-react';
 
 // Note: Metadata export is still supported in Client Components,
 // but it's often better to move it to a Server Component parent if possible.
@@ -17,7 +19,7 @@ export default function BuyCoinsPage() {
           Coins are used to unlock premium stories. Choose a package below to continue your adventure.
         </p>
       </div>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense fallback={<div className="flex justify-center items-center h-48"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
         <CoinPurchase />
       </Suspense>
     </div>
