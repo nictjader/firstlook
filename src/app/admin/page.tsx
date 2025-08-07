@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine, BarChart3, User, RefreshCw } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenSquare, BarChart3, Users } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -340,7 +340,7 @@ function AdminDashboardContent() {
                                       </div>
                                     </div>
                                     <div className="p-2 pt-4 md:pt-2 md:pl-4 border-t md:border-t-0 md:border-l mt-4 md:mt-0">
-                                       <h4 className="font-semibold text-base flex items-center mb-2"><PenLine className="mr-2 h-4 w-4 text-primary" />Avg. Word Count</h4>
+                                       <h4 className="font-semibold text-base flex items-center mb-2"><PenSquare className="mr-2 h-4 w-4 text-primary" />Avg. Word Count</h4>
                                         <div className="text-sm space-y-2">
                                           <p className="flex justify-between"><span>Free Chapters:</span> <strong>{analysisResult.avgWordCountFree.toLocaleString()}</strong></p>
                                           <p className="flex justify-between"><span>Paid Chapters:</span> <strong>{analysisResult.avgWordCountPaid.toLocaleString()}</strong></p>
