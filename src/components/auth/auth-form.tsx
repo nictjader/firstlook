@@ -63,16 +63,17 @@ export default function AuthForm() {
   // This effect handles redirecting logged-in users
   useEffect(() => {
     if (user && !authLoading) {
-      const redirectUrl = searchParams.get('redirect') || '/';
+      const redirectUrl = searchParams.get('redirect') || '/profile';
       router.push(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
 
   // This effect initializes Google One Tap and the Sign In button
   useEffect(() => {
+    // Check if the Google library is loaded
     if (typeof window.google === 'undefined' || !window.google.accounts || !window.google.accounts.id) {
-        // If google script not loaded, this will be handled once it is.
-        // We can add a retry or a listener for the script load event if needed.
+        // The script might not be loaded yet. This effect will re-run.
+        // We can add a more robust listener if needed, but this often suffices.
         return;
     }
 
@@ -84,41 +85,42 @@ export default function AuthForm() {
         // Initialize the GSI client
         window.google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-            // This is the endpoint that will handle the credential from Google
             login_uri: `${window.location.origin}/api/auth/google`,
-            // This enables the One Tap and automatic sign-in UX
-            auto_select: true,
+            auto_select: true, // Enable One Tap and automatic sign-in
+            ux_mode: 'redirect',
         });
 
         // Render the "Sign In With Google" button
         const googleButtonParent = document.getElementById('g_id_signin');
         if (googleButtonParent) {
-            googleButtonParent.innerHTML = ''; // Clear previous button
+            googleButtonParent.innerHTML = ''; // Clear previous button to prevent duplicates
             window.google.accounts.id.renderButton(
                 googleButtonParent,
                 { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
             );
         }
         
-        // Prompt the user with One Tap UI for automatic sign-in
-        window.google.accounts.id.prompt();
+        // Prompt the user with One Tap UI for automatic sign-in if they are not already signed in.
+        if (!user) {
+            window.google.accounts.id.prompt();
+        }
 
     } catch (error: any) {
-        console.error("Error initializing Google Sign-In", error);
+        console.error("Error initializing Google Sign-In:", error);
         toast({
             title: "Could not load Google Sign-In",
-            description: "Please try refreshing the page.",
+            description: "Please try refreshing the page or contact support if the issue persists.",
             variant: "destructive"
         })
     }
-  }, []);
+  }, [user, authLoading]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     const actionCodeSettings = {
-      url: window.location.href,
+      url: `${window.location.origin}/login`,
       handleCodeInApp: true,
     };
 

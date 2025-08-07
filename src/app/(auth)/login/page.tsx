@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import Header from '@/components/layout/header';
 
-// This page must be dynamic because it handles authentication redirects,
-// which are client-side operations that depend on URL parameters.
+// This page must be dynamic because it handles authentication redirects and
+// relies on client-side state for the GSI library.
 export const dynamic = 'force-dynamic';
 
 function LoginContent() {

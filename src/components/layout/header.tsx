@@ -32,7 +32,9 @@ export default function Header() {
       }
 
       await signOut(auth);
-      router.push('/');
+      // To ensure a clean sign-out and session clearance, we reload the page.
+      // Next.js router might cache user state, a full reload prevents this.
+      window.location.href = '/';
     } catch (error) {
       console.error("Sign out error", error);
     }
