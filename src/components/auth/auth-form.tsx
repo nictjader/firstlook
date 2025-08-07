@@ -33,8 +33,11 @@ export default function AuthForm() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    // Wait until auth state is resolved and we know the Client ID exists.
-    if (authLoading || !googleClientId || user) {
+    if (authLoading) {
+      return; 
+    }
+
+    if (user) {
       return;
     }
 
@@ -50,6 +53,10 @@ export default function AuthForm() {
     gsiInitialized.current = true;
 
     try {
+        if (!googleClientId) {
+            return;
+        }
+
         window.google.accounts.id.initialize({
             client_id: googleClientId,
             login_uri: `${window.location.origin}/api/auth/google`,
@@ -75,7 +82,7 @@ export default function AuthForm() {
             variant: "destructive"
         });
     }
-  }, [user, authLoading, toast, googleClientId]);
+  }, [user, authLoading, googleClientId, toast]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,8 +111,6 @@ export default function AuthForm() {
     }
   };
 
-  // If the Google Client ID is missing, show a specific error message.
-  // This is the correct behavior to guide the developer.
   if (!googleClientId) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
@@ -154,13 +159,17 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div id="g_id_signin" className="w-full flex justify-center min-h-[40px]"></div>
-        <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+        {googleClientId && (
+          <>
+            <div id="g_id_signin" className="w-full flex justify-center min-h-[40px]"></div>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                </div>
             </div>
-        </div>
+          </>
+        )}
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
