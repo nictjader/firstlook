@@ -1,18 +1,18 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
+import { sendSignInLinkToEmail, GoogleAuthProvider, signInWithRedirect, isSignInWithEmailLink, signInWithEmailLink, getRedirectResult } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
-import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useRouter } from 'next/navigation';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffectOnce } from '@/hooks/use-effect-once';
 
 const GoogleIcon = () => (
     <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
@@ -32,11 +32,60 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
+  // This effect runs once on mount to handle any pending authentication redirects.
+  useEffectOnce(() => {
+    setLoading(true);
+    getRedirectResult(auth).then((result) => {
+        if (result) {
+            toast({
+                variant: "success",
+                title: "Sign In Successful!",
+                description: `Welcome back, ${result.user.displayName || 'friend'}!`,
+            });
+            router.push(searchParams.get('redirect') || '/');
+        } else {
+            setLoading(false);
+        }
+    }).catch(error => {
+        console.error("Auth redirect error:", error);
+        toast({
+            title: "Sign In Error",
+            description: error.message || "Could not complete sign-in. Please try again.",
+            variant: "destructive",
+        });
+        setLoading(false);
+    });
+
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+        let storedEmail = window.localStorage.getItem('emailForSignIn');
+        if (storedEmail) {
+             setLoading(true);
+             signInWithEmailLink(auth, storedEmail, window.location.href)
+                .then(() => {
+                    window.localStorage.removeItem('emailForSignIn');
+                    toast({
+                        variant: "success",
+                        title: "Sign In Successful!",
+                        description: "Welcome! You're now signed in."
+                    });
+                     router.push(searchParams.get('redirect') || '/');
+                })
+                .catch((error) => {
+                    toast({
+                        title: "Sign In Failed",
+                        description: "The sign-in link is invalid or has expired. Please try again.",
+                        variant: "destructive",
+                    });
+                    setLoading(false);
+                });
+        }
+    }
+  });
+
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
-    // Store the redirect path to be used after email link sign-in.
     const redirectUrl = searchParams.get('redirect');
     const finalRedirect = redirectUrl 
       ? `${window.location.origin}/login?redirect=${encodeURIComponent(redirectUrl)}`
@@ -71,32 +120,34 @@ export default function AuthForm() {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      // Use signInWithRedirect instead of signInWithPopup for better mobile compatibility
       await signInWithRedirect(auth, provider);
-      // The user will be redirected to Google's sign-in page.
-      // The result will be handled on the login page after the redirect.
     } catch (error: any) {
-       let description = "An unknown error occurred during Google Sign-In setup.";
-       if (error.code === 'auth/popup-closed-by-user') {
-          description = "The sign-in window was closed before completing. Please try again.";
-       } else if (error.code === 'auth/popup-blocked') {
-          description = "Pop-up was blocked by your browser. Please allow popups for this site and try again.";
-       } else if (error.code === 'auth/account-exists-with-different-credential') {
-          description = "An account already exists with the same email address but different sign-in credentials. Please sign in using the original method."
-       }
        toast({
           title: "Google Sign-In Error",
-          description: description,
+          description: error.message || "An error occurred during Google Sign-In setup.",
           variant: "destructive",
       });
        setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setEmail('');
-    setLinkSentTo(null);
-  };
+  if (loading) {
+     return (
+        <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-2xl font-semibold tracking-tight flex items-center justify-center">
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                  Verifying...
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">
+                    Please wait while we complete your sign-in.
+                </p>
+            </CardContent>
+        </Card>
+    );
+  }
 
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
@@ -117,7 +168,7 @@ export default function AuthForm() {
                    Click the link in the email to complete your sign-in.
                 </p>
             </div>
-            <Button variant="link" onClick={resetForm} disabled={loading}>Use a different email</Button>
+            <Button variant="link" onClick={() => setLinkSentTo(null)} disabled={loading}>Use a different email</Button>
           </div>
         ) : (
           <div className="space-y-4">
@@ -151,7 +202,7 @@ export default function AuthForm() {
                 </div>
             </div>
              <Button variant="outline" className="w-full h-11" onClick={handleGoogleSignIn} disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <GoogleIcon />}
+              <GoogleIcon />
               Continue with Google
             </Button>
           </div>
