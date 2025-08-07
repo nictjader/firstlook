@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from 'firebase-admin/auth';
 import { getAdminDb, adminApp } from '@/lib/firebase/admin';
@@ -65,10 +64,9 @@ export async function POST(request: NextRequest) {
        });
     }
 
-    // 3. Create a session cookie for Firebase
+    // 3. Create a session cookie for Firebase using the original credential
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    const idToken = await auth.createCustomToken(uid);
-    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
+    const sessionCookie = await auth.createSessionCookie(credential, { expiresIn });
 
     cookies().set('session', sessionCookie, {
       maxAge: expiresIn,

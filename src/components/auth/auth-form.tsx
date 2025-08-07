@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -19,9 +19,9 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const googleButtonRef = useRef<HTMLDivElement>(null);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL; // Add your app URL to .env.local
 
   useEffect(() => {
     // This effect handles redirecting the user if they are already logged in.
@@ -30,39 +30,6 @@ export default function AuthForm() {
       router.push(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
-
-  useEffect(() => {
-    if (authLoading || user || !googleClientId) {
-      return; // Don't run if loading, user is logged in, or client ID is missing.
-    }
-
-    if (typeof window.google === 'undefined' || !window.google.accounts) {
-      console.error("Google GSI script not loaded. Ensure it's in layout.tsx.");
-      // Optionally, show a toast or error message to the user.
-      return;
-    }
-    
-    // Initialize the GSI client for One Tap and Redirect flow
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      ux_mode: 'redirect',
-      login_uri: `${window.location.origin}/api/auth/google`,
-      auto_select: true,
-    });
-    
-    // Manually render the button in our target div
-    if (googleButtonRef.current) {
-        window.google.accounts.id.renderButton(
-          googleButtonRef.current,
-          { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
-        );
-    }
-    
-    // Display the One Tap prompt for returning users
-    window.google.accounts.id.prompt();
-
-  }, [authLoading, user, googleClientId]);
-
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -109,9 +76,41 @@ export default function AuthForm() {
         </Card>
     );
   }
-  
+
+  // Show an error if the Google Client ID or App URL is missing
+  if (!googleClientId || !appUrl) {
+    return (
+        <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
+            <CardHeader>
+                <CardTitle className="text-destructive flex items-center justify-center">
+                  <AlertTriangle className="mr-2 h-6 w-6" />
+                  Configuration Error
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-destructive-foreground">
+                    A required environment variable is missing. Please ensure both 
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
+                    and
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_APP_URL</code>
+                    are set in your <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> file.
+                </p>
+            </CardContent>
+        </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
+      {/* This div configures and enables Google One Tap using the HTML API */}
+      <div id="g_id_onload"
+         data-client_id={googleClientId}
+         data-ux_mode="redirect"
+         data-login_uri={`${appUrl}/api/auth/google`}
+         data-auto_select="true"
+         style={{ display: 'none' }}>
+      </div>
+
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />
@@ -120,24 +119,22 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {googleClientId ? (
-            <>
-            {/* This div is the target for our manual button rendering */}
-            <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
+        {/* This div is where the "Sign in with Google" button will be rendered automatically by the script */}
+        <div className="g_id_signin"
+             data-type="standard"
+             data-shape="rectangular"
+             data-theme="outline"
+             data-text="continue_with"
+             data-size="large"
+             data-logo_alignment="left">
+        </div>
 
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                </div>
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
-            </>
-        ) : (
-            <div className="text-center text-sm text-muted-foreground p-4 bg-muted/50 rounded-md">
-                <AlertTriangle className="inline-block h-4 w-4 mr-1.5 mb-0.5" />
-                Google Sign-In is not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your environment variables.
-            </div>
-        )}
+        </div>
 
         {linkSentTo ? (
           <div className="space-y-4 text-center">
