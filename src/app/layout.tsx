@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import { Playfair_Display } from 'next/font/google';
 import './globals.css';
@@ -28,10 +29,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <Script src="https://accounts.google.com/gsi/client" strategy="beforeInteractive" async />
+      </head>
       <body
         className={`${playfairDisplay.variable} font-body`}
       >
-        <Script src="https://accounts.google.com/gsi/client" async />
         <GoogleAnalytics measurementId="G-TCQE0Z6MKG" />
         <ThemeProvider
           attribute="class"
@@ -46,5 +49,3 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  );
-}

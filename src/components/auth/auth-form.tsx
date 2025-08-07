@@ -1,5 +1,6 @@
+
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -8,7 +9,6 @@ import { sendSignInLinkToEmail } from 'firebase/auth';
 import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
 
@@ -20,9 +20,7 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gsiInitialized = useRef(false);
-
-  // Check for the Client ID at the component level for clear feedback.
+  
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
@@ -33,56 +31,33 @@ export default function AuthForm() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    if (authLoading) {
-      return; 
-    }
-
-    if (user) {
+    if (authLoading || !googleClientId || user) {
       return;
     }
 
-    if (gsiInitialized.current) {
+    if (typeof window.google === 'undefined' || !window.google.accounts) {
         return;
     }
 
-    if (typeof window.google === 'undefined' || !window.google.accounts) {
-        console.error("Google GSI script not loaded.");
-        return;
+    window.google.accounts.id.initialize({
+        client_id: googleClientId,
+        login_uri: `${window.location.origin}/api/auth/google`,
+        auto_select: true,
+        ux_mode: 'redirect',
+    });
+
+    const googleButtonParent = document.getElementById('g_id_signin');
+    if (googleButtonParent) {
+      googleButtonParent.innerHTML = '';
+      window.google.accounts.id.renderButton(
+          googleButtonParent,
+          { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+      );
     }
     
-    gsiInitialized.current = true;
-
-    try {
-        if (!googleClientId) {
-            return;
-        }
-
-        window.google.accounts.id.initialize({
-            client_id: googleClientId,
-            login_uri: `${window.location.origin}/api/auth/google`,
-            auto_select: true,
-            ux_mode: 'redirect',
-        });
-
-        const googleButtonParent = document.getElementById('g_id_signin');
-        if (googleButtonParent) {
-            window.google.accounts.id.renderButton(
-                googleButtonParent,
-                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-            );
-        }
-
-        window.google.accounts.id.prompt();
-
-    } catch (error: any) {
-        console.error("Error initializing Google Sign-In:", error);
-        toast({
-            title: "Could not load Google Sign-In",
-            description: "Please check the console for errors.",
-            variant: "destructive"
-        });
-    }
-  }, [user, authLoading, googleClientId, toast]);
+    window.google.accounts.id.prompt();
+    
+  }, [user, authLoading, googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,19 +88,41 @@ export default function AuthForm() {
 
   if (!googleClientId) {
     return (
-        <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
+        <Card className="w-full max-w-md text-center shadow-2xl">
             <CardHeader>
-                <CardTitle className="text-destructive flex items-center justify-center">
-                  <AlertTriangle className="mr-2 h-6 w-6" />
-                  Configuration Error
-                </CardTitle>
+                <CardTitle>Sign In</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-sm text-destructive-foreground">
-                    The Google Client ID is missing. To enable Google Sign-In, please add the 
-                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> 
-                    variable to your environment and restart your server.
+                <p className="text-muted-foreground mb-4">
+                    Google Sign-In is not configured. Please use email sign-in.
                 </p>
+                {linkSentTo ? (
+                  <div className="space-y-4 text-center">
+                     <div className="text-center space-y-2">
+                        <MailCheck className="h-8 w-8 text-green-500 mx-auto" />
+                        <p className="text-muted-foreground">
+                           A sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
+                        </p>
+                    </div>
+                    <Button variant="link" onClick={() => setLinkSentTo(null)} disabled={loading}>Use a different email</Button>
+                  </div>
+                ) : (
+                  <form onSubmit={handleEmailSignIn} className="space-y-4">
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                      disabled={loading}
+                    />
+                    <Button type="submit" className="w-full h-11" disabled={loading}>
+                      {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+                      Continue with Email
+                    </Button>
+                  </form>
+                )}
             </CardContent>
         </Card>
     );
