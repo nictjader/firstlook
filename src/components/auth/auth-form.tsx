@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -20,68 +20,16 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gsiInitialized = useRef(false);
-  
+
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    // This effect handles redirecting the user if they are already logged in.
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
       router.push(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
-
-  useEffect(() => {
-    // This effect initializes Google Sign-In. It waits until the auth state is
-    // resolved and checks for a Client ID before proceeding.
-    if (authLoading || !googleClientId || user) {
-      return; // Wait for auth state, or if user is logged in, or if no client ID.
-    }
-
-    // Prevent re-initialization on re-renders.
-    if (gsiInitialized.current) {
-        return;
-    }
-
-    if (typeof window.google === 'undefined' || !window.google.accounts) {
-        console.error("Google GSI script not loaded. Make sure it's included in the main layout.");
-        return;
-    }
-    
-    gsiInitialized.current = true;
-
-    try {
-        // Initialize the Google Sign-In client.
-        window.google.accounts.id.initialize({
-            client_id: googleClientId,
-            login_uri: `${window.location.origin}/api/auth/google`,
-            auto_select: true, // Enables One Tap automatic sign-in
-            ux_mode: 'redirect',
-        });
-
-        const googleButtonParent = document.getElementById('g_id_signin');
-        if (googleButtonParent) {
-            // Render the Google Sign-In button.
-            window.google.accounts.id.renderButton(
-                googleButtonParent,
-                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-            );
-        }
-
-        // Prompt the user with the One Tap UI for automatic sign-in.
-        window.google.accounts.id.prompt();
-
-    } catch (error: any) {
-        console.error("Error initializing Google Sign-In:", error);
-        toast({
-            title: "Could not load Google Sign-In",
-            description: "There was an issue initializing the sign-in service.",
-            variant: "destructive"
-        });
-    }
-  }, [user, authLoading, toast, googleClientId]);
-
+  
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -139,7 +87,18 @@ export default function AuthForm() {
       <CardContent className="flex flex-col gap-4">
         {googleClientId ? (
           <>
-            <div id="g_id_signin" className="w-full flex justify-center min-h-[40px]"></div>
+            <div id="g_id_onload"
+                 data-client_id={googleClientId}
+                 data-login_uri={`${process.env.NEXT_PUBLIC_SITE_URL || window.location.origin}/api/auth/google`}>
+            </div>
+            <div className="g_id_signin"
+                 data-type="standard"
+                 data-size="large"
+                 data-theme="outline"
+                 data-text="continue_with"
+                 data-shape="rectangular"
+                 data-logo_alignment="left">
+            </div>
             <div className="relative">
                 <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
                 <div className="relative flex justify-center text-xs uppercase">

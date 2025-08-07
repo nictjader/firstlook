@@ -1,9 +1,9 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { getApp } from 'firebase-admin/app';
-import { getAuth as getAdminAuth } from 'firebase-admin/auth';
-import { getFirestore as getAdminDb } from 'firebase-admin/firestore';
+import { getAdminAuth } from 'firebase-admin/auth';
+import { getAdminDb } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
+import { adminApp } from '@/lib/firebase/admin';
 
 // This is a new file that handles the server-side Google Sign-In flow.
 // It receives the credential from the GSI button, verifies it, creates a user profile
@@ -19,9 +19,8 @@ export async function POST(request: NextRequest) {
     }
     
     // Ensure the Firebase Admin app is initialized
-    const adminApp = getApp();
     const auth = getAdminAuth(adminApp);
-    const db = getAdminDb(adminApp);
+    const db = getAdminDb();
 
     // Verify the ID token from Google
     const decodedToken = await auth.verifyIdToken(credential);
