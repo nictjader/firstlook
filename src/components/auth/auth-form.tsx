@@ -31,7 +31,25 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  // This effect ensures the Google button is always rendered, even after re-renders.
+  useEffect(() => {
+    if (authLoading || user || !googleClientId) return;
+
+    if (typeof window.google !== 'undefined' && window.google.accounts) {
+        const googleButtonContainer = document.querySelector('.g_id_signin');
+        // If the container exists but is empty, re-render the button.
+        // This prevents the button from disappearing on component re-renders.
+        if (googleButtonContainer && googleButtonContainer.innerHTML === '') {
+            window.google.accounts.id.renderButton(
+                googleButtonContainer as HTMLElement,
+                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+            );
+        }
+    }
+  }, [authLoading, user, googleClientId]);
+
+
+  const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const actionCodeSettings = {
