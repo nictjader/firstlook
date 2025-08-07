@@ -70,7 +70,7 @@ export default function AuthForm() {
 
   // This effect initializes Google One Tap and the Sign In button
   useEffect(() => {
-    if (typeof window.google === 'undefined') {
+    if (typeof window.google === 'undefined' || !window.google.accounts || !window.google.accounts.id) {
         // If google script not loaded, this will be handled once it is.
         // We can add a retry or a listener for the script load event if needed.
         return;
