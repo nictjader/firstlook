@@ -1,18 +1,16 @@
 "use client";
-
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { sendSignInLinkToEmail } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
-import { Card, CardContent, CardFooter, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { GOOGLE_CLIENT_ID } from '@/lib/config';
 
 export default function AuthForm() {
   const { user, loading: authLoading } = useAuth();
@@ -24,43 +22,6 @@ export default function AuthForm() {
   const searchParams = useSearchParams();
   const gsiInitialized = useRef(false);
 
-  // Effect to handle the email link sign-in process
-  useEffect(() => {
-    const processEmailLink = async () => {
-      if (isSignInWithEmailLink(auth, window.location.href)) {
-        let storedEmail = window.localStorage.getItem('emailForSignIn');
-        if (!storedEmail) {
-          toast({
-            title: "Sign In Incomplete",
-            description: "Your sign-in link is valid, but we couldn't find your email. Please re-enter your email to sign in.",
-            variant: "destructive",
-          });
-          return;
-        }
-        setLoading(true);
-        try {
-          await signInWithEmailLink(auth, storedEmail, window.location.href);
-          window.localStorage.removeItem('emailForSignIn');
-          toast({
-            variant: "success",
-            title: "Sign In Successful!",
-            description: "Welcome! You're now signed in."
-          });
-        } catch (error) {
-          toast({
-            title: "Sign In Failed",
-            description: "The sign-in link is invalid or has expired. Please try again.",
-            variant: "destructive",
-          });
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-    processEmailLink();
-  }, [toast]); // Run this once on mount
-
-  // Effect to redirect the user if they are already logged in
   useEffect(() => {
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
@@ -68,47 +29,51 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
 
-  // Effect to initialize Google Sign-In and One Tap
   useEffect(() => {
-    if (gsiInitialized.current) {
-      return;
+    if (gsiInitialized.current || authLoading) {
+        return;
     }
+
     if (typeof window.google === 'undefined' || !window.google.accounts) {
-      return;
+        return;
     }
+    
     gsiInitialized.current = true;
 
     try {
-      if (!GOOGLE_CLIENT_ID) {
-        throw new Error("Google Client ID is not configured.");
-      }
+        // CORRECTED: Access the environment variable directly from process.env
+        const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-      window.google.accounts.id.initialize({
-        client_id: GOOGLE_CLIENT_ID,
-        login_uri: `${window.location.origin}/api/auth/google`,
-        auto_select: true,
-        ux_mode: 'redirect',
-      });
+        if (!googleClientId || googleClientId === 'YOUR_GOOGLE_CLIENT_ID') {
+            throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured in .env.local");
+        }
 
-      const googleButtonParent = document.getElementById('g_id_signin');
-      if (googleButtonParent) {
-        window.google.accounts.id.renderButton(
-          googleButtonParent,
-          { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-        );
-      }
-      
-      if (!user) {
-        window.google.accounts.id.prompt();
-      }
+        window.google.accounts.id.initialize({
+            client_id: googleClientId, // Use the variable here
+            login_uri: `${window.location.origin}/api/auth/google`,
+            auto_select: true,
+            ux_mode: 'redirect',
+        });
+
+        const googleButtonParent = document.getElementById('g_id_signin');
+        if (googleButtonParent) {
+            window.google.accounts.id.renderButton(
+                googleButtonParent,
+                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+            );
+        }
+
+        if (!user) {
+            window.google.accounts.id.prompt();
+        }
 
     } catch (error: any) {
-      console.error("Error initializing Google Sign-In:", error);
-      toast({
-        title: "Could not load Google Sign-In",
-        description: "Please try refreshing the page or contact support if the issue persists.",
-        variant: "destructive"
-      });
+        console.error("Error initializing Google Sign-In:", error);
+        toast({
+            title: "Could not load Google Sign-In",
+            description: "Please ensure your Google Client ID is configured correctly.",
+            variant: "destructive"
+        });
     }
   }, [user, authLoading, toast]);
 
@@ -131,7 +96,7 @@ export default function AuthForm() {
     } catch (error: any) {
       toast({
         title: "Error Sending Link",
-        description: error.message || "Could not send sign-in link. Please try again.",
+        description: error.message || "Could not send sign-in link.",
         variant: "destructive",
       });
     } finally {
@@ -167,23 +132,19 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* Google Sign-In Button Container */}
         <div id="g_id_signin" className="w-full flex justify-center"></div>
-
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
                 <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
         </div>
-
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
                 <MailCheck className="h-8 w-8 text-green-500 mx-auto" />
                 <p className="text-muted-foreground">
                    A sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
-                   Click the link in the email to complete your sign-in.
                 </p>
             </div>
             <Button variant="link" onClick={() => setLinkSentTo(null)} disabled={loading}>Use a different email</Button>
