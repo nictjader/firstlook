@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -5,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
 import { sendSignInLinkToEmail } from 'firebase/auth';
-import { Loader2, Mail, MailCheck } from 'lucide-react';
+import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -22,9 +23,10 @@ export default function AuthForm() {
   const searchParams = useSearchParams();
   const gsiInitialized = useRef(false);
 
+  // Check for the Client ID at the component level for clear feedback.
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
   useEffect(() => {
-    // This effect handles redirecting the user if they are already logged in.
-    // It runs when the auth state is confirmed and a user object exists.
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
       router.push(redirectUrl);
@@ -32,18 +34,11 @@ export default function AuthForm() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    // **CRITICAL FIX:** This effect now waits until `authLoading` is `false`.
-    // This ensures we know the user's status for certain before trying to initialize GSI.
-    if (authLoading) {
-      return; // Wait until the auth state is resolved.
-    }
-
-    // If there's a user, we don't need to show a sign-in form.
-    if (user) {
+    // Wait until auth state is resolved and we know the Client ID exists.
+    if (authLoading || !googleClientId || user) {
       return;
     }
 
-    // Prevent re-initialization.
     if (gsiInitialized.current) {
         return;
     }
@@ -56,13 +51,6 @@ export default function AuthForm() {
     gsiInitialized.current = true;
 
     try {
-        const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-        if (!googleClientId || googleClientId === 'YOUR_GOOGLE_CLIENT_ID') {
-            throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured in .env.local");
-        }
-
-        // Initialize GSI only when we are sure the user is logged out.
         window.google.accounts.id.initialize({
             client_id: googleClientId,
             login_uri: `${window.location.origin}/api/auth/google`,
@@ -78,19 +66,17 @@ export default function AuthForm() {
             );
         }
 
-        // Prompt with One Tap.
         window.google.accounts.id.prompt();
 
     } catch (error: any) {
         console.error("Error initializing Google Sign-In:", error);
         toast({
             title: "Could not load Google Sign-In",
-            description: "Please ensure your Google Client ID is configured correctly.",
+            description: "Please check the console for errors.",
             variant: "destructive"
         });
     }
-    // The dependency array now correctly includes `authLoading` and `user`.
-  }, [user, authLoading, toast]);
+  }, [user, authLoading, toast, googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,6 +104,29 @@ export default function AuthForm() {
       setLoading(false);
     }
   };
+
+  // If the Google Client ID is missing, show a specific error message.
+  if (!googleClientId || googleClientId === 'YOUR_GOOGLE_CLIENT_ID') {
+    return (
+        <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
+            <CardHeader>
+                <CardTitle className="text-destructive flex items-center justify-center">
+                  <AlertTriangle className="mr-2 h-6 w-6" />
+                  Configuration Error
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-destructive-foreground">
+                    The Google Client ID is missing. Please add the 
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code> 
+                    variable to your 
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> 
+                    file and restart your server.
+                </p>
+            </CardContent>
+        </Card>
+    );
+  }
 
   if (authLoading || (user && !authLoading)) {
      return (
@@ -147,7 +156,7 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div id="g_id_signin" className="w-full flex justify-center"></div>
+        <div id="g_id_signin" className="w-full flex justify-center min-h-[40px]"></div>
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
