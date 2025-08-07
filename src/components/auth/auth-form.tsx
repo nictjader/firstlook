@@ -70,31 +70,41 @@ export default function AuthForm() {
 
   // This effect initializes the Google Sign-In button
   useEffect(() => {
-    // Check if the Google library has loaded.
-    if (typeof window.google === 'undefined' || !window.google.accounts || !window.google.accounts.id) {
-        // If not, it might still be loading, so this effect will re-run when it's ready
-        return;
-    }
-
-    try {
-        const loginUri = '/api/auth/google';
-        
-        window.google.accounts.id.initialize({
-            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
-            login_uri: loginUri,
-            ux_mode: 'redirect',
-            auto_prompt: false,
-        });
-
-        const googleButtonParent = document.getElementById('g_id_signin');
-        if (googleButtonParent) {
-          // Clear any previous button to avoid duplicates on re-renders
-          googleButtonParent.innerHTML = '';
-          window.google.accounts.id.renderButton(
-              googleButtonParent,
-              { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-          );
+    if (typeof window.google === 'undefined' || !document.getElementById('g_id_signin')) {
+      // If google script or div not loaded, retry after a short delay
+      const timeoutId = setTimeout(() => {
+        if (typeof window.google !== 'undefined' && document.getElementById('g_id_signin')) {
+           initializeGoogleSignIn();
         }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    } else {
+      initializeGoogleSignIn();
+    }
+  }, []);
+
+
+  const initializeGoogleSignIn = () => {
+    try {
+      if (typeof window.google === 'undefined' || !window.google.accounts || !window.google.accounts.id) {
+          console.error("Google accounts library not available.");
+          return;
+      }
+      
+      window.google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
+          login_uri: `${window.location.origin}/api/auth/google`,
+          ux_mode: 'redirect',
+      });
+
+      const googleButtonParent = document.getElementById('g_id_signin');
+      if (googleButtonParent) {
+        googleButtonParent.innerHTML = ''; // Clear previous button
+        window.google.accounts.id.renderButton(
+            googleButtonParent,
+            { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+        );
+      }
     } catch (error) {
         console.error("Error initializing Google Sign-In", error);
         toast({
@@ -103,7 +113,7 @@ export default function AuthForm() {
             variant: "destructive"
         })
     }
-  }, []);
+  };
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
