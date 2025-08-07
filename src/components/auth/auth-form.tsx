@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -105,6 +104,8 @@ export default function AuthForm() {
     }
   };
 
+  // If the Google Client ID is missing, show a specific error message.
+  // This is the correct behavior to guide the developer.
   if (!googleClientId) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
