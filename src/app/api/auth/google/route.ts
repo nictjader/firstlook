@@ -1,13 +1,12 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAdminAuth } from 'firebase-admin/auth';
-import { getAdminDb } from '@/lib/firebase/admin';
+import { getAdminDb, adminApp } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
-import { adminApp } from '@/lib/firebase/admin';
+import { OAuth2Client } from 'google-auth-library';
 
-// This is a new file that handles the server-side Google Sign-In flow.
-// It receives the credential from the GSI button, verifies it, creates a user profile
-// if one doesn't exist, and sets a session cookie for the user.
+// Initialize the Google Auth client
+const googleClient = new OAuth2Client(process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID);
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,23 +14,42 @@ export async function POST(request: NextRequest) {
     const credential = formData.get('credential');
 
     if (typeof credential !== 'string') {
-      return NextResponse.json({ error: 'Invalid credential' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
+    }
+
+    // 1. Verify the token using Google's library. This is the most reliable method.
+    const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+        throw new Error('Invalid Google ID token.');
     }
     
-    // Ensure the Firebase Admin app is initialized
+    // Using the 'sub' field from Google's payload as the UID is standard practice.
+    const { sub: uid, email, name, picture } = payload;
     const auth = getAdminAuth(adminApp);
     const db = getAdminDb();
 
-    // Verify the ID token from Google
-    const decodedToken = await auth.verifyIdToken(credential);
-    const { uid, email, name, picture } = decodedToken;
-
-    // Check if user exists in Firestore
+    // 2. Create or update the user in Firebase Auth and Firestore
+    // This uses the verified information from Google.
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-      // If user does not exist, create a new user profile in Firestore
+      // If user does not exist in Firestore, create them in Auth and Firestore
+      try {
+        await auth.createUser({ uid, email, displayName: name, photoURL: picture });
+      } catch (error: any) {
+        // This handles the edge case where a user might exist in Firebase Auth
+        // but not in Firestore. If the error is 'auth/uid-already-exists',
+        // we can safely proceed.
+        if (error.code !== 'auth/uid-already-exists') {
+          throw error;
+        }
+      }
       await userRef.set({
         userId: uid,
         email: email,
@@ -44,21 +62,20 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         stripeCustomerId: null,
-      }, { merge: true });
+      });
     } else {
-      // If user exists, update last login and other details
-      await userRef.update({
-        lastLogin: new Date().toISOString(),
-        displayName: name,
-        email: email,
+      // If user exists, just update their last login time and details
+      await userRef.update({ 
+          lastLogin: new Date().toISOString(),
+          displayName: name,
+          email: email,
       });
     }
-    
-    // Create a session cookie
+
+    // 3. Create a session cookie for Firebase on the client-side
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
     const sessionCookie = await auth.createSessionCookie(credential, { expiresIn });
 
-    // Set the cookie on the response
     cookies().set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
@@ -66,14 +83,13 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // Redirect the user to their profile page after successful sign-in
+    // 4. Redirect to the profile page on success
     return NextResponse.redirect(new URL('/profile', request.url));
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
-    // Redirect to the login page with an error message
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('error', 'Authentication failed. Please try again.')
+    const loginUrl = new URL('/login', request.url);
+    loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl);
   }
 }
