@@ -1,8 +1,14 @@
-
 /**
  * @fileoverview This file contains centralized configuration and constants for the application.
  * By defining shared values here, we ensure consistency and make future updates easier.
  */
+
+/**
+ * The Client ID for Google Sign-In. 
+ * IMPORTANT: You must replace "YOUR_GOOGLE_CLIENT_ID" with your actual client ID
+ * from the Google Cloud Console for authentication to work.
+ */
+export const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID";
 
 /**
  * The standard cost in coins for any premium story or chapter.

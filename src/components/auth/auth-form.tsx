@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -13,6 +12,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardDescription, CardTitle }
 import { Separator } from '@/components/ui/separator';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
+import { GOOGLE_CLIENT_ID } from '@/lib/config';
 
 export default function AuthForm() {
   const { user, loading: authLoading } = useAuth();
@@ -24,15 +24,12 @@ export default function AuthForm() {
   const searchParams = useSearchParams();
   const gsiInitialized = useRef(false);
 
-  // This effect handles the email link sign-in process, if a user returns to the page with a link
+  // Effect to handle the email link sign-in process
   useEffect(() => {
     const processEmailLink = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
         let storedEmail = window.localStorage.getItem('emailForSignIn');
         if (!storedEmail) {
-          // If the email is not in local storage, we can't complete the sign-in.
-          // This can happen if the user opens the link on a different browser.
-          // For now, we'll show a toast. A more advanced implementation might prompt the user for their email again.
           toast({
             title: "Sign In Incomplete",
             description: "Your sign-in link is valid, but we couldn't find your email. Please re-enter your email to sign in.",
@@ -42,7 +39,6 @@ export default function AuthForm() {
         }
         setLoading(true);
         try {
-          // The sign-in is completed here. onAuthStateChanged in AuthContext will handle the redirect.
           await signInWithEmailLink(auth, storedEmail, window.location.href);
           window.localStorage.removeItem('emailForSignIn');
           toast({
@@ -83,12 +79,12 @@ export default function AuthForm() {
     gsiInitialized.current = true;
 
     try {
-      if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+      if (!GOOGLE_CLIENT_ID) {
         throw new Error("Google Client ID is not configured.");
       }
 
       window.google.accounts.id.initialize({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        client_id: GOOGLE_CLIENT_ID,
         login_uri: `${window.location.origin}/api/auth/google`,
         auto_select: true,
         ux_mode: 'redirect',
@@ -143,7 +139,6 @@ export default function AuthForm() {
     }
   };
 
-  // Display a loading state while checking auth or if user is already logged in and redirecting
   if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
