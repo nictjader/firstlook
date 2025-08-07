@@ -89,6 +89,7 @@ export default function AuthForm() {
           <>
             <div id="g_id_onload"
                  data-client_id={googleClientId}
+                 data-ux_mode="redirect"
                  data-login_uri={`${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/auth/google`}>
             </div>
             <div className="g_id_signin"
