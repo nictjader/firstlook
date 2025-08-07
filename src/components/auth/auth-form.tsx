@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -12,7 +12,6 @@ import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardDescription, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffectOnce } from '@/hooks/use-effect-once';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function AuthForm() {
@@ -23,44 +22,49 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const gsiInitialized = useRef(false);
 
-  // This effect handles the email link sign-in process
-  useEffectOnce(() => {
+  // This effect handles the email link sign-in process, if a user returns to the page with a link
+  useEffect(() => {
     const processEmailLink = async () => {
-        if (isSignInWithEmailLink(auth, window.location.href)) {
-            let storedEmail = window.localStorage.getItem('emailForSignIn');
-            if (!storedEmail) {
-                toast({
-                    title: "Sign In Incomplete",
-                    description: "Your sign-in link is valid, but we couldn't find your email. Please re-enter your email and try again.",
-                    variant: "destructive",
-                });
-                return;
-            }
-            setLoading(true);
-            try {
-                await signInWithEmailLink(auth, storedEmail, window.location.href);
-                window.localStorage.removeItem('emailForSignIn');
-                toast({
-                    variant: "success",
-                    title: "Sign In Successful!",
-                    description: "Welcome! You're now signed in."
-                });
-            } catch (error) {
-                toast({
-                    title: "Sign In Failed",
-                    description: "The sign-in link is invalid or has expired. Please try again.",
-                    variant: "destructive",
-                });
-            } finally {
-                setLoading(false);
-            }
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        let storedEmail = window.localStorage.getItem('emailForSignIn');
+        if (!storedEmail) {
+          // If the email is not in local storage, we can't complete the sign-in.
+          // This can happen if the user opens the link on a different browser.
+          // For now, we'll show a toast. A more advanced implementation might prompt the user for their email again.
+          toast({
+            title: "Sign In Incomplete",
+            description: "Your sign-in link is valid, but we couldn't find your email. Please re-enter your email to sign in.",
+            variant: "destructive",
+          });
+          return;
         }
+        setLoading(true);
+        try {
+          // The sign-in is completed here. onAuthStateChanged in AuthContext will handle the redirect.
+          await signInWithEmailLink(auth, storedEmail, window.location.href);
+          window.localStorage.removeItem('emailForSignIn');
+          toast({
+            variant: "success",
+            title: "Sign In Successful!",
+            description: "Welcome! You're now signed in."
+          });
+        } catch (error) {
+          toast({
+            title: "Sign In Failed",
+            description: "The sign-in link is invalid or has expired. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoading(false);
+        }
+      }
     };
     processEmailLink();
-  });
-  
-  // This effect handles redirecting logged-in users
+  }, [toast]); // Run this once on mount
+
+  // Effect to redirect the user if they are already logged in
   useEffect(() => {
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
@@ -68,62 +72,57 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
 
-  // This effect initializes Google One Tap and the Sign In button
+  // Effect to initialize Google Sign-In and One Tap
   useEffect(() => {
-    // Check if the Google library is loaded
-    if (typeof window.google === 'undefined' || !window.google.accounts || !window.google.accounts.id) {
-        // The script might not be loaded yet. This effect will re-run.
-        // We can add a more robust listener if needed, but this often suffices.
-        return;
+    if (gsiInitialized.current) {
+      return;
     }
+    if (typeof window.google === 'undefined' || !window.google.accounts) {
+      return;
+    }
+    gsiInitialized.current = true;
 
     try {
-        if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
-            throw new Error("Google Client ID is not configured.");
-        }
-        
-        // Initialize the GSI client
-        window.google.accounts.id.initialize({
-            client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
-            login_uri: `${window.location.origin}/api/auth/google`,
-            auto_select: true, // Enable One Tap and automatic sign-in
-            ux_mode: 'redirect',
-        });
+      if (!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID) {
+        throw new Error("Google Client ID is not configured.");
+      }
 
-        // Render the "Sign In With Google" button
-        const googleButtonParent = document.getElementById('g_id_signin');
-        if (googleButtonParent) {
-            googleButtonParent.innerHTML = ''; // Clear previous button to prevent duplicates
-            window.google.accounts.id.renderButton(
-                googleButtonParent,
-                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-            );
-        }
-        
-        // Prompt the user with One Tap UI for automatic sign-in if they are not already signed in.
-        if (!user) {
-            window.google.accounts.id.prompt();
-        }
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+        login_uri: `${window.location.origin}/api/auth/google`,
+        auto_select: true,
+        ux_mode: 'redirect',
+      });
+
+      const googleButtonParent = document.getElementById('g_id_signin');
+      if (googleButtonParent) {
+        window.google.accounts.id.renderButton(
+          googleButtonParent,
+          { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+        );
+      }
+      
+      if (!user) {
+        window.google.accounts.id.prompt();
+      }
 
     } catch (error: any) {
-        console.error("Error initializing Google Sign-In:", error);
-        toast({
-            title: "Could not load Google Sign-In",
-            description: "Please try refreshing the page or contact support if the issue persists.",
-            variant: "destructive"
-        })
+      console.error("Error initializing Google Sign-In:", error);
+      toast({
+        title: "Could not load Google Sign-In",
+        description: "Please try refreshing the page or contact support if the issue persists.",
+        variant: "destructive"
+      });
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, toast]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    
     const actionCodeSettings = {
       url: `${window.location.origin}/login`,
       handleCodeInApp: true,
     };
-
     try {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
       window.localStorage.setItem('emailForSignIn', email);
@@ -144,7 +143,8 @@ export default function AuthForm() {
     }
   };
 
-  if (authLoading || user) {
+  // Display a loading state while checking auth or if user is already logged in and redirecting
+  if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
@@ -155,7 +155,7 @@ export default function AuthForm() {
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
-                    Please wait while we complete your sign-in.
+                    Please wait while we check your sign-in status.
                 </p>
             </CardContent>
         </Card>
@@ -172,18 +172,13 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        
-        {/* Google Sign-In Button Container (rendered by the GSI script) */}
+        {/* Google Sign-In Button Container */}
         <div id="g_id_signin" className="w-full flex justify-center"></div>
 
         <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-            </div>
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">
-                Or continue with
-                </span>
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
         </div>
 
@@ -209,11 +204,7 @@ export default function AuthForm() {
               required
               disabled={loading}
             />
-            <Button 
-              type="submit"
-              className="w-full h-11"
-              disabled={loading}
-            >
+            <Button type="submit" className="w-full h-11" disabled={loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
               Continue with Email
             </Button>

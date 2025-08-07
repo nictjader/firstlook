@@ -1,37 +1,28 @@
 
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 // A hook that runs an effect only once on mount, in a strict-mode compatible way.
 export const useEffectOnce = (effect: () => void | (() => void)) => {
-  const effectFn = useRef(effect);
-  const destroyFn = useRef<void | (() => void)>();
-  const effectCalled = useRef(false);
-  const rendered = useRef(false);
-  const [, setVal] = useState(0);
-
-  if (effectCalled.current) {
-    rendered.current = true;
-  }
+  const effectRan = useRef(false);
 
   useEffect(() => {
-    // Only execute the effect first time around
-    if (!effectCalled.current) {
-      destroyFn.current = effectFn.current();
-      effectCalled.current = true;
-    }
-
-    // This forces one render after the effect is run
-    setVal((val) => val + 1);
-
-    return () => {
-      // If the component is unmounted, tear down the effect
-      if (rendered.current === false) {
-        if (destroyFn.current) {
-          destroyFn.current();
+    if (!effectRan.current) {
+      const cleanup = effect();
+      effectRan.current = true;
+      
+      // The return function from useEffect is used for cleanup.
+      // We only want to return the cleanup function if the original effect provided one.
+      return () => {
+        if (cleanup) {
+          cleanup();
         }
-      }
-    };
+      };
+    }
+    // We have an empty dependency array to ensure this runs only on mount.
+    // The eslint-disable comment is to silence the warning about the missing `effect` dependency,
+    // which is intentional for a "run once" hook.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 };
