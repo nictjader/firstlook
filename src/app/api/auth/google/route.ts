@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth } from 'firebase-admin/auth';
-import { getAdminDb, adminApp } from '@/lib/firebase/admin';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
+import { adminApp } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
 import { OAuth2Client } from 'google-auth-library';
 
@@ -34,8 +35,8 @@ export async function POST(request: NextRequest) {
     }
 
     const { sub: uid, email, name, picture } = payload;
-    const auth = getAdminAuth(adminApp);
-    const db = getAdminDb();
+    const auth = getAuth(adminApp);
+    const db = getFirestore(adminApp);
 
     // 2. Create or update the user in Firebase Auth and Firestore
     const userRef = db.collection('users').doc(uid);
