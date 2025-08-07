@@ -20,8 +20,6 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
   useEffect(() => {
     // This effect handles redirecting the user if they are already logged in.
     if (user && !authLoading) {
@@ -76,38 +74,8 @@ export default function AuthForm() {
     );
   }
 
-  // Show an error if the Google Client ID is missing
-  if (!googleClientId) {
-    return (
-        <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
-            <CardHeader>
-                <CardTitle className="text-destructive flex items-center justify-center">
-                  <AlertTriangle className="mr-2 h-6 w-6" />
-                  Configuration Error
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-destructive-foreground">
-                    The Google Client ID is missing. Please add the variable to your 
-                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> 
-                    file and restart your server.
-                </p>
-            </CardContent>
-        </Card>
-    );
-  }
-
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
-      {/* This div configures and enables Google One Tap */}
-      <div id="g_id_onload"
-         data-client_id={googleClientId}
-         data-ux_mode="redirect"
-         data-login_uri={`${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/google`}
-         data-auto_select="true"
-         style={{ display: 'none' }}>
-      </div>
-
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />
@@ -116,23 +84,6 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* This div is where the "Sign in with Google" button will be rendered by the script */}
-        <div className="g_id_signin"
-             data-type="standard"
-             data-shape="rectangular"
-             data-theme="outline"
-             data-text="continue_with"
-             data-size="large"
-             data-logo_alignment="left">
-        </div>
-
-        <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-        </div>
-
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
