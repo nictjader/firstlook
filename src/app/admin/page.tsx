@@ -4,7 +4,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, DollarSign, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine, BarChart3, User, RefreshCw } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenLine, BarChart3, User, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -241,7 +241,7 @@ function AdminDashboardContent() {
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
                         <Button disabled={isToolRunning} variant="outline">
-                            {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <DollarSign className="mr-2 h-4 w-4" />}
+                            {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
                             {isPricing ? 'Updating...' : 'Standardize Prices'}
                         </Button>
                     </AlertDialogTrigger>
@@ -372,7 +372,7 @@ function AdminDashboardContent() {
                                 <MetricCard 
                                     title="Total Library Value" 
                                     value={`${analysisResult.totalCoinCost.toLocaleString()} Coins`}
-                                    icon={DollarSign}
+                                    icon={Coins}
                                     description={`~$${analysisResult.totalValueUSD.toFixed(2)} USD to unlock all paid content.`}
                                 />
                                 <MetricCard 
