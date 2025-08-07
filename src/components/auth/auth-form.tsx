@@ -70,8 +70,14 @@ export default function AuthForm() {
 
   // This effect initializes the Google Sign-In button
   useEffect(() => {
-    if (typeof window.google !== 'undefined') {
-        const loginUri = process.env.NEXT_PUBLIC_SITE_URL ? `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/google` : 'http://localhost:3000/api/auth/google';
+    // Check if the Google library has loaded.
+    if (typeof window.google === 'undefined' || !window.google.accounts || !window.google.accounts.id) {
+        // If not, it might still be loading, so this effect will re-run when it's ready
+        return;
+    }
+
+    try {
+        const loginUri = '/api/auth/google';
         
         window.google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || '',
@@ -82,11 +88,20 @@ export default function AuthForm() {
 
         const googleButtonParent = document.getElementById('g_id_signin');
         if (googleButtonParent) {
+          // Clear any previous button to avoid duplicates on re-renders
+          googleButtonParent.innerHTML = '';
           window.google.accounts.id.renderButton(
               googleButtonParent,
               { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
           );
         }
+    } catch (error) {
+        console.error("Error initializing Google Sign-In", error);
+        toast({
+            title: "Could not load Google Sign-In",
+            description: "Please try refreshing the page.",
+            variant: "destructive"
+        })
     }
   }, []);
 
@@ -147,17 +162,18 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="space-y-4">
-            <div id="g_id_signin"></div>
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                    </span>
-                </div>
+        
+        {/* Google Sign-In Button Container */}
+        <div id="g_id_signin" className="w-full flex justify-center"></div>
+
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                Or continue with
+                </span>
             </div>
         </div>
 
