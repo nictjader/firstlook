@@ -143,49 +143,8 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {linkSentTo ? (
-          <div className="space-y-4 text-center">
-             <div className="text-center space-y-2">
-                <MailCheck className="h-8 w-8 text-green-500 mx-auto" />
-                <p className="text-muted-foreground">
-                   A sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
-                   Click the link in the email to complete your sign-in.
-                </p>
-            </div>
-            <Button variant="link" onClick={() => setLinkSentTo(null)} disabled={loading}>Use a different email</Button>
-          </div>
-        ) : (
-          <div className="space-y-4">
-            <form onSubmit={handleEmailSignIn} className="space-y-4">
-              <Input
-                id="email"
-                type="email"
-                placeholder="Enter your email address"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={loading}
-              />
-              <Button 
-                type="submit"
-                className="w-full h-11"
-                disabled={loading}
-              >
-                {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-                Continue with Email
-              </Button>
-            </form>
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                    </span>
-                </div>
-            </div>
-             <div id="g_id_onload"
+        <div className="space-y-4">
+            <div id="g_id_onload"
                  data-client_id={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}
                  data-login_uri={loginUri}
                  data-ux_mode="redirect"
@@ -199,7 +158,49 @@ export default function AuthForm() {
                  data-size="large"
                  data-logo_alignment="left">
             </div>
+            <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                    <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        {linkSentTo ? (
+          <div className="space-y-4 text-center">
+             <div className="text-center space-y-2">
+                <MailCheck className="h-8 w-8 text-green-500 mx-auto" />
+                <p className="text-muted-foreground">
+                   A sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
+                   Click the link in the email to complete your sign-in.
+                </p>
+            </div>
+            <Button variant="link" onClick={() => setLinkSentTo(null)} disabled={loading}>Use a different email</Button>
           </div>
+        ) : (
+          <form onSubmit={handleEmailSignIn} className="space-y-4">
+            <Input
+              id="email"
+              type="email"
+              placeholder="Enter your email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              disabled={loading}
+            />
+            <Button 
+              type="submit"
+              className="w-full h-11"
+              disabled={loading}
+            >
+              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+              Continue with Email
+            </Button>
+          </form>
         )}
       </CardContent>
       <CardFooter>
