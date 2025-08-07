@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -23,6 +24,8 @@ export default function AuthForm() {
   const gsiInitialized = useRef(false);
 
   useEffect(() => {
+    // This effect handles redirecting the user if they are already logged in.
+    // It runs when the auth state is confirmed and a user object exists.
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
       router.push(redirectUrl);
@@ -30,26 +33,39 @@ export default function AuthForm() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    if (gsiInitialized.current || authLoading) {
+    // **CRITICAL FIX:** This effect now waits until `authLoading` is `false`.
+    // This ensures we know the user's status for certain before trying to initialize GSI.
+    if (authLoading) {
+      return; // Wait until the auth state is resolved.
+    }
+
+    // If there's a user, we don't need to show a sign-in form.
+    if (user) {
+      return;
+    }
+
+    // Prevent re-initialization.
+    if (gsiInitialized.current) {
         return;
     }
 
     if (typeof window.google === 'undefined' || !window.google.accounts) {
+        console.error("Google GSI script not loaded.");
         return;
     }
     
     gsiInitialized.current = true;
 
     try {
-        // CORRECTED: Access the environment variable directly from process.env
         const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
         if (!googleClientId || googleClientId === 'YOUR_GOOGLE_CLIENT_ID') {
             throw new Error("NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured in .env.local");
         }
 
+        // Initialize GSI only when we are sure the user is logged out.
         window.google.accounts.id.initialize({
-            client_id: googleClientId, // Use the variable here
+            client_id: googleClientId,
             login_uri: `${window.location.origin}/api/auth/google`,
             auto_select: true,
             ux_mode: 'redirect',
@@ -63,9 +79,8 @@ export default function AuthForm() {
             );
         }
 
-        if (!user) {
-            window.google.accounts.id.prompt();
-        }
+        // Prompt with One Tap.
+        window.google.accounts.id.prompt();
 
     } catch (error: any) {
         console.error("Error initializing Google Sign-In:", error);
@@ -75,6 +90,7 @@ export default function AuthForm() {
             variant: "destructive"
         });
     }
+    // The dependency array now correctly includes `authLoading` and `user`.
   }, [user, authLoading, toast]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
