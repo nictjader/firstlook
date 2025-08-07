@@ -71,7 +71,7 @@ export default function AuthForm() {
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
-      // Use signInWithRedirect instead of signInWithPopup
+      // Use signInWithRedirect instead of signInWithPopup for better mobile compatibility
       await signInWithRedirect(auth, provider);
       // The user will be redirected to Google's sign-in page.
       // The result will be handled on the login page after the redirect.
