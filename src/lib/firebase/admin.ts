@@ -1,33 +1,42 @@
 
 // THIS FILE IS FOR SERVER-SIDE FIREBASE INIT ONLY
 
-import { initializeApp as initializeAdminApp, getApps as getAdminApps, App as AdminApp, getApp as getAdminApp, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, App, getApp, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { getAuth, Auth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
-let adminApp: AdminApp;
-let adminDb: Firestore;
 
-const ADMIN_APP_NAME = 'firebase-admin-app-firstlook-singleton-v2';
+// IMPORTANT: This initialization logic is designed to work in a serverless environment.
+// It checks if an app is already initialized to prevent re-initialization on hot reloads.
+// It uses environment variables for configuration, which is the standard and secure way.
+function initializeAdmin() {
+    const apps = getApps();
+    if (apps.length > 0) {
+        return apps[0];
+    }
+    
+    // The service account is automatically available in the App Hosting environment.
+    // No need to manage JSON files.
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
+    if (!projectId) {
+        throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in the environment.");
+    }
 
-// Simplified initialization using Application Default Credentials.
-// This is the standard and recommended way for services running on Google Cloud.
-if (!getAdminApps().some(app => app?.name === ADMIN_APP_NAME)) {
-  const projectId = 'siren-h2y45';
-  
-  if (!projectId) {
-    throw new Error("Critical: Project ID is not set.");
-  }
-  
-  // This will automatically use the service account associated with the App Hosting backend.
-  // No need to manage service account keys in environment variables.
-  adminApp = initializeAdminApp({ projectId: projectId }, ADMIN_APP_NAME);
-
-} else {
-  adminApp = getAdminApp(ADMIN_APP_NAME);
+    return initializeApp({
+        projectId: projectId,
+        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+    });
 }
 
-adminDb = getFirestore(adminApp);
+const adminApp = initializeAdmin();
 
 export function getAdminDb(): Firestore {
-  return adminDb;
+  return getFirestore(adminApp);
 }
+
+export function getAdminAuth(): Auth {
+  return getAuth(adminApp);
+}
+
+export { adminApp };

@@ -1,7 +1,13 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
-import { getAdminDb, getAdminAuth } from '@/lib/firebase/admin-config';
+import { getAdminApp } from 'firebase-admin/app';
+import { getAuth as getAdminAuth } from 'firebase-admin/auth';
+import { getFirestore as getAdminDb } from 'firebase-admin/firestore';
 import { cookies } from 'next/headers';
+
+// This is a new file that handles the server-side Google Sign-In flow.
+// It receives the credential from the GSI button, verifies it, creates a user profile
+// if one doesn't exist, and sets a session cookie for the user.
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,9 +17,11 @@ export async function POST(request: NextRequest) {
     if (typeof credential !== 'string') {
       return NextResponse.json({ error: 'Invalid credential' }, { status: 400 });
     }
-
-    const auth = getAdminAuth();
-    const db = getAdminDb();
+    
+    // Ensure the Firebase Admin app is initialized
+    const adminApp = getAdminApp();
+    const auth = getAdminAuth(adminApp);
+    const db = getAdminDb(adminApp);
 
     // Verify the ID token from Google
     const decodedToken = await auth.verifyIdToken(credential);
@@ -59,10 +67,14 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
+    // Redirect the user to their profile page after successful sign-in
     return NextResponse.redirect(new URL('/profile', request.url));
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    // Redirect to the login page with an error message
+    const loginUrl = new URL('/login', request.url)
+    loginUrl.searchParams.set('error', 'Authentication failed. Please try again.')
+    return NextResponse.redirect(loginUrl);
   }
 }
