@@ -9,6 +9,9 @@ import { getStories } from '@/lib/actions/storyActions';
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300; 
 
+// Force dynamic rendering because SubgenreFilter uses useSearchParams
+export const dynamic = 'force-dynamic';
+
 const StoryListSkeleton = () => (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
         {Array.from({ length: 8 }).map((_, i) => (
@@ -39,9 +42,9 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
           Dive into a world of passion and adventure. Your next favorite story awaits.
         </p>
       </div>
-      <Suspense fallback={<Skeleton className="h-10 w-full max-w-md mx-auto" />}>
-        <SubgenreFilter />
-      </Suspense>
+      
+      <SubgenreFilter />
+      
       <Suspense fallback={<StoryListSkeleton />}>
         <StoryList stories={stories} />
       </Suspense>

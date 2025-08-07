@@ -5,9 +5,7 @@ import CoinPurchase from '@/components/monetization/coin-purchase';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-// Note: Metadata export is still supported in Client Components,
-// but it's often better to move it to a Server Component parent if possible.
-// For this case, it's fine.
+// This page now uses Suspense to handle the client-side CoinPurchase component
 export default function BuyCoinsPage() {
   return (
     <div className="max-w-4xl mx-auto">

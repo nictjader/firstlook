@@ -6,13 +6,11 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/auth-context';
 import { COIN_PACKAGES } from '@/lib/config';
 import { cn } from '@/lib/utils';
-import { Check, Gem, Loader2, Star, Trophy, ExternalLink } from 'lucide-react';
+import { Check, Coin, Loader2, Star, Trophy } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { createCheckoutSession } from '@/lib/actions/paymentActions';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-
 
 function CoinPurchaseContent() {
   const { user, loading: authLoading } = useAuth();
@@ -116,7 +114,7 @@ function CoinPurchaseContent() {
                 </div>
             )}
             <CardHeader className="text-center pt-12">
-                <Gem className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
+                <Coin className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
                 <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
                 <CardDescription className="text-primary text-3xl font-headline font-semibold">
                 {pkg.coins.toLocaleString()} Coins
@@ -147,10 +145,10 @@ function CoinPurchaseContent() {
   );
 }
 
+
 export default function CoinPurchase() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
-            <CoinPurchaseContent />
-        </Suspense>
+        // No Suspense needed here as the parent page should have it
+        <CoinPurchaseContent />
     );
 }

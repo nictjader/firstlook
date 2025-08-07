@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   description: 'Manage your FirstLook account, coin balance, and preferences.',
 };
 
+// Force dynamic rendering because ProfileView uses useSearchParams
+export const dynamic = 'force-dynamic';
+
 export default function ProfilePage() {
   return (
     <div className="max-w-2xl">
