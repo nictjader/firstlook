@@ -41,7 +41,7 @@ export default function AuthForm() {
     }
     gsiInitialized.current = true;
 
-    // **THE FIX:** Use window.location.origin to build a reliable redirect URI
+    // Use window.location.origin to build a reliable redirect URI
     // This avoids issues with environment variables.
     const loginUri = `${window.location.origin}/api/auth/google`;
 

@@ -70,16 +70,15 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // **THE FIX:** Build the redirect URL from the request's origin.
+    // Build the redirect URL from the request's origin.
     // This is more reliable than an environment variable, especially with Firebase Hosting.
     const redirectUrl = new URL('/profile', request.nextUrl.origin);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
-    // **THE FIX:** Build the error redirect URL using a reliable public URL.
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const loginUrl = new URL('/login', appUrl);
+    // Build the error redirect URL using the request's origin for reliability.
+    const loginUrl = new URL('/login', request.nextUrl.origin);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
   }
