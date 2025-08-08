@@ -1,11 +1,27 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/lib/firebase/admin';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import { OAuth2Client } from 'google-auth-library';
 
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+// Helper function to reliably get the public origin
+function getPublicOrigin(request: NextRequest): string {
+    const headersList = headers();
+    const forwardedHost = headersList.get('x-forwarded-host');
+    const forwardedProto = headersList.get('x-forwarded-proto');
+
+    if (forwardedHost && forwardedProto) {
+        return `${forwardedProto}://${forwardedHost}`;
+    }
+    
+    // Fallback for local development or other environments
+    return request.nextUrl.origin;
+}
+
 
 export async function POST(request: NextRequest) {
   // Check for server-side configuration
@@ -15,6 +31,7 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
+  const origin = getPublicOrigin(request);
 
   try {
     const formData = await request.formData();
@@ -69,16 +86,13 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       path: '/',
     });
-
-    // Build the redirect URL from the request's origin.
-    // This is more reliable than an environment variable, especially with Firebase Hosting.
-    const redirectUrl = new URL('/profile', request.nextUrl.origin);
+    
+    const redirectUrl = new URL('/profile', origin);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
-    // Build the error redirect URL using the request's origin for reliability.
-    const loginUrl = new URL('/login', request.nextUrl.origin);
+    const loginUrl = new URL('/login', origin);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
   }
