@@ -1,37 +1,48 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
-import { getAdminAuth } from 'firebase-admin/auth';
-import { getAdminDb } from '@/lib/firebase/admin';
-import { cookies } from 'next/headers';
+import { getAuth } from 'firebase-admin/auth';
+import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/lib/firebase/admin';
+import { cookies } from 'next/headers';
+import { OAuth2Client } from 'google-auth-library';
 
-// This is a new file that handles the server-side Google Sign-In flow.
-// It receives the credential from the GSI button, verifies it, creates a user profile
-// if one doesn't exist, and sets a session cookie for the user.
+const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export async function POST(request: NextRequest) {
+  // Check for server-side configuration
+  if (!googleClientId) {
+    console.error("Server Error: Google Client ID is not configured.");
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+  }
+
+  const googleClient = new OAuth2Client(googleClientId);
+
   try {
     const formData = await request.formData();
     const credential = formData.get('credential');
 
     if (typeof credential !== 'string') {
-      return NextResponse.json({ error: 'Invalid credential' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
     }
-    
-    // Ensure the Firebase Admin app is initialized
-    const auth = getAdminAuth(adminApp);
-    const db = getAdminDb();
 
-    // Verify the ID token from Google
-    const decodedToken = await auth.verifyIdToken(credential);
-    const { uid, email, name, picture } = decodedToken;
+    const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: googleClientId,
+    });
 
-    // Check if user exists in Firestore
+    const payload = ticket.getPayload();
+    if (!payload) {
+        throw new Error('Invalid Google ID token.');
+    }
+
+    const { sub: uid, email, name, picture } = payload;
+    const auth = getAuth(adminApp);
+    const db = getFirestore(adminApp);
+
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-      // If user does not exist, create a new user profile in Firestore
+      await auth.createUser({ uid, email, displayName: name, photoURL: picture });
       await userRef.set({
         userId: uid,
         email: email,
@@ -44,21 +55,14 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         stripeCustomerId: null,
-      }, { merge: true });
-    } else {
-      // If user exists, update last login and other details
-      await userRef.update({
-        lastLogin: new Date().toISOString(),
-        displayName: name,
-        email: email,
       });
+    } else {
+      await userRef.update({ lastLogin: new Date().toISOString() });
     }
-    
-    // Create a session cookie
+
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
     const sessionCookie = await auth.createSessionCookie(credential, { expiresIn });
 
-    // Set the cookie on the response
     cookies().set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
@@ -66,14 +70,16 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // Redirect the user to their profile page after successful sign-in
-    return NextResponse.redirect(new URL('/profile', request.url));
+    // Build the redirect URL from the request's origin.
+    // This is more reliable than an environment variable, especially with Firebase Hosting.
+    const redirectUrl = new URL('/profile', request.nextUrl.origin);
+    return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
-    // Redirect to the login page with an error message
-    const loginUrl = new URL('/login', request.url)
-    loginUrl.searchParams.set('error', 'Authentication failed. Please try again.')
-    return NextResponse.redirect(loginUrl);
+    // Build the error redirect URL using the request's origin for reliability.
+    const loginUrl = new URL('/login', request.nextUrl.origin);
+    loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
+    return NextResponse.redirect(loginUrl.toString());
   }
 }

@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
 import { sendSignInLinkToEmail } from 'firebase/auth';
-import { Loader2, Mail, MailCheck } from 'lucide-react';
+import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -20,12 +19,12 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
   const gsiInitialized = useRef(false);
-  
+
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
   useEffect(() => {
-    // This effect handles redirecting the user if they are already logged in.
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
       router.push(redirectUrl);
@@ -33,56 +32,36 @@ export default function AuthForm() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    // This effect initializes Google Sign-In. It waits until the auth state is
-    // resolved and checks for a Client ID before proceeding.
-    if (authLoading || !googleClientId || user) {
-      return; // Wait for auth state, or if user is logged in, or if no client ID.
+    if (authLoading || user || !googleClientId || gsiInitialized.current) {
+      return;
     }
-
-    // Prevent re-initialization on re-renders.
-    if (gsiInitialized.current) {
-        return;
-    }
-
     if (typeof window.google === 'undefined' || !window.google.accounts) {
-        console.error("Google GSI script not loaded. Make sure it's included in the main layout.");
-        return;
+      console.error("Google GSI script not loaded.");
+      return;
     }
-    
     gsiInitialized.current = true;
 
-    try {
-        // Initialize the Google Sign-In client.
-        window.google.accounts.id.initialize({
-            client_id: googleClientId,
-            login_uri: `${window.location.origin}/api/auth/google`,
-            auto_select: true, // Enables One Tap automatic sign-in
-            ux_mode: 'redirect',
-        });
+    // Use window.location.origin to build a reliable redirect URI
+    // This avoids issues with environment variables.
+    const loginUri = `${window.location.origin}/api/auth/google`;
 
-        const googleButtonParent = document.getElementById('g_id_signin');
-        if (googleButtonParent) {
-            // Render the Google Sign-In button.
-            window.google.accounts.id.renderButton(
-                googleButtonParent,
-                { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-            );
-        }
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      ux_mode: 'redirect',
+      login_uri: loginUri, // Use the dynamically created URI
+      auto_select: true,
+    });
 
-        // Prompt the user with the One Tap UI for automatic sign-in.
-        window.google.accounts.id.prompt();
-
-    } catch (error: any) {
-        console.error("Error initializing Google Sign-In:", error);
-        toast({
-            title: "Could not load Google Sign-In",
-            description: "There was an issue initializing the sign-in service.",
-            variant: "destructive"
-        });
+    if (googleButtonRef.current) {
+        window.google.accounts.id.renderButton(
+          googleButtonRef.current,
+          { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
+        );
     }
-  }, [user, authLoading, toast, googleClientId]);
+    window.google.accounts.id.prompt();
+  }, [authLoading, user, googleClientId]);
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const actionCodeSettings = {
@@ -127,6 +106,28 @@ export default function AuthForm() {
     );
   }
 
+  if (!googleClientId) {
+    return (
+        <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
+            <CardHeader>
+                <CardTitle className="text-destructive flex items-center justify-center">
+                  <AlertTriangle className="mr-2 h-6 w-6" />
+                  Configuration Error
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-sm text-destructive-foreground">
+                    The Google Client ID is missing. Please add the 
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
+                    variable to your 
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> 
+                    file and restart your server.
+                </p>
+            </CardContent>
+        </Card>
+    );
+  }
+
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
       <CardHeader className="text-center">
@@ -137,17 +138,13 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {googleClientId ? (
-          <>
-            <div id="g_id_signin" className="w-full flex justify-center min-h-[40px]"></div>
-            <div className="relative">
-                <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                </div>
+        <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
             </div>
-          </>
-        ) : null}
+        </div>
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
