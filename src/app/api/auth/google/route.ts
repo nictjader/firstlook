@@ -6,18 +6,28 @@ import { cookies } from 'next/headers';
 import { OAuth2Client } from 'google-auth-library';
 
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-// **THE FIX:** We will use the definitive App URL from the environment variables.
-// This is the most reliable way to ensure the redirect URL is correct.
-const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+// **THE FIX:** This helper function reliably determines the base URL.
+// It checks request headers that are standard in hosting environments like
+// Firebase Hosting and Google Cloud Workstations.
+const getBaseUrl = (request: NextRequest) => {
+  const protocol = request.headers.get('x-forwarded-proto') || 'http';
+  const host = request.headers.get('host');
+  if (!host) {
+    // Fallback for local development if headers aren't set
+    return request.nextUrl.origin;
+  }
+  return `${protocol}://${host}`;
+};
 
 export async function POST(request: NextRequest) {
-  // Check for server-side configuration
-  if (!googleClientId || !appUrl) {
-    console.error("Server Error: Google Client ID or App URL is not configured.");
+  if (!googleClientId) {
+    console.error("Server Error: Google Client ID is not configured.");
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
 
   const googleClient = new OAuth2Client(googleClientId);
+  const baseUrl = getBaseUrl(request); // Use the reliable helper
 
   try {
     const formData = await request.formData();
@@ -73,15 +83,15 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // The success redirect is now built from the reliable appUrl.
-    const redirectUrl = new URL('/profile', appUrl);
+    // The success redirect is now built from the reliable base URL.
+    const redirectUrl = new URL('/profile', baseUrl);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
 
-    // The error redirect is also built from the reliable appUrl.
-    const loginUrl = new URL('/login', appUrl);
+    // The error redirect is also built from the reliable base URL.
+    const loginUrl = new URL('/login', baseUrl);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl);
   }
