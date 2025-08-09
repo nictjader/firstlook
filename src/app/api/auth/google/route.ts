@@ -9,17 +9,21 @@ import { OAuth2Client } from 'google-auth-library';
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 // Helper function to reliably get the public origin
-function getPublicOrigin(request: NextRequest): string {
+function getPublicOrigin(): string {
     const headersList = headers();
+    // In environments like Cloud Workstations or other proxies, the x-forwarded-host
+    // header provides the original public host name.
     const forwardedHost = headersList.get('x-forwarded-host');
+    // The x-forwarded-proto header tells us if the original request was 'http' or 'https'.
     const forwardedProto = headersList.get('x-forwarded-proto');
 
     if (forwardedHost && forwardedProto) {
         return `${forwardedProto}://${forwardedHost}`;
     }
     
-    // Fallback for local development or other environments
-    return request.nextUrl.origin;
+    // Fallback for local development where these headers might not be present.
+    // This part might not be hit in the production environment but is good practice.
+    return 'http://localhost:3000';
 }
 
 
@@ -31,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
-  const origin = getPublicOrigin(request);
+  const origin = getPublicOrigin();
 
   try {
     const formData = await request.formData();
