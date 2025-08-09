@@ -3,29 +3,10 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/lib/firebase/admin';
-import { cookies, headers } from 'next/headers';
+import { cookies } from 'next/headers';
 import { OAuth2Client } from 'google-auth-library';
 
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-// Helper function to reliably get the public origin
-function getPublicOrigin(): string {
-    const headersList = headers();
-    // In environments like Cloud Workstations or other proxies, the x-forwarded-host
-    // header provides the original public host name.
-    const forwardedHost = headersList.get('x-forwarded-host');
-    // The x-forwarded-proto header tells us if the original request was 'http' or 'https'.
-    const forwardedProto = headersList.get('x-forwarded-proto');
-
-    if (forwardedHost && forwardedProto) {
-        return `${forwardedProto}://${forwardedHost}`;
-    }
-    
-    // Fallback for local development where these headers might not be present.
-    // This part might not be hit in the production environment but is good practice.
-    return 'http://localhost:3000';
-}
-
 
 export async function POST(request: NextRequest) {
   // Check for server-side configuration
@@ -35,7 +16,8 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
-  const origin = getPublicOrigin();
+  // Use the reliable environment variable for the origin.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin;
 
   try {
     const formData = await request.formData();

@@ -18,7 +18,8 @@
       "name": "studio",
       "environment": {
         "STRIPE_SECRET_KEY": "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",
-        "STRIPE_WEBHOOK_SECRET": "whsec_qednrR0TmpYSKipTZfWR94T1kH1BPK7y"
+        "STRIPE_WEBHOOK_SECRET": "whsec_qednrR0TmpYSKipTZfWR94T1kH1BPK7y",
+        "NEXT_PUBLIC_SITE_URL": "https://firstlook-prod.web.app"
       }
     }
   },
