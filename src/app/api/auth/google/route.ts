@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
+  let origin: string | null = null;
 
   try {
     const formData = await request.formData();
@@ -22,8 +23,8 @@ export async function POST(request: NextRequest) {
     const clientRedirectUri = formData.get('clientRedirectUri');
 
     // Determine the origin from the client-provided URI for reliability.
-    // Fallback to request.url for safety, though the client URI is preferred.
-    const origin = clientRedirectUri ? new URL(clientRedirectUri as string).origin : new URL(request.url).origin;
+    // This is the most crucial part for ensuring correct redirects.
+    origin = clientRedirectUri ? new URL(clientRedirectUri as string).origin : new URL(request.url).origin;
 
     if (typeof credential !== 'string') {
       return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
@@ -81,8 +82,9 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     // Use the reliable origin for the error redirect as well.
-    const originFromError = new URL(request.url).origin;
-    const loginUrl = new URL('/login', originFromError);
+    // If origin wasn't set due to an early error, fall back to request.url.
+    const errorOrigin = origin || new URL(request.url).origin;
+    const loginUrl = new URL('/login', errorOrigin);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
   }
