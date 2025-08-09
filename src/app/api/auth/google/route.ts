@@ -22,7 +22,8 @@ export async function POST(request: NextRequest) {
     const clientRedirectUri = formData.get('clientRedirectUri');
 
     // Determine the origin from the client-provided URI for reliability.
-    const origin = clientRedirectUri ? new URL(clientRedirectUri as string).origin : request.nextUrl.origin;
+    // Fallback to request.url for safety, though the client URI is preferred.
+    const origin = clientRedirectUri ? new URL(clientRedirectUri as string).origin : new URL(request.url).origin;
 
     if (typeof credential !== 'string') {
       return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
