@@ -25,6 +25,30 @@ export default function AuthForm() {
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
+  // This function will be called by the Google One Tap callback.
+  // It submits the credential and the current URL to your backend.
+  const handleGoogleSignIn = (response: any) => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/auth/google';
+
+    const credentialInput = document.createElement('input');
+    credentialInput.type = 'hidden';
+    credentialInput.name = 'credential';
+    credentialInput.value = response.credential;
+    form.appendChild(credentialInput);
+    
+    const redirectUriInput = document.createElement('input');
+    redirectUriInput.type = 'hidden';
+    redirectUriInput.name = 'clientRedirectUri';
+    redirectUriInput.value = window.location.href; // Pass the exact client URL
+    form.appendChild(redirectUriInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  };
+
+
   useEffect(() => {
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
@@ -42,14 +66,9 @@ export default function AuthForm() {
     }
     gsiInitialized.current = true;
 
-    // Use window.location.origin to build a reliable redirect URI
-    // This avoids issues with environment variables.
-    const loginUri = `${window.location.origin}/api/auth/google`;
-
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      ux_mode: 'redirect',
-      login_uri: loginUri, // Use the dynamically created URI
+      callback: handleGoogleSignIn, // Use the callback function
       auto_select: true,
     });
 
@@ -60,6 +79,7 @@ export default function AuthForm() {
         );
     }
     window.google.accounts.id.prompt();
+    // No 'login_uri' is needed when using the callback handler.
   }, [authLoading, user, googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
