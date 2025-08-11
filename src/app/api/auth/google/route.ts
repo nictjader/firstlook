@@ -10,55 +10,16 @@ const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 // Helper function to get the correct public origin
 function getPublicOrigin(request: NextRequest): string {
-  // Method 1: Check for custom header set by your frontend (most reliable)
-  const customOrigin = request.headers.get('x-origin');
-  if (customOrigin) {
-    return customOrigin;
-  }
-
-  // Method 2: Check for forwarded headers (good for reverse proxies)
+  // Trust the x-forwarded-host and x-forwarded-proto headers, which are set by
+  // Firebase App Hosting and other standard proxy environments.
   const forwardedHost = request.headers.get('x-forwarded-host');
-  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
-  
-  if (forwardedHost) {
+  const forwardedProto = request.headers.get('x-forwarded-proto');
+
+  if (forwardedHost && forwardedProto) {
     return `${forwardedProto}://${forwardedHost}`;
   }
 
-  // Method 3: Parse from referer header (reliable fallback)
-  const referer = request.headers.get('referer');
-  if (referer) {
-    try {
-      const refererUrl = new URL(referer);
-      return refererUrl.origin;
-    } catch (e) {
-      console.warn('Failed to parse referer URL:', referer);
-    }
-  }
-
-  // Method 4: Environment-based detection
-  const host = request.headers.get('host');
-  if (host) {
-    // Check if it's production
-    if (host.includes('tryfirstlook.com')) {
-      return 'https://tryfirstlook.com';
-    }
-    // Check if it's staging (Firebase workstation)
-    if (host.includes('firebase-studio') || host.includes('cloudworkstations.dev')) {
-      return `https://${host}`;
-    }
-    // For localhost development
-    if (host.includes('localhost')) {
-      return `http://${host}`;
-    }
-  }
-
-  // Method 5: Environment variable fallback
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
-  }
-
-  // Last resort fallback
-  console.warn('Using request origin as fallback - this may cause redirect issues');
+  // Fallback for local development or other environments
   return request.nextUrl.origin;
 }
 
@@ -124,7 +85,7 @@ export async function POST(request: NextRequest) {
     cookies().set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
-      secure: publicOrigin.startsWith('https://'),
+      secure: publicOrigin.startsWith('https'),
       path: '/',
     });
     
