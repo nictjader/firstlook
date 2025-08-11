@@ -10,6 +10,7 @@ import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/contexts/auth-context';
+import { useRouter } from 'next/navigation';
 
 export default function AuthForm() {
   const { user, loading: authLoading } = useAuth();
@@ -17,25 +18,39 @@ export default function AuthForm() {
   const [email, setEmail] = useState('');
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const { toast } = useToast();
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      // Before redirecting, save the current client origin.
-      // This will be retrieved on the login page after the redirect.
-      sessionStorage.setItem('clientRedirectUri', window.location.origin);
-      await signInWithRedirect(auth, provider);
-    } catch (error: any) {
-      console.error("Google Sign-In Error", error);
-      toast({
-        title: "Google Sign-In Failed",
-        description: error.message || "An unexpected error occurred.",
-        variant: "destructive",
-      });
-      setLoading(false);
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  // This effect will initialize and render the Google Sign-In button and One Tap prompt
+  useEffect(() => {
+    if (authLoading || user || !googleClientId) {
+      return;
     }
-  };
+    if (typeof window.google === 'undefined' || !window.google.accounts) {
+      console.error("Google GSI script not loaded.");
+      return;
+    }
+
+    window.google.accounts.id.initialize({
+      client_id: googleClientId,
+      ux_mode: 'redirect', // Use redirect mode for both button and One Tap
+      login_uri: `${window.location.origin}/login`, // Redirect back to the login page for processing
+    });
+
+    if (googleButtonRef.current) {
+      window.google.accounts.id.renderButton(
+        googleButtonRef.current,
+        { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
+      );
+    }
+    
+    // Display the One Tap prompt
+    window.google.accounts.id.prompt();
+
+  }, [authLoading, user, googleClientId]);
+
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -64,8 +79,6 @@ export default function AuthForm() {
     }
   };
   
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
   if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
@@ -114,14 +127,9 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <Button onClick={handleGoogleSignIn} disabled={loading} variant="outline" className="h-11">
-            {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : 
-                <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
-                    <path fill="currentColor" d="M488 261.8C488 403.3 381.5 512 244 512 110.3 512 0 401.7 0 265.2 0 128.5 110.3 18.2 244 18.2c71.2 0 131.2 29.2 176.4 72.8l-63.4 61.9C333.3 128.4 291.5 103.5 244 103.5c-74.8 0-135.2 61.2-135.2 137.2 0 75.8 60.4 137 135.2 137 83.8 0 119.2-64.2 122.7-96.5H244v-73.4h239.5c4.7 26.5 7.5 56.1 7.5 88.1z"></path>
-                </svg>
-            }
-          Continue with Google
-        </Button>
+        {/* This div will be populated by the Google Sign-In button */}
+        <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
+
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">

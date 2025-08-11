@@ -5,7 +5,7 @@ import AuthForm from '@/components/auth/auth-form';
 import Link from 'next/link';
 import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
 import Header from '@/components/layout/header';
-import { getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
+import { getRedirectResult, GoogleAuthProvider, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '@/lib/firebase/client';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -25,57 +25,73 @@ function LoginContent() {
   const [authError, setAuthError] = useState<string | null>(null);
 
   useEffect(() => {
-    const processRedirect = async () => {
+    const processAuth = async () => {
+      // Check for Google redirect result
       try {
         const result = await getRedirectResult(auth);
-        
-        // This is the critical part: handling the redirect result.
         if (result && result.user) {
           const credential = GoogleAuthProvider.credentialFromResult(result);
           if (credential) {
-            const clientRedirectUri = sessionStorage.getItem('clientRedirectUri');
-            if (!clientRedirectUri) {
-              throw new Error("Client redirect URI not found in session storage.");
-            }
-
-            // Send the credential and client origin to our dedicated API route
+            // Save the credential to sessionStorage to handle the case where
+            // the user might have landed here from a different origin (like the GSI popup)
+            sessionStorage.setItem('googleCredential', JSON.stringify(credential));
+            // Let the server handle session creation
             const response = await fetch('/api/auth/verify-and-sign-in', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ credential, clientRedirectUri }),
+              body: JSON.stringify({ credential, clientRedirectUri: window.location.origin }),
             });
-
             const data = await response.json();
-
             if (response.ok && data.redirectUrl) {
-              // The server has verified everything and told us where to go.
               router.push(data.redirectUrl);
+              return; // Stop processing
             } else {
               throw new Error(data.error || 'Failed to verify session with server.');
             }
           }
-        } else {
-          // No redirect result, so we're just loading the login page normally.
-          setIsVerifying(false);
         }
       } catch (error: any) {
-        console.error("Error processing auth redirect:", error);
+        console.error("Error processing Google redirect:", error);
         let message = error.message || 'An unknown authentication error occurred.';
         if (error.code === 'auth/account-exists-with-different-credential') {
-          message = 'An account already exists with the same email address but different sign-in credentials. Please sign in using the original method.';
+          message = 'An account already exists with this email. Please sign in using the original method.';
         }
         setAuthError(message);
         setIsVerifying(false);
+        return; // Stop processing on error
+      }
+
+      // Check for email link sign-in
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        let email = window.localStorage.getItem('emailForSignIn');
+        if (!email) {
+          // This can happen if the user opens the link on a different device.
+          // We can ask them for their email.
+          email = window.prompt('Please provide your email for confirmation');
+        }
+        if (email) {
+            try {
+                await signInWithEmailLink(auth, email, window.location.href);
+                window.localStorage.removeItem('emailForSignIn');
+                // The onAuthStateChanged listener will now handle the redirect to /profile
+            } catch(error: any) {
+                console.error("Error signing in with email link:", error);
+                setAuthError(error.message || "Failed to sign in with email link.");
+            }
+        } else {
+            setAuthError("Email is required to complete sign-in.");
+        }
+      }
+
+      // If neither redirect nor email link, just finish loading
+      setIsVerifying(false);
+      const errorParam = searchParams.get('error');
+      if (errorParam && !authError) {
+        setAuthError(errorParam);
       }
     };
-
-    processRedirect();
     
-    // Also check for errors passed in URL params from previous failed attempts
-    const errorParam = searchParams.get('error');
-    if (errorParam && !authError) {
-      setAuthError(errorParam);
-    }
+    processAuth();
 
   }, [router, toast, searchParams, authError]);
   
