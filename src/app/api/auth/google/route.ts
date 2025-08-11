@@ -12,24 +12,24 @@ const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 function getPublicOrigin(request: NextRequest): string {
   const host = request.headers.get('host');
   
-  // For Cloud Workstations, always use https
+  // For Cloud Workstations, always use https and the correct host.
   if (host && host.includes('cloudworkstations.dev')) {
     return `https://${host}`;
   }
-
-  // Check for forwarded headers (common in production proxies)
+  
+  // For production environments.
   const forwardedHost = request.headers.get('x-forwarded-host');
   const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
   if (forwardedHost) {
     return `${forwardedProto}://${forwardedHost}`;
   }
   
-  // Use the request's origin as a reliable fallback for other environments
-  // like localhost or standard production deployments.
+  // A reliable fallback for other environments like localhost.
   return request.nextUrl.origin;
 }
 
-export async function POST(request: NextRequest) {
+// This should handle both GET and POST, as Google can use either depending on the flow.
+export async function GET(request: NextRequest) {
   if (!googleClientId) {
     console.error("Server Error: Google Client ID is not configured.");
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
@@ -38,9 +38,9 @@ export async function POST(request: NextRequest) {
   const googleClient = new OAuth2Client(googleClientId);
 
   try {
-    const formData = await request.formData();
-    const credential = formData.get('credential');
-
+    // In a redirect flow, the credential is in the URL's search parameters.
+    const credential = request.nextUrl.searchParams.get('credential');
+    
     if (typeof credential !== 'string') {
       return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
     }

@@ -25,24 +25,6 @@ export default function AuthForm() {
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  // This function will be called by Google's library after a successful sign-in.
-  // It posts the credential and the client's origin to our backend.
-  const handleGoogleSignIn = (response: any) => {
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = '/api/auth/google';
-
-    const credentialInput = document.createElement('input');
-    credentialInput.type = 'hidden';
-    credentialInput.name = 'credential';
-    credentialInput.value = response.credential;
-    form.appendChild(credentialInput);
-    
-    document.body.appendChild(form);
-    form.submit();
-  };
-
-
   useEffect(() => {
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
@@ -60,10 +42,11 @@ export default function AuthForm() {
     }
     gsiInitialized.current = true;
     
+    // This configuration ensures a full-page redirect flow, which is more robust.
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      // We now use a callback instead of a direct redirect URI
-      callback: handleGoogleSignIn,
+      ux_mode: 'redirect', // Use 'redirect' mode instead of 'popup'
+      login_uri: `${window.location.origin}/api/auth/google`, // The endpoint Google will redirect to
     });
 
     if (googleButtonRef.current) {
@@ -72,7 +55,7 @@ export default function AuthForm() {
           { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
         );
     }
-    // We can still use prompt for a better UX
+    // The prompt is useful for returning users.
     window.google.accounts.id.prompt();
   }, [authLoading, user, googleClientId]);
 
@@ -134,9 +117,7 @@ export default function AuthForm() {
                 <p className="text-sm text-destructive-foreground">
                     The Google Client ID is missing. Please add the 
                     <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    variable to your 
-                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> 
-                    file and restart your server.
+                    variable to your environment.
                 </p>
             </CardContent>
         </Card>
