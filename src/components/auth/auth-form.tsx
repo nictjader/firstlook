@@ -25,13 +25,31 @@ export default function AuthForm() {
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
+  // This function will be called by Google's library after a successful sign-in.
+  // It posts the credential and the client's origin to our backend.
+  const handleGoogleSignIn = (response: any) => {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/api/auth/google';
+
+    const credentialInput = document.createElement('input');
+    credentialInput.type = 'hidden';
+    credentialInput.name = 'credential';
+    credentialInput.value = response.credential;
+    form.appendChild(credentialInput);
+    
+    document.body.appendChild(form);
+    form.submit();
+  };
+
+
   useEffect(() => {
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
       router.push(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
-
+  
   useEffect(() => {
     if (authLoading || user || !googleClientId || gsiInitialized.current) {
       return;
@@ -41,16 +59,11 @@ export default function AuthForm() {
       return;
     }
     gsiInitialized.current = true;
-
-    // Use window.location.origin to build a reliable redirect URI
-    // This avoids issues with environment variables.
-    const loginUri = `${window.location.origin}/api/auth/google`;
-
+    
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      ux_mode: 'redirect',
-      login_uri: loginUri, // Use the dynamically created URI
-      auto_select: true,
+      // We now use a callback instead of a direct redirect URI
+      callback: handleGoogleSignIn,
     });
 
     if (googleButtonRef.current) {
@@ -59,6 +72,7 @@ export default function AuthForm() {
           { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
         );
     }
+    // We can still use prompt for a better UX
     window.google.accounts.id.prompt();
   }, [authLoading, user, googleClientId]);
 
@@ -182,3 +196,5 @@ export default function AuthForm() {
     </Card>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -9,21 +10,7 @@ const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 // Helper function to get the correct public origin
 function getPublicOrigin(request: NextRequest): string {
-  // Method 1: Check for custom header set by your frontend (most reliable)
-  const customOrigin = request.headers.get('x-origin');
-  if (customOrigin) {
-    return customOrigin;
-  }
-
-  // Method 2: Check for forwarded headers (good for reverse proxies)
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
-  
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-
-  // Method 3: Parse from referer header (reliable fallback)
+  // Method 1: Trust the referer header which is sent by the client's form submission.
   const referer = request.headers.get('referer');
   if (referer) {
     try {
@@ -34,41 +21,26 @@ function getPublicOrigin(request: NextRequest): string {
     }
   }
 
-  // Method 4: Environment-based detection
-  const host = request.headers.get('host');
-  if (host) {
-    // Check if it's production
-    if (host.includes('tryfirstlook.com')) {
-      return 'https://tryfirstlook.com';
-    }
-    // Check if it's staging (Firebase workstation)
-    if (host.includes('firebase-studio') || host.includes('cloudworkstations.dev')) {
-      return `https://${host}`;
-    }
-    // For localhost development
-    if (host.includes('localhost')) {
-      return `http://${host}`;
-    }
-  }
-
-  // Method 5: Environment variable fallback
-  if (process.env.NEXT_PUBLIC_APP_URL) {
-    return process.env.NEXT_PUBLIC_APP_URL;
+  // Method 2: Fallback for environments where referer might be stripped.
+  const forwardedHost = request.headers.get('x-forwarded-host');
+  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
+  if (forwardedHost) {
+    return `${forwardedProto}://${forwardedHost}`;
   }
 
   // Last resort fallback
-  console.warn('Using request origin as fallback - this may cause redirect issues');
+  console.warn('Using request origin as a last resort - this may cause redirect issues');
   return request.nextUrl.origin;
 }
 
 export async function POST(request: NextRequest) {
-  // Check for server-side configuration
   if (!googleClientId) {
     console.error("Server Error: Google Client ID is not configured.");
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
 
   const googleClient = new OAuth2Client(googleClientId);
+  const publicOrigin = getPublicOrigin(request);
 
   try {
     const formData = await request.formData();
@@ -123,23 +95,19 @@ export async function POST(request: NextRequest) {
       secure: process.env.NODE_ENV === 'production',
       path: '/',
     });
-
-    // Use the helper function to get the correct public origin
-    const publicOrigin = getPublicOrigin(request);
-    const redirectUrl = new URL('/profile', publicOrigin);
     
-    console.log('Redirecting to:', redirectUrl.toString()); // Debug log
+    // Use the reliable publicOrigin for the success redirect.
+    const redirectUrl = new URL('/profile', publicOrigin);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     
-    // Use the same helper function for error redirects
-    const publicOrigin = getPublicOrigin(request);
+    // Use the reliable publicOrigin for the error redirect.
     const loginUrl = new URL('/login', publicOrigin);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
-    
-    console.log('Error redirect to:', loginUrl.toString()); // Debug log
-    return NextResponse.redirect(loginUrl.toString());
+    return NextResponse.redirect(loginUrl);
   }
 }
+
+    
