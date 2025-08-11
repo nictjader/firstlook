@@ -28,18 +28,21 @@ function getPublicOrigin(request: NextRequest): string {
   return request.nextUrl.origin;
 }
 
-// This should handle both GET and POST, as Google can use either depending on the flow.
-export async function GET(request: NextRequest) {
+
+// The Google Sign-In redirect flow uses a POST request to send the credential.
+export async function POST(request: NextRequest) {
   if (!googleClientId) {
     console.error("Server Error: Google Client ID is not configured.");
     return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
 
   const googleClient = new OAuth2Client(googleClientId);
+  const publicOrigin = getPublicOrigin(request);
 
   try {
-    // In a redirect flow, the credential is in the URL's search parameters.
-    const credential = request.nextUrl.searchParams.get('credential');
+    // In the redirect flow, the credential is in the form data of the POST request.
+    const formData = await request.formData();
+    const credential = formData.get('credential');
     
     if (typeof credential !== 'string') {
       return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
@@ -91,18 +94,22 @@ export async function GET(request: NextRequest) {
       path: '/',
     });
     
-    // Use the reliable helper function to build the final redirect URL
-    const publicOrigin = getPublicOrigin(request);
     const redirectUrl = new URL('/profile', publicOrigin);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     
-    // Use the same reliable helper for the error redirect
-    const publicOrigin = getPublicOrigin(request);
     const loginUrl = new URL('/login', publicOrigin);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl);
   }
+}
+
+// Add a GET handler to prevent errors if the user navigates here directly.
+export async function GET(request: NextRequest) {
+    const publicOrigin = getPublicOrigin(request);
+    const loginUrl = new URL('/login', publicOrigin);
+    loginUrl.searchParams.set('error', 'Invalid sign-in attempt. Please try again from the login page.');
+    return NextResponse.redirect(loginUrl);
 }
