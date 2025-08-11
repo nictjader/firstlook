@@ -1,11 +1,9 @@
-
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { GoogleAuthProvider, signInWithRedirect } from "firebase/auth";
 import { sendSignInLinkToEmail } from 'firebase/auth';
 import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/layout/logo';
@@ -22,42 +20,40 @@ export default function AuthForm() {
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
+  // Get the environment variables
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
   // This effect will initialize and render the Google Sign-In button and One Tap prompt
   useEffect(() => {
-    if (authLoading || user || !googleClientId) {
+    if (authLoading || user || !googleClientId || !appUrl) {
       return;
     }
     if (typeof window.google === 'undefined' || !window.google.accounts) {
       console.error("Google GSI script not loaded.");
       return;
     }
-
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       ux_mode: 'redirect', // Use redirect mode for both button and One Tap
-      login_uri: `${window.location.origin}/api/auth/google`, // Corrected: Point to the backend handler
+      login_uri: `${appUrl}/api/auth/google`, // Use the reliable appUrl environment variable
     });
-
     if (googleButtonRef.current) {
       window.google.accounts.id.renderButton(
         googleButtonRef.current,
         { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
       );
     }
-    
     // Display the One Tap prompt
     window.google.accounts.id.prompt();
-
-  }, [authLoading, user, googleClientId]);
-
+  }, [authLoading, user, googleClientId, appUrl]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const actionCodeSettings = {
-      url: `${window.location.origin}/login?email=${encodeURIComponent(email)}`, // Pass email for post-redirect retrieval
+      // Use window.location.origin here as it's for the email link back to the current browser context
+      url: `${window.location.origin}/login?email=${encodeURIComponent(email)}`,
       handleCodeInApp: true,
     };
     try {
@@ -79,8 +75,8 @@ export default function AuthForm() {
       setLoading(false);
     }
   };
-  
-  if (authLoading || (user && !authLoading)) {
+
+    if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
@@ -98,7 +94,8 @@ export default function AuthForm() {
     );
   }
 
-  if (!googleClientId) {
+  // Add a check for the appUrl as well
+  if (!googleClientId || !appUrl) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
             <CardHeader>
@@ -109,9 +106,11 @@ export default function AuthForm() {
             </CardHeader>
             <CardContent>
                 <p className="text-sm text-destructive-foreground">
-                    The Google Client ID is missing. Please add the 
+                    A required environment variable is missing. Please ensure both
                     <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    variable to your environment.
+                    and
+                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_APP_URL</code>
+                    are set.
                 </p>
             </CardContent>
         </Card>
@@ -130,7 +129,6 @@ export default function AuthForm() {
       <CardContent className="flex flex-col gap-4">
         {/* This div will be populated by the Google Sign-In button */}
         <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
-
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">

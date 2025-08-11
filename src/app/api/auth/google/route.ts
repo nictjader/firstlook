@@ -1,4 +1,3 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -6,36 +5,27 @@ import { adminApp } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
 import { OAuth2Client } from 'google-auth-library';
 
+// Get the environment variables
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-
-// Helper function to get the correct public origin
-function getPublicOrigin(request: NextRequest): string {
-    const forwardedHost = request.headers.get('x-forwarded-host');
-    const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
-    if (forwardedHost) {
-        return `${forwardedProto}://${forwardedHost}`;
-    }
-    // Fallback for local development or direct connections
-    return request.nextUrl.origin;
-}
+const appUrl = process.env.NEXT_PUBLIC_APP_URL;
 
 async function handleAuth(request: NextRequest) {
-    if (!googleClientId) {
-        console.error("Server Error: Google Client ID is not configured.");
+    // Check for required configuration
+    if (!googleClientId || !appUrl) {
+        console.error("Server Error: Google Client ID or App URL is not configured.");
         return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
     }
 
     const googleClient = new OAuth2Client(googleClientId);
-    const publicOrigin = getPublicOrigin(request);
 
     try {
         const formData = await request.formData();
         const credential = formData.get('credential');
-
         if (typeof credential !== 'string') {
             throw new Error('Invalid credential provided.');
         }
 
+        // Verify the token from Google
         const ticket = await googleClient.verifyIdToken({
             idToken: credential,
             audience: googleClientId,
@@ -53,6 +43,7 @@ async function handleAuth(request: NextRequest) {
         const userRef = db.collection('users').doc(uid);
         const userDoc = await userRef.get();
 
+        // Create user in Firestore and Firebase Auth if they don't exist
         if (!userDoc.exists) {
             await auth.createUser({ uid, email, displayName: name, photoURL: picture });
             await userRef.set({
@@ -69,40 +60,43 @@ async function handleAuth(request: NextRequest) {
                 stripeCustomerId: null,
             });
         } else {
+            // Otherwise, just update their last login time
             await userRef.update({ lastLogin: new Date().toISOString() });
         }
 
+        // Create a session cookie
         const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
         const sessionCookie = await auth.createSessionCookie(credential, { expiresIn });
-
         cookies().set('session', sessionCookie, {
             maxAge: expiresIn,
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
+            secure: new URL(appUrl).protocol === 'https:',
             path: '/',
         });
 
-        const redirectUrl = new URL('/profile', publicOrigin);
+        // Redirect to the profile page on success
+        const redirectUrl = new URL('/profile', appUrl);
         return NextResponse.redirect(redirectUrl);
 
     } catch (error: any) {
         console.error('Google Sign-In Error:', error.message);
-        const loginUrl = new URL('/login', publicOrigin);
+        const loginUrl = new URL('/login', appUrl);
         loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
         return NextResponse.redirect(loginUrl.toString());
     }
 }
-
 
 // Handle the POST request from Google's redirect
 export async function POST(request: NextRequest) {
     return handleAuth(request);
 }
 
-// Handle GET requests gracefully in case a user navigates here directly
+// Handle GET requests gracefully by redirecting to the login page
 export async function GET(request: NextRequest) {
-    const publicOrigin = getPublicOrigin(request);
-    const loginUrl = new URL('/login', publicOrigin);
+    if (!appUrl) {
+        return NextResponse.json({ error: 'Server configuration error: App URL is missing.' }, { status: 500 });
+    }
+    const loginUrl = new URL('/login', appUrl);
     loginUrl.searchParams.set('error', 'Invalid sign-in method. Please try again.');
     return NextResponse.redirect(loginUrl);
 }
