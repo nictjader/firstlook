@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Suspense, useEffect, useState } from 'react';
@@ -26,41 +27,18 @@ function LoginContent() {
 
   useEffect(() => {
     const processAuth = async () => {
-      // Check for Google redirect result
-      try {
-        const result = await getRedirectResult(auth);
-        if (result && result.user) {
-          const credential = GoogleAuthProvider.credentialFromResult(result);
-          if (credential) {
-            // Save the credential to sessionStorage to handle the case where
-            // the user might have landed here from a different origin (like the GSI popup)
-            sessionStorage.setItem('googleCredential', JSON.stringify(credential));
-            // Let the server handle session creation
-            const response = await fetch('/api/auth/verify-and-sign-in', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ credential, clientRedirectUri: window.location.origin }),
-            });
-            const data = await response.json();
-            if (response.ok && data.redirectUrl) {
-              router.push(data.redirectUrl);
-              return; // Stop processing
-            } else {
-              throw new Error(data.error || 'Failed to verify session with server.');
-            }
-          }
-        }
-      } catch (error: any) {
-        console.error("Error processing Google redirect:", error);
-        let message = error.message || 'An unknown authentication error occurred.';
-        if (error.code === 'auth/account-exists-with-different-credential') {
-          message = 'An account already exists with this email. Please sign in using the original method.';
-        }
-        setAuthError(message);
+      // Check for Google redirect result (which now comes from the GSI library)
+      // The actual verification and session creation is handled server-side now.
+      // We just need to check for an error parameter on return.
+      const errorParam = searchParams.get('error');
+      if (errorParam) {
+        setAuthError(decodeURIComponent(errorParam));
         setIsVerifying(false);
-        return; // Stop processing on error
+        // Clean the URL
+        router.replace('/login', { scroll: false });
+        return;
       }
-
+      
       // Check for email link sign-in
       if (isSignInWithEmailLink(auth, window.location.href)) {
         let email = window.localStorage.getItem('emailForSignIn');
@@ -85,16 +63,14 @@ function LoginContent() {
 
       // If neither redirect nor email link, just finish loading
       setIsVerifying(false);
-      const errorParam = searchParams.get('error');
-      if (errorParam && !authError) {
-        setAuthError(errorParam);
-      }
     };
     
     processAuth();
 
-  }, [router, toast, searchParams, authError]);
+  }, [router, searchParams, toast]);
   
+  // The useAuth hook will handle redirecting to /profile if the user is signed in.
+  // This component will just show a loading state while that happens.
   if (isVerifying) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">

@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ export default function AuthForm() {
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       ux_mode: 'redirect', // Use redirect mode for both button and One Tap
-      login_uri: `${window.location.origin}/login`, // Redirect back to the login page for processing
+      login_uri: `${window.location.origin}/api/auth/google`, // Corrected: Point to the backend handler
     });
 
     if (googleButtonRef.current) {
