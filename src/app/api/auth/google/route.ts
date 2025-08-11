@@ -10,26 +10,22 @@ const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 // Helper function to get the correct public origin
 function getPublicOrigin(request: NextRequest): string {
-  // Method 1: Trust the referer header which is sent by the client's form submission.
-  const referer = request.headers.get('referer');
-  if (referer) {
-    try {
-      const refererUrl = new URL(referer);
-      return refererUrl.origin;
-    } catch (e) {
-      console.warn('Failed to parse referer URL:', referer);
-    }
+  const host = request.headers.get('host');
+  
+  // For Cloud Workstations, always use https
+  if (host && host.includes('cloudworkstations.dev')) {
+    return `https://${host}`;
   }
 
-  // Method 2: Fallback for environments where referer might be stripped.
+  // Check for forwarded headers (common in production proxies)
   const forwardedHost = request.headers.get('x-forwarded-host');
   const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
   if (forwardedHost) {
     return `${forwardedProto}://${forwardedHost}`;
   }
-
-  // Last resort fallback
-  console.warn('Using request origin as a last resort - this may cause redirect issues');
+  
+  // Use the request's origin as a reliable fallback for other environments
+  // like localhost or standard production deployments.
   return request.nextUrl.origin;
 }
 
@@ -40,7 +36,6 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
-  const publicOrigin = getPublicOrigin(request);
 
   try {
     const formData = await request.formData();
@@ -96,18 +91,18 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
     
-    // Use the reliable publicOrigin for the success redirect.
+    // Use the reliable helper function to build the final redirect URL
+    const publicOrigin = getPublicOrigin(request);
     const redirectUrl = new URL('/profile', publicOrigin);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     
-    // Use the reliable publicOrigin for the error redirect.
+    // Use the same reliable helper for the error redirect
+    const publicOrigin = getPublicOrigin(request);
     const loginUrl = new URL('/login', publicOrigin);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl);
   }
 }
-
-    
