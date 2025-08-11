@@ -10,21 +10,17 @@ const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 // Helper function to get the correct public origin
 function getPublicOrigin(request: NextRequest): string {
+  // The 'x-forwarded-proto' header is the most reliable source for the protocol.
+  const forwardedProto = request.headers.get('x-forwarded-proto');
   const host = request.headers.get('host');
-  
-  // For Cloud Workstations, always use https and the correct host.
-  if (host && host.includes('cloudworkstations.dev')) {
-    return `https://${host}`;
+
+  if (forwardedProto && host) {
+    // If we have both, we can construct the definitive public URL.
+    return `${forwardedProto}://${host}`;
   }
   
-  // For production environments.
-  const forwardedHost = request.headers.get('x-forwarded-host');
-  const forwardedProto = request.headers.get('x-forwarded-proto') || 'https';
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}`;
-  }
-  
-  // A reliable fallback for other environments like localhost.
+  // Fallback for local development or environments without x-forwarded-proto.
+  // This is less reliable in proxied environments but necessary as a backup.
   return request.nextUrl.origin;
 }
 
@@ -90,7 +86,7 @@ export async function POST(request: NextRequest) {
     cookies().set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: process.env.NODE_ENV === 'production' || publicOrigin.startsWith('https://'),
       path: '/',
     });
     
