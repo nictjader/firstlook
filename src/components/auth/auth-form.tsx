@@ -58,7 +58,9 @@ export default function AuthForm() {
           { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
         );
     }
-    window.google.accounts.id.prompt();
+    // Do not auto-prompt, let the user click the button.
+    // This helps prevent issues with pop-up blockers.
+    // window.google.accounts.id.prompt(); 
   }, [authLoading, user, googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
