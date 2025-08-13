@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
@@ -26,10 +25,12 @@ const nextConfig = {
       },
     ],
   },
-  allowedDevOrigins: process.env.NODE_ENV === 'production' ? [] : [
-    // Allow requests from the Cloud Workstations development environment URL
-    'https://3001-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
-  ].filter(Boolean), // Filter out empty strings if the env var isn't set
+  experimental: {
+    // This is the direct fix for the cross-origin errors in development.
+    allowedDevOrigins: [
+      'https://3001-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
+    ],
+  }
 };
 
 module.exports = nextConfig;
