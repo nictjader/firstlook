@@ -4,8 +4,6 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
 
-const appUrl = (process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION : process.env.NEXT_PUBLIC_APP_URL_STAGING) || 'http://localhost:3001';
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -22,17 +20,14 @@ export async function POST(request: NextRequest) {
     const auth = getAuth(adminApp);
     const db = getFirestore(adminApp);
     
-    // The idToken is what we need to verify the user and create a session.
     const idToken = credential.idToken;
 
-    // The session cookie will be valid for 5 days.
     const expiresIn = 60 * 60 * 24 * 5 * 1000;
     const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     
     const decodedToken = await auth.verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
     
-    // Ensure user exists in Firestore
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
@@ -59,7 +54,6 @@ export async function POST(request: NextRequest) {
         });
     }
 
-    // Set the session cookie in the browser
     cookies().set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
@@ -67,7 +61,6 @@ export async function POST(request: NextRequest) {
       path: '/',
     });
 
-    // Use the client-provided URI to construct the final, correct redirect URL
     const redirectUrl = new URL('/profile', clientRedirectUri);
     return NextResponse.json({ success: true, redirectUrl: redirectUrl.toString() });
 
