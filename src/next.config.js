@@ -27,8 +27,8 @@ const nextConfig = {
   },
   allowedDevOrigins: process.env.NODE_ENV === 'production' ? [] : [
     // Allow requests from the Cloud Workstations development environment URL
-    process.env.NEXT_PUBLIC_APP_URL_STAGING || '',
-  ].filter(Boolean), // Filter out empty strings if the env var isn't set
+    'https://3001-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
+  ].filter(Boolean),
 };
 
 module.exports = nextConfig;

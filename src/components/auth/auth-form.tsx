@@ -1,4 +1,3 @@
-
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -42,14 +41,12 @@ export default function AuthForm() {
     }
     gsiInitialized.current = true;
 
-    // Use window.location.origin to build a reliable redirect URI
-    // This avoids issues with environment variables.
     const loginUri = `${window.location.origin}/api/auth/google`;
 
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       ux_mode: 'redirect',
-      login_uri: loginUri, // Use the dynamically created URI
+      login_uri: loginUri,
     });
 
     if (googleButtonRef.current) {
@@ -58,8 +55,6 @@ export default function AuthForm() {
           { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
         );
     }
-    // Do not auto-prompt, let the user click the button.
-    // This helps prevent issues with pop-up blockers.
     // window.google.accounts.id.prompt(); 
   }, [authLoading, user, googleClientId]);
 

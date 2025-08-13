@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL_STAGING || 'http://localhost:3001';
 
   try {
     const formData = await request.formData();
@@ -81,20 +82,12 @@ export async function POST(request: NextRequest) {
     });
     
     // Redirect to the profile page on success
-    const appUrl = process.env.NODE_ENV === 'production'
-        ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION
-        : process.env.NEXT_PUBLIC_APP_URL_STAGING;
-
     const redirectUrl = new URL('/profile', appUrl);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     
-    const appUrl = process.env.NODE_ENV === 'production'
-        ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION
-        : process.env.NEXT_PUBLIC_APP_URL_STAGING;
-
     const loginUrl = new URL('/login', appUrl);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
