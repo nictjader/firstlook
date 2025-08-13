@@ -1,10 +1,13 @@
 // THIS FILE IS FOR SERVER-SIDE FIREBASE INIT ONLY
 
-import { initializeApp, getApps, App, getApp, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, App, getApp, cert, ServiceAccount } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
 import serviceAccount from './serviceAccountKey.json'; // Adjust path if needed
+
+// Type assertion to ensure serviceAccount conforms to ServiceAccount interface
+const serviceAccountKey = serviceAccount as ServiceAccount;
 
 // IMPORTANT: This initialization logic is designed to work in a serverless environment.
 // It checks if an app is already initialized to prevent re-initialization on hot reloads.
@@ -21,7 +24,7 @@ function initializeAdmin(): App {
     }
 
     return initializeApp({
-        credential: cert(serviceAccount),
+        credential: cert(serviceAccountKey),
         projectId: projectId,
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });

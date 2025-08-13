@@ -1,17 +1,10 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
-    const appUrl = process.env.NODE_ENV === 'production'
-      ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION
-      : process.env.NEXT_PUBLIC_APP_URL_STAGING;
     return [
       {
-        source: '/(.*)',
+        source: '/:path*',
         headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: appUrl || 'http://localhost:3001',
-          },
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
@@ -22,13 +15,20 @@ const nextConfig = {
   },
   images: {
     remotePatterns: [
-      { protocol: 'https', hostname: 'placehold.co' },
-      { protocol: 'https', hostname: 'storage.googleapis.com' },
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+      },
+      {
+        protocol: 'https',
+        hostname: 'storage.googleapis.com',
+      },
     ],
   },
   allowedDevOrigins: process.env.NODE_ENV === 'production' ? [] : [
-    process.env.NEXT_PUBLIC_APP_URL_STAGING,
-  ],
+    // Allow requests from the Cloud Workstations development environment URL
+    process.env.NEXT_PUBLIC_APP_URL_STAGING || '',
+  ].filter(Boolean), // Filter out empty strings if the env var isn't set
 };
 
 module.exports = nextConfig;

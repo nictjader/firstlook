@@ -18,25 +18,30 @@ export default function AuthForm() {
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const { toast } = useToast();
   const googleButtonRef = useRef<HTMLDivElement>(null);
-  const router = useRouter();
+  const gsiInitialized = useRef(false);
 
   // Get the environment variables
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const appUrl = (process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION : process.env.NEXT_PUBLIC_APP_URL_STAGING) || 'http://localhost:3001';
 
   // This effect will initialize and render the Google Sign-In button and One Tap prompt
   useEffect(() => {
-    if (authLoading || user || !googleClientId || !appUrl) {
+    if (authLoading || user || !googleClientId || gsiInitialized.current) {
       return;
     }
+    
     if (typeof window.google === 'undefined' || !window.google.accounts) {
       console.error("Google GSI script not loaded.");
       return;
     }
+    gsiInitialized.current = true;
+
+    // Use window.location.origin to build a reliable redirect URI for the server
+    const loginUri = `${window.location.origin}/api/auth/google`;
+
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      ux_mode: 'redirect', // Use redirect mode for both button and One Tap
-      login_uri: `${appUrl}/api/auth/google`, // Use the reliable appUrl environment variable
+      ux_mode: 'redirect',
+      login_uri: loginUri,
     });
     if (googleButtonRef.current) {
       window.google.accounts.id.renderButton(
@@ -46,14 +51,14 @@ export default function AuthForm() {
     }
     // Display the One Tap prompt
     window.google.accounts.id.prompt();
-  }, [authLoading, user, googleClientId, appUrl]);
+  }, [authLoading, user, googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setLoading(true);
     const actionCodeSettings = {
       // Use window.location.origin here as it's for the email link back to the current browser context
-      url: `${window.location.origin}/login?email=${encodeURIComponent(email)}`,
+      url: `${window.location.origin}/login`,
       handleCodeInApp: true,
     };
     try {
@@ -95,7 +100,7 @@ export default function AuthForm() {
   }
 
   // Add a check for the appUrl as well
-  if (!googleClientId || !appUrl) {
+  if (!googleClientId) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
             <CardHeader>
@@ -106,9 +111,9 @@ export default function AuthForm() {
             </CardHeader>
             <CardContent>
                 <p className="text-sm text-destructive-foreground">
-                    A required environment variable is missing. Please ensure both
+                    A required environment variable is missing. Please ensure the
                     <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    and an app URL variable are set.
+                    is set.
                 </p>
             </CardContent>
         </Card>

@@ -3,36 +3,59 @@ import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
+import { OAuth2Client } from 'google-auth-library';
 
-const appUrl = (process.env.NODE_ENV === 'production'
-  ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION
-  : process.env.NEXT_PUBLIC_APP_URL_STAGING || 'http://localhost:3001').replace(/\/$/, '');
+const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-async function handleAuth(request: NextRequest) {
-  if (!appUrl) {
-    console.error("Server Error: App URL is not configured.");
-    return NextResponse.json({ error: 'Config error' }, { status: 500 });
+export async function POST(request: NextRequest) {
+  if (!googleClientId) {
+    console.error("Server Error: Google Client ID is not configured.");
+    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
   }
 
+  const googleClient = new OAuth2Client(googleClientId);
+
   try {
-    const { idToken } = await request.json();
-    if (!idToken) {
-      throw new Error('No ID token provided.');
+    // Read form data instead of JSON
+    const formData = await request.formData();
+    const credential = formData.get('credential');
+
+    if (typeof credential !== 'string') {
+      return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
     }
 
+    const ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: googleClientId,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload) {
+        throw new Error('Invalid Google ID token.');
+    }
+
+    const { sub: uid, email, name, picture } = payload;
     const auth = getAuth(adminApp);
-    const decodedToken = await auth.verifyIdToken(idToken);
-    const { uid, email, name, picture } = decodedToken;
     const db = getFirestore(adminApp);
 
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-      await auth.createUser({ uid, email, displayName: name, photoURL: picture });
+      // Ensure user exists in Firebase Auth before creating profile
+      try {
+        await auth.getUser(uid);
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found') {
+          await auth.createUser({ uid, email, displayName: name, photoURL: picture });
+        } else {
+          throw error;
+        }
+      }
+      
       await userRef.set({
         userId: uid,
-        email,
+        email: email,
         displayName: name,
         coins: 0,
         unlockedStories: [],
@@ -48,22 +71,28 @@ async function handleAuth(request: NextRequest) {
     }
 
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
+    // Use the Google ID token (credential) to create the session cookie
+    const sessionCookie = await auth.createSessionCookie(credential, { expiresIn });
+
     cookies().set('session', sessionCookie, {
       maxAge: expiresIn,
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       path: '/',
-      sameSite: 'lax',
+      sameSite: 'lax'
     });
+    
+    // Redirect to the profile page on success
+    const redirectUrl = new URL('/profile', request.nextUrl.origin);
+    return NextResponse.redirect(redirectUrl);
 
-    return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Google Sign-In Error:', error.message);
-    return NextResponse.json({ error: error.message || 'Authentication failed' }, { status: 400 });
+    console.error('Google Sign-In Error:', {
+        message: error.message,
+        stack: error.stack,
+    });
+    const loginUrl = new URL('/login', request.nextUrl.origin);
+    loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
+    return NextResponse.redirect(loginUrl.toString());
   }
-}
-
-export async function POST(request: NextRequest) {
-  return handleAuth(request);
 }
