@@ -9,7 +9,7 @@ declare global {
         google?: {
             accounts: {
                 id: {
-                    initialize: (config: { client_id: string; callback?: (response: any) => void; login_uri?: string; auto_select?: boolean; ux_mode?: 'popup' | 'redirect' }) => void;
+                    initialize: (config: { client_id: string; callback: (response: any) => void; }) => void;
                     renderButton: (parent: HTMLElement, options: any) => void;
                     prompt: (notification?: (notification: any) => void) => void;
                     disableAutoSelect: () => void;

@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { credential, clientRedirectUri } = body;
 
-    if (!credential || !credential.idToken) {
+    if (!credential || !credential.credential) {
       return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
     }
     
@@ -20,19 +21,34 @@ export async function POST(request: NextRequest) {
     const auth = getAuth(adminApp);
     const db = getFirestore(adminApp);
     
-    const idToken = credential.idToken;
+    // The ID token is nested inside the credential object from Google
+    const idToken = credential.credential;
 
-    const expiresIn = 60 * 60 * 24 * 5 * 1000;
-    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
-    
+    // Verify the ID token and get the user's UID.
     const decodedToken = await auth.verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
+
+    // Set session cookie
+    const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
+    const sessionCookie = await auth.createSessionCookie(idToken, { expiresIn });
     
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
+    // Create user profile in Firestore if it doesn't exist
     if (!userDoc.exists) {
-      await auth.updateUser(uid, { email, displayName: name, photoURL: picture });
+      // Also ensure the user exists in Firebase Auth itself
+      try {
+        await auth.getUser(uid);
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found') {
+          await auth.createUser({ uid, email, displayName: name, photoURL: picture });
+        } else {
+          // Re-throw other auth errors
+          throw error;
+        }
+      }
+      
       await userRef.set({
         userId: uid,
         email: email,
@@ -45,8 +61,9 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         stripeCustomerId: null,
-      }, { merge: true });
+      });
     } else {
+      // If user exists, just update their last login time and basic info
       await userRef.update({ 
           lastLogin: new Date().toISOString(),
           displayName: name,
@@ -59,6 +76,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: new URL(clientRedirectUri).protocol === 'https:',
       path: '/',
+      sameSite: 'lax',
     });
 
     const redirectUrl = new URL('/profile', clientRedirectUri);
@@ -66,6 +84,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error('Server-side session creation error:', error);
-    return NextResponse.json({ error: 'Server error during authentication.' }, { status: 500 });
+    const errorMessage = error.code === 'auth/id-token-expired' 
+      ? 'Your session has expired. Please sign in again.'
+      : 'Server error during authentication.';
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

@@ -7,9 +7,6 @@
   import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
   import Header from '@/components/layout/header';
   import { 
-    GoogleAuthProvider, 
-    signInWithPopup, 
-    getRedirectResult, 
     isSignInWithEmailLink, 
     signInWithEmailLink 
   } from 'firebase/auth';
@@ -32,12 +29,13 @@
 
     useEffect(() => {
       const processAuth = async () => {
-        // Check for Google redirect result or error parameter
+        // Check for error parameter from redirects
         const errorParam = searchParams.get('error');
         if (errorParam) {
           setAuthError(decodeURIComponent(errorParam));
           setIsVerifying(false);
-          router.replace('/login', { scroll: false });
+          // Use router.replace to remove the error from the URL bar
+          router.replace('/login', { scroll: false }); 
           return;
         }
 
@@ -60,47 +58,14 @@
             setAuthError("Email is required to complete sign-in.");
           }
         }
-
-        // Handle redirect result from Google (if using popup)
-        const result = await getRedirectResult(auth);
-        if (result) {
-          const idToken = await auth.currentUser?.getIdToken();
-          if (idToken) {
-            await handleServerSession(idToken);
-          }
-        }
-
+        
+        // No longer need to handle Google redirect here, it's done in the component
         setIsVerifying(false);
       };
 
       processAuth();
     }, [router, searchParams, toast]);
 
-    const handleGoogleSignIn = async () => {
-      const provider = new GoogleAuthProvider();
-      try {
-        const result = await signInWithPopup(auth, provider);
-        const idToken = await result.user.getIdToken();
-        await handleServerSession(idToken);
-      } catch (error: any) {
-        console.error("Google Sign-In Error:", error);
-        setAuthError(error.message || "Failed to sign in with Google.");
-      }
-    };
-
-    const handleServerSession = async (idToken: string) => {
-      const response = await fetch('/api/auth/google', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ idToken }),
-      });
-      if (response.ok) {
-        router.push('/profile');
-      } else {
-        const errorText = await response.text();
-        setAuthError(errorText || "Failed to create session.");
-      }
-    };
 
     if (isVerifying) {
       return (
@@ -150,4 +115,3 @@
       </div>
     );
   }
-  
