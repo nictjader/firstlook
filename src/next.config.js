@@ -25,10 +25,10 @@ const nextConfig = {
       },
     ],
   },
-  allowedDevOrigins: process.env.NODE_ENV === 'production' ? [] : [
-    // Allow requests from the Cloud Workstations development environment URL
+  allowedDevOrigins: [
+    // This is the direct fix for the cross-origin errors in development.
     'https://3001-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
-  ].filter(Boolean),
+  ],
 };
 
 module.exports = nextConfig;
