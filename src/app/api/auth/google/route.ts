@@ -16,7 +16,6 @@ export async function POST(request: NextRequest) {
   const googleClient = new OAuth2Client(googleClientId);
 
   try {
-    // Read form data instead of JSON
     const formData = await request.formData();
     const credential = formData.get('credential');
 
@@ -71,7 +70,6 @@ export async function POST(request: NextRequest) {
     }
 
     const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days
-    // Use the Google ID token (credential) to create the session cookie
     const sessionCookie = await auth.createSessionCookie(credential, { expiresIn });
 
     cookies().set('session', sessionCookie, {
@@ -83,12 +81,21 @@ export async function POST(request: NextRequest) {
     });
     
     // Redirect to the profile page on success
-    const redirectUrl = new URL('/profile', request.nextUrl.origin);
+    const appUrl = process.env.NODE_ENV === 'production'
+        ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION
+        : process.env.NEXT_PUBLIC_APP_URL_STAGING;
+
+    const redirectUrl = new URL('/profile', appUrl);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
-    const loginUrl = new URL('/login', request.nextUrl.origin);
+    
+    const appUrl = process.env.NODE_ENV === 'production'
+        ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION
+        : process.env.NEXT_PUBLIC_APP_URL_STAGING;
+
+    const loginUrl = new URL('/login', appUrl);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
   }
