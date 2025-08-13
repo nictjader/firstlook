@@ -5,7 +5,7 @@
   import { adminApp } from '@/lib/firebase/admin';
   import { cookies } from 'next/headers';
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:8080').replace(/\/$/, '');
+  const appUrl = (process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:6000').replace(/\/$/, '');
 
   async function handleAuth(request: NextRequest) {
     if (!appUrl) {
