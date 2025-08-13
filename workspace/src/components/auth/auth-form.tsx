@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -19,10 +20,45 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const googleButtonRef = useRef<HTMLDivElement>(null);
   const gsiInitialized = useRef(false);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+
+  // New handler for Google Sign-In callback
+  const handleGoogleSignIn = async (response: any) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/verify-and-sign-in', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          credential: response,
+          clientRedirectUri: window.location.origin
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        // Server-side session was created, redirect to the profile page
+        router.push(data.redirectUrl || '/profile');
+      } else {
+        throw new Error(data.error || 'Failed to sign in.');
+      }
+    } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
+      toast({
+        title: "Authentication Failed",
+        description: error.message || "Could not sign in with Google. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -32,7 +68,7 @@ export default function AuthForm() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    if (authLoading || user || !googleClientId || gsiInitialized.current) {
+    if (gsiInitialized.current || !googleClientId || authLoading || user) {
       return;
     }
     if (typeof window.google === 'undefined' || !window.google.accounts) {
@@ -41,25 +77,23 @@ export default function AuthForm() {
     }
     gsiInitialized.current = true;
 
-    // Use window.location.origin to build a reliable redirect URI
-    // This avoids issues with environment variables.
-    const loginUri = `${window.location.origin}/api/auth/google`;
-
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      ux_mode: 'redirect',
-      login_uri: loginUri, // Use the dynamically created URI
-      auto_select: true,
+      callback: handleGoogleSignIn, // Use the same callback for button and One Tap
     });
 
-    if (googleButtonRef.current) {
-        window.google.accounts.id.renderButton(
-          googleButtonRef.current,
-          { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
-        );
+    const googleButtonParent = document.getElementById('google-button-parent');
+    if (googleButtonParent) {
+      window.google.accounts.id.renderButton(
+        googleButtonParent,
+        { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
+      );
     }
-    window.google.accounts.id.prompt();
-  }, [authLoading, user, googleClientId]);
+    
+    // This is the command that triggers the One Tap prompt.
+    window.google.accounts.id.prompt(); 
+
+  }, [googleClientId, authLoading, user]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -88,18 +122,18 @@ export default function AuthForm() {
     }
   };
 
-  if (authLoading || (user && !authLoading)) {
+  if (authLoading || (user && !authLoading) || loading) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
                 <CardTitle className="text-2xl font-semibold tracking-tight flex items-center justify-center">
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                  Verifying...
+                  {loading ? 'Signing in...' : 'Verifying...'}
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
-                    Please wait while we check your sign-in status.
+                    Please wait while we complete the sign-in process.
                 </p>
             </CardContent>
         </Card>
@@ -119,9 +153,7 @@ export default function AuthForm() {
                 <p className="text-sm text-destructive-foreground">
                     The Google Client ID is missing. Please add the 
                     <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    variable to your 
-                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">.env.local</code> 
-                    file and restart your server.
+                    variable to your environment.
                 </p>
             </CardContent>
         </Card>
@@ -138,7 +170,7 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
+        <div id="google-button-parent" className="w-full flex justify-center min-h-[40px]"></div>
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
@@ -181,3 +213,5 @@ export default function AuthForm() {
     </Card>
   );
 }
+
+    
