@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +9,8 @@ import { sendSignInLinkToEmail } from 'firebase/auth';
 import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/auth-context';
-import { useRouter } from 'next/navigation';
 
 export default function AuthForm() {
   const { user, loading: authLoading } = useAuth();
@@ -17,39 +18,46 @@ export default function AuthForm() {
   const [email, setEmail] = useState('');
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
   const { toast } = useToast();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const gsiInitialized = useRef(false);
 
-  // Get the environment variables
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  // This effect will initialize and render the Google Sign-In button and One Tap prompt
+  useEffect(() => {
+    if (user && !authLoading) {
+      const redirectUrl = searchParams.get('redirect') || '/profile';
+      router.push(redirectUrl);
+    }
+  }, [user, authLoading, router, searchParams]);
+
   useEffect(() => {
     if (authLoading || user || !googleClientId || gsiInitialized.current) {
       return;
     }
-    
     if (typeof window.google === 'undefined' || !window.google.accounts) {
       console.error("Google GSI script not loaded.");
       return;
     }
     gsiInitialized.current = true;
 
-    // Use window.location.origin to build a reliable redirect URI for the server
+    // Use window.location.origin to build a reliable redirect URI
+    // This avoids issues with environment variables.
     const loginUri = `${window.location.origin}/api/auth/google`;
 
     window.google.accounts.id.initialize({
       client_id: googleClientId,
       ux_mode: 'redirect',
-      login_uri: loginUri,
+      login_uri: loginUri, // Use the dynamically created URI
     });
+
     if (googleButtonRef.current) {
-      window.google.accounts.id.renderButton(
-        googleButtonRef.current,
-        { theme: "outline", size: "large", text: "continue_with", shape: "rectangular", logo_alignment: "left" }
-      );
+        window.google.accounts.id.renderButton(
+          googleButtonRef.current,
+          { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
+        );
     }
-    // Display the One Tap prompt
     window.google.accounts.id.prompt();
   }, [authLoading, user, googleClientId]);
 
@@ -57,7 +65,6 @@ export default function AuthForm() {
     e.preventDefault();
     setLoading(true);
     const actionCodeSettings = {
-      // Use window.location.origin here as it's for the email link back to the current browser context
       url: `${window.location.origin}/login`,
       handleCodeInApp: true,
     };
@@ -81,7 +88,7 @@ export default function AuthForm() {
     }
   };
 
-    if (authLoading || (user && !authLoading)) {
+  if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
@@ -99,7 +106,6 @@ export default function AuthForm() {
     );
   }
 
-  // Add a check for the appUrl as well
   if (!googleClientId) {
     return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
@@ -111,9 +117,9 @@ export default function AuthForm() {
             </CardHeader>
             <CardContent>
                 <p className="text-sm text-destructive-foreground">
-                    A required environment variable is missing. Please ensure the
+                    The Google Client ID is missing. Please add the 
                     <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    is set.
+                    variable to your environment.
                 </p>
             </CardContent>
         </Card>
@@ -130,7 +136,6 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* This div will be populated by the Google Sign-In button */}
         <div ref={googleButtonRef} className="w-full flex justify-center min-h-[40px]"></div>
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
