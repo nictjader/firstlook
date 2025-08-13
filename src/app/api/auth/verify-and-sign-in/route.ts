@@ -4,6 +4,8 @@ import { getFirestore } from 'firebase-admin/firestore';
 import { adminApp } from '@/lib/firebase/admin';
 import { cookies } from 'next/headers';
 
+const appUrl = (process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION : process.env.NEXT_PUBLIC_APP_URL_STAGING) || 'http://localhost:3001';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();

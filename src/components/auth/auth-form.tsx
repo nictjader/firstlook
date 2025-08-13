@@ -22,7 +22,7 @@ export default function AuthForm() {
 
   // Get the environment variables
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+  const appUrl = (process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION : process.env.NEXT_PUBLIC_APP_URL_STAGING) || 'http://localhost:3001';
 
   // This effect will initialize and render the Google Sign-In button and One Tap prompt
   useEffect(() => {
@@ -108,9 +108,7 @@ export default function AuthForm() {
                 <p className="text-sm text-destructive-foreground">
                     A required environment variable is missing. Please ensure both
                     <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    and
-                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_APP_URL</code>
-                    are set.
+                    and an app URL variable are set.
                 </p>
             </CardContent>
         </Card>
