@@ -5,7 +5,7 @@
   import { adminApp } from '@/lib/firebase/admin';
   import { cookies } from 'next/headers';
 
-  const appUrl = (process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION : process.env.NEXT_PUBLIC_APP_URL_STAGING) || 'http://localhost:3001';
+  const appUrl = ((process.env.NODE_ENV === 'production' ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION : process.env.NEXT_PUBLIC_APP_URL_STAGING) || 'http://localhost:3001').replace(/\/$/, '');
 
   async function handleAuth(request: NextRequest) {
     if (!appUrl) {
@@ -53,7 +53,7 @@
         httpOnly: true,
         secure: new URL(appUrl).protocol === 'https:',
         path: '/',
-        sameSite: 'lax', // Optional: Adjust based on your needs
+        sameSite: 'lax',
       });
 
       return NextResponse.json({ success: true });
