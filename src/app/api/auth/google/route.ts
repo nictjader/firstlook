@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL_STAGING || 'http://localhost:3001';
+  const appUrl = request.nextUrl.origin || 'http://localhost:3001';
 
   try {
     const formData = await request.formData();
