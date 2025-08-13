@@ -9,21 +9,30 @@ import { OAuth2Client } from 'google-auth-library';
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export async function POST(request: NextRequest) {
+  // This function is now structured to handle errors gracefully without crashing.
+  const getErrorRedirect = (message: string): NextResponse => {
+      const host = request.headers.get('host');
+      const protocol = host?.startsWith('localhost') ? 'http' : 'https';
+      const appUrl = `${protocol}://${host}`;
+      const loginUrl = new URL('/login', appUrl);
+      loginUrl.searchParams.set('error', message);
+      return NextResponse.redirect(loginUrl.toString());
+  };
+
   if (!googleClientId) {
     console.error("Server Error: Google Client ID is not configured.");
-    return NextResponse.json({ error: 'Server configuration error.' }, { status: 500 });
+    return getErrorRedirect('Server configuration error.');
   }
 
-  const googleClient = new OAuth2Client(googleClientId);
-  
   try {
     const formData = await request.formData();
     const credential = formData.get('credential');
 
     if (typeof credential !== 'string') {
-      return NextResponse.json({ error: 'Invalid credential provided.' }, { status: 400 });
+        return getErrorRedirect('Invalid credential provided.');
     }
 
+    const googleClient = new OAuth2Client(googleClientId);
     const ticket = await googleClient.verifyIdToken({
         idToken: credential,
         audience: googleClientId,
@@ -37,19 +46,18 @@ export async function POST(request: NextRequest) {
     const { sub: uid, email, name, picture } = payload;
     const auth = getAuth(adminApp);
     const db = getFirestore(adminApp);
-
     const userRef = db.collection('users').doc(uid);
     const userDoc = await userRef.get();
 
     if (!userDoc.exists) {
-      // Ensure user exists in Firebase Auth before creating profile
+      // This block might still throw a permission error, which will be caught below.
       try {
         await auth.getUser(uid);
       } catch (error: any) {
         if (error.code === 'auth/user-not-found') {
           await auth.createUser({ uid, email, displayName: name, photoURL: picture });
         } else {
-          throw error; // Re-throw other auth errors
+          throw error; // Re-throw other auth errors to be caught by the outer catch.
         }
       }
       
@@ -81,22 +89,14 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax'
     });
     
-    // Use the request's origin as the reliable base for redirect URLs.
+    // On success, reliably redirect to the profile page.
     const appUrl = request.nextUrl.origin;
     const redirectUrl = new URL('/profile', appUrl);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
-    console.error('Google Sign-In Error:', error);
-    
-    // This is the corrected error handling logic. It reliably gets the app's URL
-    // from the request headers to prevent the 'Invalid URL' crash.
-    const host = request.headers.get('host');
-    const protocol = host?.startsWith('localhost') ? 'http' : 'https';
-    const appUrl = `${protocol}://${host}`;
-    
-    const loginUrl = new URL('/login', appUrl);
-    loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
-    return NextResponse.redirect(loginUrl.toString());
+    console.error('Google Sign-In Error:', error.message || error);
+    // Use the reliable error redirect function.
+    return getErrorRedirect('Authentication failed. Please try again.');
   }
 }
