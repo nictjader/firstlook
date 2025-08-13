@@ -3,8 +3,8 @@
 import { initializeApp, getApps, App, getApp, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
-import { getStorage } from 'firebase/storage';
-
+import { getStorage } from 'firebase-admin/storage';
+import serviceAccount from './serviceAccountKey.json'; // Adjust path if needed
 
 // IMPORTANT: This initialization logic is designed to work in a serverless environment.
 // It checks if an app is already initialized to prevent re-initialization on hot reloads.
@@ -15,14 +15,13 @@ function initializeAdmin(): App {
         return apps[0];
     }
     
-    // The service account is automatically available in the App Hosting environment.
-    // No need to manage JSON files.
     const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID;
     if (!projectId) {
         throw new Error("NEXT_PUBLIC_FIREBASE_PROJECT_ID is not set in the environment.");
     }
 
     return initializeApp({
+        credential: cert(serviceAccount),
         projectId: projectId,
         storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
     });
