@@ -17,8 +17,7 @@
   import { useRouter, useSearchParams } from 'next/navigation';
   import { useToast } from '@/hooks/use-toast';
   import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-  import { Card, CardContent, CardHeader, CardFooter } from '@/components/ui/card';
-  import { Button } from '@/components/ui/button';
+  import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
   // This page must be dynamic because it handles authentication redirects and
   // relies on client-side state.
@@ -131,11 +130,6 @@
           </Alert>
         )}
         <AuthForm />
-        <CardFooter className="flex justify-center">
-          <Button onClick={handleGoogleSignIn} variant="outline">
-            Sign in with Google
-          </Button>
-        </CardFooter>
       </div>
     );
   }
