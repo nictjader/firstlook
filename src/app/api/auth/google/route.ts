@@ -1,3 +1,4 @@
+
 import { type NextRequest, NextResponse } from 'next/server';
 import { getAuth } from 'firebase-admin/auth';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -14,7 +15,8 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
-  const appUrl = request.nextUrl.origin || 'http://localhost:3001';
+  // Use the request's origin as the reliable base for redirect URLs.
+  const appUrl = request.nextUrl.origin;
 
   try {
     const formData = await request.formData();
@@ -49,7 +51,7 @@ export async function POST(request: NextRequest) {
         if (error.code === 'auth/user-not-found') {
           await auth.createUser({ uid, email, displayName: name, photoURL: picture });
         } else {
-          throw error;
+          throw error; // Re-throw other auth errors
         }
       }
       
@@ -88,6 +90,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     
+    // This is the corrected error handling logic.
     const loginUrl = new URL('/login', appUrl);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
