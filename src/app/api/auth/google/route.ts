@@ -15,9 +15,7 @@ export async function POST(request: NextRequest) {
   }
 
   const googleClient = new OAuth2Client(googleClientId);
-  // Use the request's origin as the reliable base for redirect URLs.
-  const appUrl = request.nextUrl.origin;
-
+  
   try {
     const formData = await request.formData();
     const credential = formData.get('credential');
@@ -83,14 +81,20 @@ export async function POST(request: NextRequest) {
       sameSite: 'lax'
     });
     
-    // Redirect to the profile page on success
+    // Use the request's origin as the reliable base for redirect URLs.
+    const appUrl = request.nextUrl.origin;
     const redirectUrl = new URL('/profile', appUrl);
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Google Sign-In Error:', error);
     
-    // This is the corrected error handling logic.
+    // This is the corrected error handling logic. It reliably gets the app's URL
+    // from the request headers to prevent the 'Invalid URL' crash.
+    const host = request.headers.get('host');
+    const protocol = host?.startsWith('localhost') ? 'http' : 'https';
+    const appUrl = `${protocol}://${host}`;
+    
     const loginUrl = new URL('/login', appUrl);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
