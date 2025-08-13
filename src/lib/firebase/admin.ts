@@ -1,10 +1,9 @@
-
 // THIS FILE IS FOR SERVER-SIDE FIREBASE INIT ONLY
 
 import { initializeApp, getApps, App, getApp, cert } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
-import { getStorage } from 'firebase-admin/storage';
+import { getStorage } from 'firebase/storage';
 
 
 // IMPORTANT: This initialization logic is designed to work in a serverless environment.
