@@ -87,10 +87,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
-    console.error('Google Sign-In Error:', {
-        message: error.message,
-        stack: error.stack,
-    });
+    console.error('Google Sign-In Error:', error);
     const loginUrl = new URL('/login', request.nextUrl.origin);
     loginUrl.searchParams.set('error', 'Authentication failed. Please try again.');
     return NextResponse.redirect(loginUrl.toString());
