@@ -1,13 +1,16 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async headers() {
+    const appUrl = process.env.NODE_ENV === 'production'
+      ? process.env.NEXT_PUBLIC_APP_URL_PRODUCTION
+      : process.env.NEXT_PUBLIC_APP_URL_STAGING;
     return [
       {
         source: '/(.*)',
         headers: [
           {
             key: 'Access-Control-Allow-Origin',
-            value: 'https://6000-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
+            value: appUrl || 'http://localhost:3001',
           },
           {
             key: 'Permissions-Policy',
@@ -23,8 +26,8 @@ const nextConfig = {
       { protocol: 'https', hostname: 'storage.googleapis.com' },
     ],
   },
-  allowedDevOrigins: [
-    'https://6000-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
+  allowedDevOrigins: process.env.NODE_ENV === 'production' ? [] : [
+    process.env.NEXT_PUBLIC_APP_URL_STAGING,
   ],
 };
 

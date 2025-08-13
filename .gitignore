@@ -36,3 +36,4 @@ firebase-export/
 firestore-debug.log
 storage-debug.log
 database-debug.log
+src/lib/firebase/serviceAccountKey.json
