@@ -26,11 +26,12 @@ const nextConfig = {
     ],
   },
   // This is the direct fix for the cross-origin errors in development.
-  // It should be a top-level key, not under 'experimental'.
+  // It must be a top-level key.
+  allowedDevOrigins: [
+    'https://3001-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
+  ],
   experimental: {
-    allowedDevOrigins: [
-      'https://3001-firebase-studio-1748896253212.cluster-lqnxvk7thvfw4wbonsercicksm.cloudworkstations.dev',
-    ],
+    // Keep this block if other experimental features are added, otherwise it can be removed.
   }
 };
 
