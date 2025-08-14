@@ -88,6 +88,7 @@ export default function AuthForm() {
         { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
       );
     }
+    window.google.accounts.id.prompt();
   }, [googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
