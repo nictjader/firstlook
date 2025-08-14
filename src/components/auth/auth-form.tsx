@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
-import { sendSignInLinkToEmail } from 'firebase/auth';
+import { 
+  sendSignInLinkToEmail, 
+  signInWithCredential, 
+  GoogleAuthProvider 
+} from 'firebase/auth';
 import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,29 +28,24 @@ export default function AuthForm() {
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  // New handler for Google Sign-In callback
+  // New handler for Google Sign-In callback, following Firebase documentation
   const handleGoogleSignIn = async (response: any) => {
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/verify-and-sign-in', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          credential: response,
-          clientRedirectUri: window.location.origin
-        }),
+      // Build Firebase credential with the Google ID token.
+      const idToken = response.credential;
+      const credential = GoogleAuthProvider.credential(idToken);
+
+      // Sign in with credential from the Google user.
+      await signInWithCredential(auth, credential);
+      
+      // onAuthStateChanged in AuthProvider will handle the redirect
+      toast({
+        title: "Sign In Successful",
+        description: "Welcome back!",
+        variant: "success",
       });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        // Server-side session was created, redirect to the profile page
-        router.push(data.redirectUrl || '/profile');
-      } else {
-        throw new Error(data.error || 'Failed to sign in.');
-      }
+      // The redirect is handled by the main useEffect
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -79,7 +78,7 @@ export default function AuthForm() {
 
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      callback: handleGoogleSignIn, // Use the new callback handler
+      callback: handleGoogleSignIn, // Use the new Firebase client-side handler
     });
 
     const googleButtonParent = document.getElementById('google-button-parent');
