@@ -17,9 +17,9 @@
       "cpu": 1,
       "name": "studio",
       "environment": {
-        "STRIPE_SECRET_KEY": "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",
-        "STRIPE_WEBHOOK_SECRET": "whsec_qednrR0TmpYSKipTZfWR94T1kH1BPK7y",
-        "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "958286415810-5lrmshpsdaskr6gd3j8gt2q4809mclfa.apps.googleusercontent.com"
+        "STRIPE_SECRET_KEY": "REPLACE_WITH_YOUR_STRIPE_SECRET_KEY",
+        "STRIPE_WEBHOOK_SECRET": "REPLACE_WITH_YOUR_STRIPE_WEBHOOK_SECRET",
+        "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "REPLACE_WITH_A_CORRECTLY_CONFIGURED_GOOGLE_CLIENT_ID"
       }
     }
   },
