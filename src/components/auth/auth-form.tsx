@@ -28,24 +28,20 @@ export default function AuthForm() {
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-  // New handler for Google Sign-In callback, following Firebase documentation
-  const handleGoogleSignIn = async (response: any) => {
+  // Handles the credential response from Google's script
+  const handleCredentialResponse = async (response: any) => {
     setLoading(true);
     try {
-      // Build Firebase credential with the Google ID token.
       const idToken = response.credential;
       const credential = GoogleAuthProvider.credential(idToken);
-
-      // Sign in with credential from the Google user.
       await signInWithCredential(auth, credential);
       
-      // onAuthStateChanged in AuthProvider will handle the redirect
       toast({
         title: "Sign In Successful",
         description: "Welcome back!",
         variant: "success",
       });
-      // The redirect is handled by the main useEffect
+      // Redirect is handled by the main useEffect
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -58,7 +54,7 @@ export default function AuthForm() {
     }
   };
 
-
+  // Redirect user if they are already logged in
   useEffect(() => {
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
@@ -66,30 +62,37 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
 
+  // Initialize Google Sign-In
   useEffect(() => {
-    if (gsiInitialized.current || !googleClientId) {
+    if (gsiInitialized.current || !googleClientId || authLoading || user) {
       return;
     }
+
+    // Ensure the Google script is loaded
     if (typeof window.google === 'undefined' || !window.google.accounts) {
-      console.error("Google GSI script not loaded.");
+      // Script not loaded yet, this effect will re-run
       return;
     }
+    
     gsiInitialized.current = true;
 
     window.google.accounts.id.initialize({
       client_id: googleClientId,
-      callback: handleGoogleSignIn, // Use the new Firebase client-side handler
+      callback: handleCredentialResponse,
     });
 
     const googleButtonParent = document.getElementById('google-button-parent');
     if (googleButtonParent) {
       window.google.accounts.id.renderButton(
         googleButtonParent,
-        { theme: 'outline', size: 'large', text: 'continue_with', shape: 'rectangular', logo_alignment: 'left' }
+        { theme: 'outline', size: 'large', type: 'standard', shape: 'rectangular', logo_alignment: 'left' }
       );
     }
+
+    // Show the One Tap prompt
     window.google.accounts.id.prompt();
-  }, [googleClientId]);
+
+  }, [googleClientId, authLoading, user]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -117,19 +120,19 @@ export default function AuthForm() {
       setLoading(false);
     }
   };
-
-  if (authLoading || (user && !authLoading) || loading) {
+  
+  if (authLoading || (user && !authLoading)) {
      return (
         <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
             <CardHeader>
                 <CardTitle className="text-2xl font-semibold tracking-tight flex items-center justify-center">
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                  {loading ? 'Signing in...' : 'Verifying...'}
+                  Verifying...
                 </CardTitle>
             </CardHeader>
             <CardContent>
                 <p className="text-muted-foreground">
-                    Please wait while we complete the sign-in process.
+                    Please wait while we check your login status.
                 </p>
             </CardContent>
         </Card>
@@ -166,7 +169,9 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        {/* The Google button will be rendered here by the GSI script */}
         <div id="google-button-parent" className="w-full flex justify-center min-h-[40px]"></div>
+        
         <div className="relative">
             <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
             <div className="relative flex justify-center text-xs uppercase">
