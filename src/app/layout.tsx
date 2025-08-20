@@ -7,6 +7,8 @@ import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-context';
 import GoogleAnalytics from '@/components/analytics/google-analytics';
 import Script from 'next/script';
+import Header from '@/components/layout/header';
+import Footer from '@/components/layout/footer';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -43,7 +45,13 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            {children}
+            <div className="flex flex-col min-h-screen">
+              <Header />
+              <main className="flex-grow container mx-auto px-4 py-8">
+                {children}
+              </main>
+              <Footer />
+            </div>
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
