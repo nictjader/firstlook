@@ -22,5 +22,8 @@
         "NEXT_PUBLIC_GOOGLE_CLIENT_ID": "REPLACE_WITH_A_CORRECTLY_CONFIGURED_GOOGLE_CLIENT_ID"
       }
     }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
   }
 }

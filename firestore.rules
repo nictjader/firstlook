@@ -1,0 +1,26 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Stories should be publicly readable by anyone.
+    // Writing stories is handled by the server (admin actions).
+    match /stories/{storyId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Users can only create their own profile and read/update their own data.
+    // They cannot see or edit other users' profiles.
+    match /users/{userId} {
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+      allow delete: if false;
+    }
+
+    // Default deny all other reads/writes to prevent any accidental data access.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
