@@ -15,7 +15,7 @@
       "maxInstances": 100,
       "concurrency": 80,
       "cpu": 1,
-      "name": "studio",
+      "name": "siren-h2y45",
       "environment": {
         "STRIPE_SECRET_KEY": "REPLACE_WITH_YOUR_STRIPE_SECRET_KEY",
         "STRIPE_WEBHOOK_SECRET": "REPLACE_WITH_YOUR_STRIPE_WEBHOOK_SECRET",
