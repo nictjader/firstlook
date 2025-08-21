@@ -2,9 +2,11 @@
 import StoryList from '@/components/story/story-list';
 import SubgenreFilter from '@/components/story/subgenre-filter';
 import { Suspense } from 'react';
-import type { Subgenre } from '@/lib/types';
+import type { Subgenre, Story } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { getStories } from '@/lib/actions/storyActions';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 // Revalidate the page every 5 minutes to fetch new stories
 export const revalidate = 300;
@@ -28,9 +30,17 @@ const StoryListSkeleton = () => (
 
 export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
   const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
+  
+  let stories: Story[] = [];
+  let error: string | null = null;
 
-  // Fetch only the stories needed for the current view
-  const stories = await getStories({ subgenre: selectedSubgenre });
+  try {
+    // Fetch only the stories needed for the current view
+    stories = await getStories({ subgenre: selectedSubgenre });
+  } catch (e: any) {
+    console.error("Error fetching stories for homepage:", e);
+    error = e.message || "An unknown error occurred while fetching stories.";
+  }
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -44,6 +54,18 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
       </div>
 
       <SubgenreFilter />
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error Loading Stories</AlertTitle>
+          <AlertDescription>
+            Could not connect to the database. Please ensure your Firebase project is configured correctly and Firestore is enabled.
+            <br />
+            <strong className="mt-2 block">Details: {error}</strong>
+          </AlertDescription>
+        </Alert>
+      )}
 
       <Suspense fallback={<StoryListSkeleton />}>
         <StoryList stories={stories} />
