@@ -28,9 +28,13 @@ const StoryListSkeleton = () => (
   </div>
 );
 
-export default async function HomePage({ searchParams }: { searchParams?: { [key: string]: string | undefined } }) {
-  const selectedSubgenre = (searchParams?.subgenre as Subgenre) || 'all';
-  
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams?: { [key: string]: string | string[] | undefined };
+}) {
+  const selectedSubgenre =
+    (searchParams?.subgenre as Subgenre) || 'all';
   let stories: Story[] = [];
   let error: string | null = null;
 
@@ -38,8 +42,9 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
     // Fetch only the stories needed for the current view
     stories = await getStories({ subgenre: selectedSubgenre });
   } catch (e: any) {
-    console.error("Critical error fetching stories for homepage:", e);
-    error = e.message || "An unknown error occurred while fetching stories.";
+    console.error('Critical error fetching stories for homepage:', e);
+    error =
+      e.message || 'An unknown error occurred while fetching stories.';
   }
 
   return (
@@ -49,7 +54,8 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
           Discover Your Next Obsession
         </h1>
         <p className="text-muted-foreground">
-          Dive into a world of passion and adventure. Your next favorite story awaits.
+          Dive into a world of passion and adventure. Your next favorite story
+          awaits.
         </p>
       </div>
 
@@ -60,8 +66,10 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error Loading Stories</AlertTitle>
           <AlertDescription>
-            Could not retrieve stories from the database. This might be a connection or a permissions issue.
-            Please ensure your Firebase project is configured correctly and the security rules for the 'stories' collection allow public reads.
+            Could not retrieve stories from the database. This might be a
+            connection or a permissions issue. Please ensure your Firebase
+            project is configured correctly and the security rules for the
+            'stories' collection allow public reads.
             <br />
             <strong className="mt-2 block">Details: {error}</strong>
           </AlertDescription>
@@ -69,11 +77,13 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
       )}
 
       {!error && stories.length === 0 && (
-         <Alert>
+        <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>No Stories Found</AlertTitle>
           <AlertDescription>
-            The database connection was successful, but no stories were found in the 'stories' collection for the selected filter. Please check your Firestore database to ensure it contains story documents.
+            The database connection was successful, but no stories were found in
+            the 'stories' collection for the selected filter. Please check your
+            Firestore database to ensure it contains story documents.
           </AlertDescription>
         </Alert>
       )}
