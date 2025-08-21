@@ -28,7 +28,7 @@ const requiredConfigKeys = [
 for (const key of requiredConfigKeys) {
   if (!firebaseConfig[key]) {
     // In a production build, this will throw an error. In development, it helps identify missing variables.
-    throw new Error(`Missing Firebase configuration: ${key}. Please check your .env file.`);
+    throw new Error(`CRITICAL: Missing Firebase configuration for ${key}. Please check your project's environment variables. The app cannot connect to Firebase without this.`);
   }
 }
 
