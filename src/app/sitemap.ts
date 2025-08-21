@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next';
 import { getStories } from '@/lib/actions/storyActions';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.tryfirstlook.com';
+  const siteUrl = 'https://www.tryfirstlook.com';
 
   // Base pages
   const routes = ['', '/privacy', '/terms', '/feedback'].map((route) => ({

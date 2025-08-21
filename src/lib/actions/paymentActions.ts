@@ -92,7 +92,7 @@ export async function createCheckoutSession(
   }
 
   try {
-    const origin = process.env.NEXT_PUBLIC_SITE_URL || headers().get('origin') || 'http://localhost:3000';
+    const origin = 'https://www.tryfirstlook.com';
     
     // On success, always redirect to the profile page to show the updated balance.
     const successUrl = `${origin}/profile?purchase_success=true`;
@@ -252,5 +252,3 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
     return [];
   }
 }
-
-    
