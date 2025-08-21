@@ -35,16 +35,16 @@ export async function getStories(options: GetStoriesOptions = {}): Promise<Story
     const snapshot = await storiesQuery.get();
 
     if (snapshot.empty) {
-      console.warn(`No stories found for subgenre: ${subgenre}`);
+      // This is not an error, just an empty result.
       return [];
     }
     
     return snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
 
   } catch (error) {
-    console.error(`Critical error in getStories for subgenre "${subgenre}":`, error);
-    // In case of an error, return an empty array to prevent the page from crashing.
-    return [];
+    console.error(`CRITICAL: Firestore query failed in getStories for subgenre "${subgenre}". Check Firestore permissions and index configuration.`, error);
+    // Re-throw the error to be caught by the calling page component
+    throw new Error('Failed to fetch stories from the database.');
   }
 }
 

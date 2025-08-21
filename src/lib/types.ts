@@ -77,7 +77,7 @@ function safeToISOString(timestamp: any): string {
         }
     }
     // Fallback for unexpected types
-    console.warn("Unsupported timestamp format:", timestamp);
+    console.warn("Unsupported timestamp format:", timestamp, "Returning current date as fallback.");
     return new Date().toISOString();
 }
 

@@ -38,7 +38,7 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
     // Fetch only the stories needed for the current view
     stories = await getStories({ subgenre: selectedSubgenre });
   } catch (e: any) {
-    console.error("Error fetching stories for homepage:", e);
+    console.error("Critical error fetching stories for homepage:", e);
     error = e.message || "An unknown error occurred while fetching stories.";
   }
 
@@ -60,9 +60,20 @@ export default async function HomePage({ searchParams }: { searchParams?: { [key
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Error Loading Stories</AlertTitle>
           <AlertDescription>
-            Could not connect to the database. Please ensure your Firebase project is configured correctly and Firestore is enabled.
+            Could not retrieve stories from the database. This might be a connection or a permissions issue.
+            Please ensure your Firebase project is configured correctly and the security rules for the 'stories' collection allow public reads.
             <br />
             <strong className="mt-2 block">Details: {error}</strong>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {!error && stories.length === 0 && (
+         <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>No Stories Found</AlertTitle>
+          <AlertDescription>
+            The database connection was successful, but no stories were found in the 'stories' collection for the selected filter. Please check your Firestore database to ensure it contains story documents.
           </AlertDescription>
         </Alert>
       )}
