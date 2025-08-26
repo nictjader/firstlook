@@ -18,11 +18,10 @@ interface GetStoriesOptions {
  * @returns A promise that resolves to an array of Story objects.
  */
 export async function getStories(options: GetStoriesOptions = {}): Promise<Story[]> {
-  await adminAppPromise; // Ensure Firebase Admin is initialized
   const { subgenre = 'all' } = options;
 
   try {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     let storiesQuery: Query = db.collection('stories');
 
     // Always order by published date to get the newest stories first
@@ -59,9 +58,8 @@ export async function getStories(options: GetStoriesOptions = {}): Promise<Story
  * @returns The story object or null if not found.
  */
 export async function getStoryById(storyId: string): Promise<Story | null> {
-    await adminAppPromise; // Ensure Firebase Admin is initialized
     try {
-        const db = getAdminDb();
+        const db = await getAdminDb();
         const storyRef = db.collection('stories').doc(storyId);
         const storyDoc = await storyRef.get();
 
@@ -84,13 +82,12 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
  * @returns An array of story objects belonging to the series, sorted by part number.
  */
 export async function getSeriesParts(seriesId: string): Promise<Story[]> {
-    await adminAppPromise; // Ensure Firebase Admin is initialized
     if (!seriesId) {
         return [];
     }
     
     try {
-        const db = getAdminDb();
+        const db = await getAdminDb();
         const storiesRef = db.collection('stories');
         
         const q = storiesRef.where('seriesId', '==', seriesId);

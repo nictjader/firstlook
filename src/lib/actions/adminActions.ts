@@ -22,7 +22,7 @@ import { getCoinPurchaseHistory } from './paymentActions';
  * @returns A randomly selected StorySeed or null if all seeds are used.
  */
 async function selectUnusedSeed(): Promise<StorySeed | null> {
-  const db = getAdminDb();
+  const db = await getAdminDb();
   const storiesRef = db.collection('stories');
   // Query for documents that have the 'seedTitleIdea' field.
   const snapshot = await storiesRef.select('seedTitleIdea').get();
@@ -61,7 +61,8 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
       throw new Error(storyResult.error || 'Story generation flow failed to return story data.');
     }
     
-    const storyDocRef = getAdminDb().collection('stories').doc(storyResult.storyId);
+    const db = await getAdminDb();
+    const storyDocRef = db.collection('stories').doc(storyResult.storyId);
     await storyDocRef.set({
         ...storyResult.storyData,
         publishedAt: FieldValue.serverTimestamp(),
@@ -96,7 +97,7 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
  * @returns A promise that resolves to the public URL of the uploaded image.
  */
 export async function generateAndUploadCoverImageAction(storyId: string, prompt: string): Promise<string> {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     
     if (!prompt) {
         console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
@@ -164,7 +165,7 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
  * It matches stories to their seeds by title and updates the `subgenre` field.
  */
 export async function standardizeGenresAction(): Promise<CleanupResult> {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.get();
 
@@ -209,7 +210,7 @@ export async function standardizeGenresAction(): Promise<CleanupResult> {
  * A one-time action to remove the 'tags' field from all stories in Firestore.
  */
 export async function removeTagsAction(): Promise<CleanupResult> {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.where('tags', '!=', null).get();
 
@@ -240,7 +241,7 @@ export async function removeTagsAction(): Promise<CleanupResult> {
  * Analyzes all stories in the database to provide clear, actionable composition and pricing metrics.
  */
 export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
@@ -375,7 +376,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
  * This is now robust enough to handle both standalone stories and multi-chapter series.
  */
 export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
@@ -452,7 +453,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
 
 export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
-  const db = getAdminDb();
+  const db = await getAdminDb();
   const pricingMap = new Map(chapterPricingData.map(p => [p.chapterId, p.newCoinCost]));
 
   if (pricingMap.size === 0) {
@@ -487,7 +488,7 @@ export async function standardizeStoryPricesAction(): Promise<CleanupResult> {
  * Fetches and formats data for all chapters for strategic analysis.
  */
 export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const storiesRef = db.collection('stories');
     const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
 
@@ -527,7 +528,7 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
   
   try {
     console.log(`[Resync] Starting balance resynchronization for user: ${userId}`);
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const userRef = db.collection('users').doc(userId);
     const storiesRef = db.collection('stories');
     

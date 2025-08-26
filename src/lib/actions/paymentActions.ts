@@ -38,7 +38,7 @@ async function getRawBody(request: Request): Promise<Buffer> {
  * @returns The Stripe Customer ID.
  */
 async function getOrCreateStripeCustomerId(userId: string, email: string | null): Promise<string> {
-  const db = getAdminDb();
+  const db = await getAdminDb();
   const userRef = db.collection('users').doc(userId);
   const userDoc = await userRef.get();
   
@@ -102,7 +102,7 @@ export async function createCheckoutSession(
         ? `${origin}${redirectPath}` 
         : `${origin}/buy-coins?cancelled=true`;
         
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const userDoc = await db.collection('users').doc(userId).get();
     const userEmail = userDoc.data()?.email || null;
 
@@ -212,7 +212,7 @@ export async function getCoinPurchaseHistory(userId: string): Promise<CoinTransa
   }
 
   try {
-    const db = getAdminDb();
+    const db = await getAdminDb();
     const userDoc = await db.collection('users').doc(userId).get();
     const user = userDoc.data();
     
