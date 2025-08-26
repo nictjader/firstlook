@@ -25,12 +25,8 @@ export async function getStories(options: GetStoriesOptions = {}): Promise<Story
     const db = getAdminDb();
     let storiesQuery: Query = db.collection('stories');
 
-    // Apply subgenre filter if it's not 'all'
-    if (subgenre !== 'all') {
-      storiesQuery = storiesQuery.where('subgenre', '==', subgenre);
-    }
-
     // Always order by published date to get the newest stories first
+    // This is a simple query that doesn't require a composite index.
     storiesQuery = storiesQuery.orderBy('publishedAt', 'desc');
 
     const snapshot = await storiesQuery.get();
@@ -40,19 +36,17 @@ export async function getStories(options: GetStoriesOptions = {}): Promise<Story
       return [];
     }
     
-    const stories = snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+    let stories = snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
 
-    // This logic is now redundant since we are filtering in the query.
-    // However, if the query fails due to a missing index, this could be a fallback.
-    // For now, we trust the query.
-    // if (subgenre !== 'all') {
-    //   return stories.filter(story => story.subgenre === subgenre);
-    // }
+    // Perform filtering in code after fetching, which avoids the composite index requirement.
+    if (subgenre !== 'all') {
+      stories = stories.filter(story => story.subgenre === subgenre);
+    }
 
     return stories;
 
   } catch (error) {
-    console.error(`CRITICAL: Firestore query failed in getStories for subgenre "${subgenre}". Check Firestore permissions and index configuration.`, error);
+    console.error(`CRITICAL: Firestore query failed in getStories for subgenre "${subgenre}". This might indicate a permissions issue if it persists.`, error);
     // Re-throw the error to be caught by the calling page component
     throw new Error('Failed to fetch stories from the database.');
   }
