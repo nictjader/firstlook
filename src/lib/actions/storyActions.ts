@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getAdminDb } from '@/lib/firebase/admin';
+import { getAdminDb, adminAppPromise } from '@/lib/firebase/admin';
 import type { Story, Subgenre } from '@/lib/types';
 import { docToStory } from '@/lib/types';
 import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore';
@@ -18,6 +18,7 @@ interface GetStoriesOptions {
  * @returns A promise that resolves to an array of Story objects.
  */
 export async function getStories(options: GetStoriesOptions = {}): Promise<Story[]> {
+  await adminAppPromise; // Ensure Firebase Admin is initialized
   const { subgenre = 'all' } = options;
 
   try {
@@ -39,7 +40,16 @@ export async function getStories(options: GetStoriesOptions = {}): Promise<Story
       return [];
     }
     
-    return snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+    const stories = snapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+
+    // This logic is now redundant since we are filtering in the query.
+    // However, if the query fails due to a missing index, this could be a fallback.
+    // For now, we trust the query.
+    // if (subgenre !== 'all') {
+    //   return stories.filter(story => story.subgenre === subgenre);
+    // }
+
+    return stories;
 
   } catch (error) {
     console.error(`CRITICAL: Firestore query failed in getStories for subgenre "${subgenre}". Check Firestore permissions and index configuration.`, error);
@@ -55,6 +65,7 @@ export async function getStories(options: GetStoriesOptions = {}): Promise<Story
  * @returns The story object or null if not found.
  */
 export async function getStoryById(storyId: string): Promise<Story | null> {
+    await adminAppPromise; // Ensure Firebase Admin is initialized
     try {
         const db = getAdminDb();
         const storyRef = db.collection('stories').doc(storyId);
@@ -79,6 +90,7 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
  * @returns An array of story objects belonging to the series, sorted by part number.
  */
 export async function getSeriesParts(seriesId: string): Promise<Story[]> {
+    await adminAppPromise; // Ensure Firebase Admin is initialized
     if (!seriesId) {
         return [];
     }

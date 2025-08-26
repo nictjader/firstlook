@@ -9,6 +9,9 @@ import { getStorage } from 'firebase-admin/storage';
 // IMPORTANT: This initialization logic is designed to work in a serverless environment
 // like Firebase App Hosting. It checks if an app is already initialized to prevent
 // errors during hot-reloads in development.
+let adminApp: App;
+let adminAppPromise: Promise<App>;
+
 function initializeAdmin(): App {
     if (getApps().length > 0) {
         return getApps()[0];
@@ -20,9 +23,12 @@ function initializeAdmin(): App {
     return initializeApp();
 }
 
-const adminApp: App = initializeAdmin();
+adminApp = initializeAdmin();
+adminAppPromise = Promise.resolve(adminApp);
+
+
 const adminDb: Firestore = getFirestore(adminApp);
 const adminAuth: Auth = getAuth(adminApp);
 const adminStorage = getStorage(adminApp);
 
-export { adminApp, adminDb as getAdminDb, adminAuth as getAdminAuth, adminStorage as getAdminStorage };
+export { adminApp, adminAppPromise, adminDb as getAdminDb, adminAuth as getAdminAuth, adminStorage as getAdminStorage };
