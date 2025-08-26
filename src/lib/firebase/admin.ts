@@ -5,55 +5,20 @@ import { initializeApp, getApps, App, cert, type AppOptions } from 'firebase-adm
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getStorage } from 'firebase-admin/storage';
-import { GoogleAuth } from 'google-auth-library';
 
 let adminApp: App;
 let adminAppPromise: Promise<App>;
 
-async function initializeAdminApp(): Promise<App> {
-    if (getApps().length > 0) {
-        return getApps()[0];
-    }
-
-    // When running in a Google Cloud environment (like App Hosting),
-    // the google-auth-library can automatically find the default service account credentials.
-    const auth = new GoogleAuth({
-        scopes: [
-            'https://www.googleapis.com/auth/cloud-platform',
-            'https://www.googleapis.com/auth/datastore',
-            'https://www.googleapis.com/auth/devstorage.full_control',
-            'https://www.googleapis.com/auth/firebase',
-            'https://www.googleapis.com/auth/identitytoolkit',
-            'https://www.googleapis.com/auth/userinfo.email',
-        ],
-    });
-
-    const credential = {
-        getAccessToken: async () => {
-            const client = await auth.getClient();
-            const accessToken = await client.getAccessToken();
-            return {
-                access_token: accessToken.token!,
-                expires_in: accessToken.expires_in!,
-            };
-        },
-    };
-    
-    // Initialize the app with the retrieved credentials.
-    return initializeApp({
-        credential: {
-            getAccessToken: credential.getAccessToken,
-        },
-        // The SDK will automatically detect the project ID in the App Hosting environment.
-        // We can also make it explicit for robustness.
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-    });
+// This simplified initialization is the standard and correct way for App Hosting.
+// It automatically finds the project's service account credentials from the environment.
+if (getApps().length === 0) {
+  adminApp = initializeApp();
+  adminAppPromise = Promise.resolve(adminApp);
+} else {
+  adminApp = getApps()[0];
+  adminAppPromise = Promise.resolve(adminApp);
 }
 
-adminAppPromise = initializeAdminApp();
-adminAppPromise.then(app => {
-    adminApp = app;
-}).catch(console.error);
 
 // We must export functions that await the promise to ensure initialization is complete.
 const getAdminDb = async (): Promise<Firestore> => {
