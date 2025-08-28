@@ -1,18 +1,14 @@
+'use client';
 
+import { Suspense, useEffect, useState } from 'react';
 import StoryList from '@/components/story/story-list';
 import SubgenreFilter from '@/components/story/subgenre-filter';
-import { Suspense } from 'react';
 import type { Subgenre, Story } from '@/lib/types';
 import { Skeleton } from '@/components/ui/skeleton';
-import { getStories } from '@/lib/actions/storyActions';
+import { getStoriesClient } from '@/lib/actions/storyActions.client';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { AlertCircle } from 'lucide-react';
-
-// Revalidate the page every 5 minutes to fetch new stories
-export const revalidate = 300;
-
-// Force dynamic rendering because SubgenreFilter uses useSearchParams
-export const dynamic = 'force-dynamic';
+import { AlertCircle, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 const StoryListSkeleton = () => (
   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -28,24 +24,31 @@ const StoryListSkeleton = () => (
   </div>
 );
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams?: { [key: string]: string | string[] | undefined };
-}) {
-  const selectedSubgenre =
-    (searchParams?.subgenre as Subgenre) || 'all';
-  let stories: Story[] = [];
-  let error: string | null = null;
+function HomePageContent() {
+  const searchParams = useSearchParams();
+  const selectedSubgenre = (searchParams.get('subgenre') as Subgenre) || 'all';
 
-  try {
-    // Fetch only the stories needed for the current view
-    stories = await getStories({ subgenre: selectedSubgenre });
-  } catch (e: any) {
-    console.error('Critical error fetching stories for homepage:', e);
-    error =
-      e.message || 'An unknown error occurred while fetching stories.';
-  }
+  const [stories, setStories] = useState<Story[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStories = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const fetchedStories = await getStoriesClient({ subgenre: selectedSubgenre });
+        setStories(fetchedStories);
+      } catch (e: any) {
+        console.error("Critical error fetching stories:", e);
+        setError(e.message || "An unknown error occurred while fetching stories.");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStories();
+  }, [selectedSubgenre]);
 
   return (
     <div className="space-y-6 sm:space-y-8">
@@ -76,21 +79,20 @@ export default async function HomePage({
         </Alert>
       )}
 
-      {!error && stories.length === 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Stories Found</AlertTitle>
-          <AlertDescription>
-            The database connection was successful, but no stories were found in
-            the 'stories' collection for the selected filter. Please check your
-            Firestore database to ensure it contains story documents.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      <Suspense fallback={<StoryListSkeleton />}>
+      {isLoading ? (
+        <StoryListSkeleton />
+      ) : (
         <StoryList stories={stories} />
-      </Suspense>
+      )}
     </div>
   );
+}
+
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-96"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>}>
+        <HomePageContent />
+    </Suspense>
+  )
 }

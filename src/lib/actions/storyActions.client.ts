@@ -1,10 +1,38 @@
 
 "use client";
 
-import type { Story } from "@/lib/types";
+import type { Story, Subgenre } from "@/lib/types";
 import { docToStory } from "@/lib/types";
-import { collection, query, where, getDocs, documentId } from 'firebase/firestore';
+import { collection, query, where, getDocs, documentId, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
+
+interface GetStoriesOptions {
+  subgenre?: Subgenre | 'all';
+  limit?: number;
+}
+
+/**
+ * Fetches stories from the database with optional filters.
+ * This is the primary function for fetching story lists on the client.
+ * @param options - An object with filtering options like subgenre and limit.
+ * @returns A promise that resolves to an array of Story objects.
+ */
+export async function getStoriesClient(options: GetStoriesOptions = {}): Promise<Story[]> {
+  const { subgenre = 'all' } = options;
+
+  const storiesRef = collection(db, 'stories');
+  let q;
+
+  if (subgenre === 'all') {
+    q = query(storiesRef, orderBy('publishedAt', 'desc'));
+  } else {
+    q = query(storiesRef, where('subgenre', '==', subgenre), orderBy('publishedAt', 'desc'));
+  }
+
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => docToStory(doc));
+}
+
 
 /**
  * Fetches multiple story documents from Firestore by their IDs.

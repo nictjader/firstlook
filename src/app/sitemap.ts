@@ -1,6 +1,24 @@
 
 import { MetadataRoute } from 'next';
-import { getStories } from '@/lib/actions/storyActions';
+import { getAdminDb } from '@/lib/firebase/admin';
+import { docToStory } from '@/lib/types';
+import type { Story } from '@/lib/types';
+
+async function getAllStoriesForSitemap(): Promise<Story[]> {
+    try {
+        const db = await getAdminDb();
+        const storiesRef = db.collection('stories');
+        const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+        if (snapshot.empty) {
+            return [];
+        }
+        return snapshot.docs.map(doc => docToStory(doc));
+    } catch (error) {
+        console.error("Failed to fetch stories for sitemap, returning empty array.", error);
+        return [];
+    }
+}
+
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = 'https://www.tryfirstlook.com';
@@ -14,7 +32,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
   
   // Story pages
-  const stories = await getStories();
+  const stories = await getAllStoriesForSitemap();
   const storyRoutes = stories.map((story) => ({
     url: `${siteUrl}/stories/${story.storyId}`,
     lastModified: new Date(story.publishedAt).toISOString(),
