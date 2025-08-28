@@ -1,4 +1,3 @@
-
 /**
  * @fileoverview This file provides a singleton instance of the Genkit AI object.
  * All server-side code that needs to interact with Genkit should import the `ai`
@@ -10,7 +9,7 @@
  */
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { firebase } from '@genkit-ai/firebase';
+import { firebase } from '@genkit-ai/firebase/plugin';
 
 // This file is now ONLY for AI-related initialization.
 // The firebase() plugin is required for Genkit to properly integrate with Firebase services.
