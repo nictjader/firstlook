@@ -9,10 +9,10 @@
  */
 import { genkit } from 'genkit';
 import { googleAI } from '@genkit-ai/googleai';
-import { firebasePlugin } from '@genkit-ai/firebase';
+import { firebase } from '@genkit-ai/firebase/plugin';
 
 // This file is now ONLY for AI-related initialization.
-// The firebasePlugin() is required for Genkit to properly integrate with Firebase services.
+// The firebase() plugin is required for Genkit to properly integrate with Firebase services.
 export const ai = genkit({
-  plugins: [googleAI(), firebasePlugin()],
+  plugins: [googleAI(), firebase()],
 });
