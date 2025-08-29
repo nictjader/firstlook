@@ -1,12 +1,12 @@
 
 'use server';
 
-import { generateStory } from '@/ai/flows/story-generator';
+// import { generateStory } from '@/ai/flows/story-generator';
 import type { GeneratedStoryIdentifiers } from '@/lib/types';
 import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
-import { ai } from '@/ai';
+// import { ai } from '@/ai';
 import { FieldValue, FieldPath } from 'firebase-admin/firestore';
 import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
@@ -43,50 +43,57 @@ async function selectUnusedSeed(): Promise<StorySeed | null> {
  * This action is self-contained to prevent client components from needing complex AI types.
  */
 export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
-  const seed = await selectUnusedSeed();
+  // const seed = await selectUnusedSeed();
 
-  if (!seed) {
-    return {
-      success: false,
-      error: "All available story seeds have been used. No new stories can be generated.",
-      title: "N/A",
-      storyId: '',
-    };
-  }
+  // if (!seed) {
+  //   return {
+  //     success: false,
+  //     error: "All available story seeds have been used. No new stories can be generated.",
+  //     title: "N/A",
+  //     storyId: '',
+  //   };
+  // }
 
-  try {
-    const storyResult = await generateStory(seed);
+  // try {
+  //   const storyResult = await generateStory(seed);
 
-    if (!storyResult.success || !storyResult.storyId || !storyResult.storyData) {
-      throw new Error(storyResult.error || 'Story generation flow failed to return story data.');
-    }
+  //   if (!storyResult.success || !storyResult.storyId || !storyResult.storyData) {
+  //     throw new Error(storyResult.error || 'Story generation flow failed to return story data.');
+  //   }
     
-    const db = await getAdminDb();
-    const storyDocRef = db.collection('stories').doc(storyResult.storyId);
-    await storyDocRef.set({
-        ...storyResult.storyData,
-        publishedAt: FieldValue.serverTimestamp(),
-        coverImageUrl: '', // Will be updated by the cover image action
-        seedTitleIdea: seed.titleIdea, // Tag the story with its original seed idea
-    });
+  //   const db = await getAdminDb();
+  //   const storyDocRef = db.collection('stories').doc(storyResult.storyId);
+  //   await storyDocRef.set({
+  //       ...storyResult.storyData,
+  //       publishedAt: FieldValue.serverTimestamp(),
+  //       coverImageUrl: '', // Will be updated by the cover image action
+  //       seedTitleIdea: seed.titleIdea, // Tag the story with its original seed idea
+  //   });
 
-    return {
-      success: true,
-      error: null,
-      title: storyResult.title,
-      storyId: storyResult.storyId,
-      coverImagePrompt: storyResult.storyData.coverImagePrompt,
-    };
+  //   return {
+  //     success: true,
+  //     error: null,
+  //     title: storyResult.title,
+  //     storyId: storyResult.storyId,
+  //     coverImagePrompt: storyResult.storyData.coverImagePrompt,
+  //   };
 
-  } catch (error: any) {
-    console.error(`Critical error in generateStoryAI for seed "${seed.titleIdea}":`, error);
-    return {
-      success: false,
-      error: error.message,
-      title: seed.titleIdea,
-      storyId: '',
-    };
-  }
+  // } catch (error: any) {
+  //   console.error(`Critical error in generateStoryAI for seed "${seed.titleIdea}":`, error);
+  //   return {
+  //     success: false,
+  //     error: error.message,
+  //     title: seed.titleIdea,
+  //     storyId: '',
+  //   };
+  // }
+  console.log('generateStoryAI is temporarily disabled.');
+  return {
+    success: false,
+    error: "Story generation is temporarily disabled for maintenance.",
+    title: "Disabled",
+    storyId: ''
+  };
 }
 
 /**
@@ -97,67 +104,67 @@ export async function generateStoryAI(): Promise<GeneratedStoryIdentifiers> {
  * @returns A promise that resolves to the public URL of the uploaded image.
  */
 export async function generateAndUploadCoverImageAction(storyId: string, prompt: string): Promise<string> {
-    const db = await getAdminDb();
+    // const db = await getAdminDb();
     
-    if (!prompt) {
-        console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
-        const placeholder = `${PLACEHOLDER_IMAGE_URL}?text=No+Prompt`;
-        await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
-        return placeholder;
-    }
+    // if (!prompt) {
+    //     console.warn(`No cover image prompt for story ${storyId}. Using placeholder.`);
+    //     const placeholder = `${PLACEHOLDER_IMAGE_URL}?text=No+Prompt`;
+    //     await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
+    //     return placeholder;
+    // }
     
-    const fullPrompt = `A beautiful, romantic book cover illustration for a story. The style should be painterly and evocative, fitting a romance novel. The image should feature the elements described in the following prompt: "${prompt}". The image must not contain any text, words, or letters.`;
+    // const fullPrompt = `A beautiful, romantic book cover illustration for a story. The style should be painterly and evocative, fitting a romance novel. The image should feature the elements described in the following prompt: "${prompt}". The image must not contain any text, words, or letters.`;
 
-    try {
-        const { media } = await ai.generate({
-            model: 'googleai/gemini-2.0-flash-preview-image-generation',
-            prompt: fullPrompt,
-            config: {
-                responseModalities: ['TEXT', 'IMAGE'],
-            },
-        });
+    // try {
+    //     const { media } = await ai.generate({
+    //         model: 'googleai/gemini-2.0-flash-preview-image-generation',
+    //         prompt: fullPrompt,
+    //         config: {
+    //             responseModalities: ['TEXT', 'IMAGE'],
+    //         },
+    //     });
 
-        if (!media || !media.url) {
-            throw new Error('Image generation failed to return media.');
-        }
+    //     if (!media || !media.url) {
+    //         throw new Error('Image generation failed to return media.');
+    //     }
         
-        const { base64Data, mimeType } = extractBase64FromDataUri(media.url);
-        const imageBuffer = Buffer.from(base64Data, 'base64');
+    //     const { base64Data, mimeType } = extractBase64FromDataUri(media.url);
+    //     const imageBuffer = Buffer.from(base64Data, 'base64');
 
-        const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
-        if (!bucketName) {
-            throw new Error("Storage bucket name not configured.");
-        }
-        const bucket = getStorage().bucket(bucketName);
-        const imagePath = `story-covers/${storyId}.png`;
-        const file = bucket.file(imagePath);
+    //     const bucketName = process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET;
+    //     if (!bucketName) {
+    //         throw new Error("Storage bucket name not configured.");
+    //     }
+    //     const bucket = getStorage().bucket(bucketName);
+    //     const imagePath = `story-covers/${storyId}.png`;
+    //     const file = bucket.file(imagePath);
 
-        await file.save(imageBuffer, {
-          metadata: {
-            contentType: mimeType || 'image/png',
-          },
-          // Make the file publicly readable
-          public: true,
-        });
+    //     await file.save(imageBuffer, {
+    //       metadata: {
+    //         contentType: mimeType || 'image/png',
+    //       },
+    //       // Make the file publicly readable
+    //       public: true,
+    //     });
 
-        // The public URL is in a standard format
-        const downloadURL = `https://storage.googleapis.com/${bucketName}/${imagePath}`;
+    //     // The public URL is in a standard format
+    //     const downloadURL = `https://storage.googleapis.com/${bucketName}/${imagePath}`;
         
-        await db.collection('stories').doc(storyId).update({ coverImageUrl: downloadURL });
+    //     await db.collection('stories').doc(storyId).update({ coverImageUrl: downloadURL });
 
-        console.log(`Successfully generated and uploaded cover for ${storyId}`);
-        return downloadURL;
+    //     console.log(`Successfully generated and uploaded cover for ${storyId}`);
+    //     return downloadURL;
 
-    } catch (error) {
-        console.error(`Failed to generate or upload cover image for ${storyId}. Using placeholder.`, error);
+    // } catch (error) {
+    //     console.error(`Failed to generate or upload cover image for ${storyId}. Using placeholder.`, error);
         const placeholder = `${PLACEHOLDER_IMAGE_URL}?text=Image+Failed`;
-        try {
-            await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
-        } catch (dbError) {
-            console.error(`Failed to update story ${storyId} with placeholder URL.`, dbError);
-        }
+    //     try {
+    //         await db.collection('stories').doc(storyId).update({ coverImageUrl: placeholder });
+    //     } catch (dbError) {
+    //         console.error(`Failed to update story ${storyId} with placeholder URL.`, dbError);
+    //     }
         return placeholder;
-    }
+    // }
 }
 
 /**
