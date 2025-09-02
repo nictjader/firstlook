@@ -1,10 +1,13 @@
 
-    import { genkit } from 'genkit';
-    import { googleAI } from '@genkit-ai/googleai';
-    import { firebase } from '@genkit-ai/firebase';
-    
-    // This file is now ONLY for AI-related initialization.
-    // The firebase() plugin is required for Genkit to properly integrate with Firebase services.
-    export const ai = genkit({
-      plugins: [googleAI(), firebase()],
-    });
+import { genkit } from 'genkit';
+import { googleAI } from '@genkit-ai/googleai';
+import { initializeApp } from 'firebase-admin/app';
+
+// Initialize Firebase Admin SDK
+// This is required for @genkit-ai/firebase features to work
+initializeApp();
+
+// Initialize Genkit with only the plugins that have plugin functions
+export const ai = genkit({
+  plugins: [googleAI()],
+});
