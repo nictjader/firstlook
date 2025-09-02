@@ -1,10 +1,9 @@
 
 import ReaderView from '@/components/story/reader-view';
 import { notFound } from 'next/navigation';
-import { getStoryById, getSeriesParts } from '@/lib/actions/storyActions';
+import { getStoryById, getSeriesParts, getStories } from '@/lib/actions/storyActions';
 import type { Metadata } from 'next';
 import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
-import { getStoriesClient } from '@/lib/actions/storyActions.client';
 
 
 // This function generates metadata for the page based on the story details.
@@ -47,11 +46,8 @@ export async function generateMetadata({ params }: { params: { storyId: string }
 
 // This function tells Next.js which story IDs to pre-render at build time.
 export async function generateStaticParams() {
-  // Fetching all stories on the client to avoid server-side issues
-  // Note: This means the initial list of static paths might be empty on first build
-  // but Next.js will generate them on demand.
   try {
-    const stories = await getStoriesClient();
+    const stories = await getStories();
     return stories.map((story) => ({
       storyId: story.storyId,
     }));

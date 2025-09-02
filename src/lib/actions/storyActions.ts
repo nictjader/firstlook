@@ -65,3 +65,23 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
         return [];
     }
 }
+
+/**
+ * Fetches all stories from the database for server-side generation.
+ * @returns A promise that resolves to an array of all Story objects.
+ */
+export async function getStories(): Promise<Story[]> {
+    try {
+        await adminAppPromise; // Ensure app is initialized
+        const db = await getAdminDb();
+        const storiesRef = db.collection('stories');
+        const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+        if (snapshot.empty) {
+            return [];
+        }
+        return snapshot.docs.map(doc => docToStory(doc));
+    } catch (error) {
+        console.error(`Error fetching all stories:`, error);
+        return [];
+    }
+}
