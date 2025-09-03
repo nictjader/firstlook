@@ -31,10 +31,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        {/* The GSI client library is loaded here, asynchronously and deferred. */}
-        <Script src="https://accounts.google.com/gsi/client" async defer />
-      </head>
+      <head />
       <body
         className={`${playfairDisplay.variable} font-body`}
       >
@@ -56,6 +53,8 @@ export default function RootLayout({
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
+        {/* The GSI client library is loaded here, at the end of the body. */}
+        <Script src="https://accounts.google.com/gsi/client" async defer />
       </body>
     </html>
   );
