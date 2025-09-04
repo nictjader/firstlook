@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   },
 };
 
+// Force dynamic rendering for all pages to ensure client-side context is available
+export const dynamic = 'force-dynamic';
+
 export default function RootLayout({
   children,
 }: {

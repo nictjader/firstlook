@@ -15,10 +15,6 @@
   import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
   import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
-  // This page must be dynamic because it handles authentication redirects and
-  // relies on client-side state.
-  export const dynamic = 'force-dynamic';
-
   function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();

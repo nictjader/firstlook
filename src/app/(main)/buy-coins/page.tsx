@@ -5,8 +5,6 @@ import CoinPurchase from '@/components/monetization/coin-purchase';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 
-export const dynamic = 'force-dynamic';
-
 // This page now uses Suspense to handle the client-side CoinPurchase component
 export default function BuyCoinsPage() {
   return (

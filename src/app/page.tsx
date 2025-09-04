@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
@@ -9,8 +10,6 @@ import { getStoriesClient } from '@/lib/actions/storyActions.client';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-
-export const dynamic = 'force-dynamic';
 
 const StoryListSkeleton = () => (
   <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">

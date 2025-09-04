@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -18,8 +17,6 @@ import MetricCard from '@/components/admin/metric-card';
 import GenerationLog, { type Log } from '@/components/admin/generation-log';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import ChapterAnalysisTable from '@/components/admin/chapter-analysis-table';
-
-export const dynamic = 'force-dynamic';
 
 function AdminDashboardContent() {
   const { user } = useAuth();
