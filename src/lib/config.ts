@@ -14,7 +14,7 @@ export const PLACEHOLDER_IMAGE_URL = 'https://placehold.co/600x900.png';
 // An array of coin packages available for purchase in the app.
 export const COIN_PACKAGES = [
   {
-    id: 'price_1P6j0vGGxyYAaxJBw5sB59nL',
+    id: 'starter-pack',
     name: 'Apprentice Trove',
     coins: 50,
     priceUSD: 0.50,
@@ -22,7 +22,7 @@ export const COIN_PACKAGES = [
     label: null,
   },
   {
-    id: 'price_1P6j1jGGxyYAaxJBk5sKxgdG',
+    id: 'popular-pack',
     name: 'Storyteller\'s Stash',
     coins: 275,
     priceUSD: 2.49,
@@ -30,7 +30,7 @@ export const COIN_PACKAGES = [
     label: 'Most Popular',
   },
   {
-    id: 'price_1P6j2cGGxyYAaxJB7gT384T0',
+    id: 'value-pack',
     name: 'Dragon\'s Hoard',
     coins: 750,
     priceUSD: 5.99,

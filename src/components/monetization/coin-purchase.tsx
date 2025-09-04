@@ -6,64 +6,24 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter }
 import { useAuth } from '@/contexts/auth-context';
 import { COIN_PACKAGES } from '@/lib/config';
 import { cn } from '@/lib/utils';
-import { Check, Coins, Loader2, Star, Trophy } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { Check, Coins, Loader2, Star, Trophy, AlertTriangle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { createCheckoutSession } from '@/lib/actions/paymentActions';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 function CoinPurchaseContent() {
   const { user, loading: authLoading } = useAuth();
   const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null);
   const router = useRouter();
   const { toast } = useToast();
-  const searchParams = useSearchParams();
-
-  // This effect handles showing a cancellation message if the user returns from Stripe.
-  useEffect(() => {
-    if (searchParams.get('cancelled')) {
-      toast({
-        variant: 'destructive',
-        title: 'Purchase Cancelled',
-        description: 'Your purchase was cancelled. You have not been charged.',
-      });
-      // Use router.replace to clean the URL
-      router.replace('/buy-coins');
-    }
-  }, [searchParams, router, toast]);
-
 
   const handlePurchase = async (packageId: string) => {
-    if (!user) {
-        toast({
-            title: "Please Sign In",
-            description: "You must be signed in to purchase coins.",
-            variant: "destructive",
-        });
-        router.push('/login?redirect=/buy-coins');
-        return;
-    }
-    setLoadingPackageId(packageId);
-    
-    try {
-        const redirectPath = searchParams.get('redirect');
-        const { checkoutUrl, error } = await createCheckoutSession(packageId, user.uid, redirectPath);
-        
-        if (error || !checkoutUrl) {
-            throw new Error(error || 'Failed to create checkout session.');
-        }
-        
-        // Navigate directly in the same tab
-        window.location.href = checkoutUrl;
-
-    } catch (error: any) {
-        toast({
-            title: "Purchase Failed",
-            description: error.message || "An unexpected error occurred. Please try again.",
-            variant: "destructive",
-        });
-        setLoadingPackageId(null);
-    }
+    toast({
+        title: "Purchasing Disabled",
+        description: "This feature is not currently available. Please check back later.",
+        variant: "destructive",
+    });
   };
 
   if (authLoading) {
@@ -95,52 +55,61 @@ function CoinPurchaseContent() {
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      {COIN_PACKAGES.map((pkg) => {
-        const labelInfo = getLabelInfo(pkg.label);
-        const isLoading = loadingPackageId === pkg.id;
-        return (
-            <Card key={pkg.id} className={cn(
-            "flex flex-col shadow-lg transition-all duration-300 relative overflow-hidden",
-            pkg.label ? "border-primary border-2 shadow-primary/20 scale-105" : "border-border"
-            )}>
-            {labelInfo && (
-                <div className={cn(
-                    "absolute top-0 left-1/2 -translate-x-1/2 w-full text-center py-1.5 text-sm font-bold flex items-center justify-center",
-                    `${labelInfo.bgColor} text-primary-foreground`
-                )}>
-                    {labelInfo.icon}
-                    {labelInfo.text}
-                </div>
-            )}
-            <CardHeader className="text-center pt-12">
-                <Coins className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
-                <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
-                <CardDescription className="text-primary text-3xl font-headline font-semibold">
-                {pkg.coins.toLocaleString()} Coins
-                </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow text-center">
-                <p className="text-muted-foreground">{pkg.messaging}</p>
-            </CardContent>
-            <CardFooter className="flex-col items-center p-6 bg-muted/40">
-                <p className="text-4xl font-bold mb-4">${pkg.priceUSD.toFixed(2)}</p>
-                <Button 
-                    className="w-full h-12 text-lg" 
-                    onClick={() => handlePurchase(pkg.id)}
-                    disabled={isLoading || authLoading}
-                >
-                {isLoading ? (
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                    <Check className="mr-2 h-5 w-5" />
-                )}
-                Purchase
-                </Button>
-            </CardFooter>
-            </Card>
-        );
-      })}
+    <div className="space-y-6">
+      <Alert variant="warning">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>Feature Coming Soon</AlertTitle>
+        <AlertDescription>
+          Coin purchasing is currently disabled. We're working on bringing this feature back online.
+        </AlertDescription>
+      </Alert>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {COIN_PACKAGES.map((pkg) => {
+          const labelInfo = getLabelInfo(pkg.label);
+          const isLoading = loadingPackageId === pkg.id;
+          return (
+              <Card key={pkg.id} className={cn(
+              "flex flex-col shadow-lg transition-all duration-300 relative overflow-hidden",
+              pkg.label ? "border-primary border-2 shadow-primary/20 scale-105" : "border-border"
+              )}>
+              {labelInfo && (
+                  <div className={cn(
+                      "absolute top-0 left-1/2 -translate-x-1/2 w-full text-center py-1.5 text-sm font-bold flex items-center justify-center",
+                      `${labelInfo.bgColor} text-primary-foreground`
+                  )}>
+                      {labelInfo.icon}
+                      {labelInfo.text}
+                  </div>
+              )}
+              <CardHeader className="text-center pt-12">
+                  <Coins className="h-10 w-10 text-yellow-500 mx-auto mb-2" />
+                  <CardTitle className="text-2xl font-bold">{pkg.name}</CardTitle>
+                  <CardDescription className="text-primary text-3xl font-headline font-semibold">
+                  {pkg.coins.toLocaleString()} Coins
+                  </CardDescription>
+              </CardHeader>
+              <CardContent className="flex-grow text-center">
+                  <p className="text-muted-foreground">{pkg.messaging}</p>
+              </CardContent>
+              <CardFooter className="flex-col items-center p-6 bg-muted/40">
+                  <p className="text-4xl font-bold mb-4">${pkg.priceUSD.toFixed(2)}</p>
+                  <Button 
+                      className="w-full h-12 text-lg" 
+                      onClick={() => handlePurchase(pkg.id)}
+                      disabled={true}
+                  >
+                  {isLoading ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                      <Check className="mr-2 h-5 w-5" />
+                  )}
+                  Purchase
+                  </Button>
+              </CardFooter>
+              </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -148,7 +117,6 @@ function CoinPurchaseContent() {
 
 export default function CoinPurchase() {
     return (
-        // No Suspense needed here as the parent page should have it
         <CoinPurchaseContent />
     );
 }

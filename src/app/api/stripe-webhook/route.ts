@@ -1,12 +1,10 @@
-import { handleStripeWebhook } from '@/lib/actions/paymentActions';
-import { type NextRequest } from 'next/server';
+
+import { NextResponse } from 'next/server';
 
 /**
- * This route handler listens for incoming webhooks from Stripe.
- * It passes the request to a server action for processing.
- * This is the POST endpoint that you will provide to Stripe.
+ * This route handler is a placeholder.
+ * Stripe functionality has been removed.
  */
 export async function POST(request: Request) {
-  // The handleStripeWebhook function now handles reading the raw body.
-  return handleStripeWebhook(request);
+  return NextResponse.json({ message: "Stripe functionality is not configured." }, { status: 501 });
 }

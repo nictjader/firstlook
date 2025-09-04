@@ -13,7 +13,7 @@ export interface CoinTransaction {
     date: string;
     coins: number;
     amountUSD: number;
-    stripeCheckoutId: string;
+    purchaseId: string; // Generic purchase ID
 }
 
 export interface UserProfile {
@@ -29,7 +29,6 @@ export interface UserProfile {
   };
   createdAt: string;
   lastLogin: string;
-  stripeCustomerId?: string;
 }
 
 export interface Story {
@@ -133,7 +132,6 @@ export function docToUserProfile(docData: DocumentData, userId: string): UserPro
       preferences: data.preferences || { subgenres: [] },
       createdAt: safeToISOString(data.createdAt),
       lastLogin: safeToISOString(data.lastLogin),
-      stripeCustomerId: data.stripeCustomerId,
     };
 }
 
