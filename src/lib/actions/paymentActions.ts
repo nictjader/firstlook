@@ -32,16 +32,6 @@ export async function createCheckoutSession(
 }
 
 /**
- * Handles the Stripe webhook to process successful payments.
- * This is a placeholder as Stripe functionality has been removed.
- */
-export async function handleStripeWebhook(request: Request) {
-    console.log("Stripe webhook received, but functionality is disabled.");
-    return new Response(JSON.stringify({ received: true, message: "Stripe functionality disabled." }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-}
-
-
-/**
  * Fetches a user's coin purchase history.
  * This is a placeholder as Stripe functionality has been removed.
  */
