@@ -22,7 +22,7 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
             return null;
         }
 
-        return docToStory(storyDoc as QueryDocumentSnapshot);
+        return docToStory(storyDoc as AdminQueryDocumentSnapshot);
     } catch (error) {
         console.error(`Error fetching story by ID ${storyId}:`, error);
         return null;
@@ -51,7 +51,7 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
             return [];
         }
         
-        const stories = querySnapshot.docs.map(doc => docToStory(doc as QueryDocumentSnapshot));
+        const stories = querySnapshot.docs.map(doc => docToStory(doc as AdminQueryDocumentSnapshot));
         
         // Sort by partNumber in memory to ensure correct order.
         stories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
