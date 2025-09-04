@@ -1,21 +1,22 @@
+
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../components/ui/button';
 import { Loader2, Bot, AlertCircle, Search, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenSquare, BarChart3, Users } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction, getChapterAnalysisAction } from '@/lib/actions/adminActions';
-import { useAuth } from '@/contexts/auth-context';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { capitalizeWords } from '@/lib/utils';
-import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetrics, type ChapterAnalysis } from '@/lib/types';
-import { Separator } from '@/components/ui/separator';
-import MetricCard from '@/components/admin/metric-card';
-import GenerationLog, { type Log } from '@/components/admin/generation-log';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import ChapterAnalysisTable from '@/components/admin/chapter-analysis-table';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction, getChapterAnalysisAction } from '../../lib/actions/adminActions';
+import { useAuth } from '../../contexts/auth-context';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { capitalizeWords } from '../../lib/utils';
+import { type GeneratedStoryIdentifiers, type CleanupResult, type DatabaseMetrics, type ChapterAnalysis } from '../../lib/types';
+import { Separator } from '../../components/ui/separator';
+import MetricCard from '../../components/admin/metric-card';
+import GenerationLog, { type Log } from '../../components/admin/generation-log';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../../components/ui/alert-dialog";
+import ChapterAnalysisTable from '../../components/admin/chapter-analysis-table';
 
 function AdminDashboardContent() {
   const { user } = useAuth();

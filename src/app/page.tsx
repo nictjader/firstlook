@@ -2,12 +2,12 @@
 'use client';
 
 import { Suspense, useEffect, useState } from 'react';
-import StoryList from '@/components/story/story-list';
-import SubgenreFilter from '@/components/story/subgenre-filter';
-import type { Subgenre, Story } from '@/lib/types';
-import { Skeleton } from '@/components/ui/skeleton';
-import { getStoriesClient } from '@/lib/actions/storyActions';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import StoryList from '../components/story/story-list';
+import SubgenreFilter from '../components/story/subgenre-filter';
+import type { Subgenre, Story } from '../lib/types';
+import { Skeleton } from '../components/ui/skeleton';
+import { getStoriesClient } from '../lib/actions/storyActions';
+import { Alert, AlertTitle, AlertDescription } from '../components/ui/alert';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 

@@ -1,6 +1,6 @@
 
 import { type DocumentData, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
-import type { Story, UserProfile, UnlockedStoryInfo } from '@/lib/types';
+import type { Story, UserProfile, UnlockedStoryInfo } from '../types';
 
 // This helper function robustly handles Timestamps from both client and server,
 // as well as already-serialized date strings.

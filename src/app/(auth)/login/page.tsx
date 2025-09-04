@@ -2,16 +2,16 @@
   "use client";
 
   import { Suspense, useEffect, useState } from 'react';
-  import AuthForm from '@/components/auth/auth-form';
+  import AuthForm from '../../../components/auth/auth-form';
   import { Loader2, AlertCircle } from 'lucide-react';
   import { 
     isSignInWithEmailLink, 
     signInWithEmailLink 
   } from 'firebase/auth';
-  import { auth } from '@/lib/firebase/client';
+  import { auth } from '../../../lib/firebase/client';
   import { useRouter, useSearchParams } from 'next/navigation';
-  import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-  import { Card, CardContent, CardHeader } from '@/components/ui/card';
+  import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert';
+  import { Card, CardContent, CardHeader } from '../../../components/ui/card';
 
   function LoginContent() {
     const router = useRouter();

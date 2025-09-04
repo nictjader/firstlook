@@ -12,9 +12,9 @@ import {
   type Story, 
   type Subgenre,
   type StoryGenerationOutput,
-} from '@/lib/types';
-import { ai } from '@/ai';
-import { type StorySeed } from '@/lib/story-seeds';
+} from '../../lib/types';
+import { ai } from '..';
+import { type StorySeed } from '../../lib/story-seeds';
 
 
 // Schemas specific to this story generation flow.

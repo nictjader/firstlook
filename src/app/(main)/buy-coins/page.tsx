@@ -1,7 +1,7 @@
 
 'use client';
 
-import CoinPurchase from '@/components/monetization/coin-purchase';
+import CoinPurchase from '../../../components/monetization/coin-purchase';
 import { Suspense } from 'react';
 import { Loader2 } from 'lucide-react';
 

@@ -1,10 +1,10 @@
 
 "use client";
 
-import type { Story } from "@/lib/types";
-import { Skeleton } from "@/components/ui/skeleton";
+import type { Story } from "../../lib/types";
+import { Skeleton } from "../ui/skeleton";
 import type { LucideIcon } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../ui/card';
 import StoryCard from "../story/story-card";
 
 interface StoryListCardProps {

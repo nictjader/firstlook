@@ -1,9 +1,9 @@
 
-import ReaderView from '@/components/story/reader-view';
+import ReaderView from '../../../../components/story/reader-view';
 import { notFound } from 'next/navigation';
-import { getStoryById, getSeriesParts, getStories } from '@/lib/actions/storyActions';
+import { getStoryById, getSeriesParts, getStories } from '../../../../lib/actions/storyActions';
 import type { Metadata } from 'next';
-import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
+import { PLACEHOLDER_IMAGE_URL } from '../../../../lib/config';
 
 export const dynamic = 'force-dynamic';
 

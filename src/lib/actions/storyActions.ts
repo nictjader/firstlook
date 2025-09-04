@@ -1,12 +1,12 @@
 
 'use server';
 
-import { getAdminDb } from '@/lib/firebase/admin';
-import type { Story, Subgenre } from '@/lib/types';
-import { docToStoryAdmin } from '@/lib/firebase/server-types';
+import { getAdminDb } from '../firebase/admin';
+import type { Story, Subgenre } from '../types';
+import { docToStoryAdmin } from '../firebase/server-types';
 import { collection, query, where, getDocs, documentId, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase/client';
-import { docToStoryClient } from '@/lib/types';
+import { db } from '../firebase/client';
+import { docToStoryClient } from '../types';
 
 
 // --- SERVER-ONLY ACTIONS ---

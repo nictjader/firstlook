@@ -1,10 +1,10 @@
 
 "use client";
 
-import type { UnlockedStoryInfo, Story, CoinTransaction } from "@/lib/types";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import type { UnlockedStoryInfo, Story, CoinTransaction } from "../../lib/types";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
 import { BookLock, History, Coins } from "lucide-react";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../ui/card';
 import { useState, useEffect } from "react";
 import { Skeleton } from "../ui/skeleton";
 

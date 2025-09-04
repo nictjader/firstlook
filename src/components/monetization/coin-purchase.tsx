@@ -1,16 +1,16 @@
 
 'use client';
 
-import { Button } from '@/components/ui/button';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
-import { useAuth } from '@/contexts/auth-context';
-import { COIN_PACKAGES } from '@/lib/config';
-import { cn } from '@/lib/utils';
+import { Button } from '../ui/button';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '../ui/card';
+import { useAuth } from '../../contexts/auth-context';
+import { COIN_PACKAGES } from '../../lib/config';
+import { cn } from '../../lib/utils';
 import { Check, Coins, Loader2, Star, Trophy, AlertTriangle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useToast } from '../../hooks/use-toast';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 function CoinPurchaseContent() {
   const { user, loading: authLoading } = useAuth();

@@ -4,11 +4,11 @@
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import { onAuthStateChanged } from 'firebase/auth';
-import type { UserProfile } from '@/lib/types';
+import type { UserProfile } from '../lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
-import { auth, db } from '@/lib/firebase/client';
-import { docToUserProfileClient } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
+import { auth, db } from '../lib/firebase/client';
+import { docToUserProfileClient } from '../lib/types';
+import { useToast } from '../hooks/use-toast';
 
 const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
 

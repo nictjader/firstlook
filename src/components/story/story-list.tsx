@@ -1,12 +1,13 @@
+
 'use client';
 
 import { useMemo } from 'react';
-import type { Story } from '@/lib/types';
+import type { Story } from '../../lib/types';
 import StoryCard from './story-card';
 import { useRouter } from 'next/navigation';
 import { BookX } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
+import { Button } from '../ui/button';
+import { Separator } from '../ui/separator';
 
 interface StoryListProps {
   stories: Story[];
@@ -90,5 +91,3 @@ export default function StoryList({ stories }: StoryListProps) {
     </div>
   );
 }
-
-    

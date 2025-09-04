@@ -1,19 +1,19 @@
 
 'use server';
 
-import { generateStory } from '@/ai/flows/story-generator';
-import type { GeneratedStoryIdentifiers } from '@/lib/types';
-import { storySeeds, type StorySeed } from '@/lib/story-seeds';
-import { getAdminDb } from '@/lib/firebase/admin';
+import { generateStory } from '../../ai/flows/story-generator';
+import type { GeneratedStoryIdentifiers } from '../types';
+import { storySeeds, type StorySeed } from '../story-seeds';
+import { getAdminDb } from '../firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
-import { ai } from '@/ai';
+import { ai } from '../../ai';
 import { FieldValue, FieldPath, type DocumentData } from 'firebase-admin/firestore';
-import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '@/lib/types';
-import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
+import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '../types';
+import { extractBase64FromDataUri, capitalizeWords } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
-import { docToStoryAdmin } from '@/lib/firebase/server-types';
-import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/config';
-import { chapterPricingData } from '@/lib/pricing-data';
+import { docToStoryAdmin } from '../firebase/server-types';
+import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '../config';
+import { chapterPricingData } from '../pricing-data';
 import { getCoinPurchaseHistory } from './paymentActions';
 
 /**

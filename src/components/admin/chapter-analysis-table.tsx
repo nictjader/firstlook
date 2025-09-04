@@ -1,10 +1,10 @@
 
 'use client';
 
-import { type ChapterAnalysis } from '@/lib/types';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { capitalizeWords } from '@/lib/utils';
+import { type ChapterAnalysis } from '../../lib/types';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from '../ui/table';
+import { Badge } from '../ui/badge';
+import { capitalizeWords } from '../../lib/utils';
 
 interface ChapterAnalysisTableProps {
   data: ChapterAnalysis[];

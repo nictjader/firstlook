@@ -1,14 +1,14 @@
 
 "use client";
 
-import type { Story } from '@/lib/types';
+import type { Story } from '../../lib/types';
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowLeft, Lock, Coins, Heart, Library, Sun, Moon, ZoomIn, ZoomOut, CheckCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
-import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '../../contexts/auth-context';
+import { useToast } from '../../hooks/use-toast';
 import {
   Dialog,
   DialogContent,
@@ -16,16 +16,16 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from "@/components/ui/dialog"
+} from "../ui/dialog"
 import { useRouter } from 'next/navigation';
-import { capitalizeWords } from '@/lib/utils';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
+import { capitalizeWords } from '../../lib/utils';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
 import { useTheme } from 'next-themes';
 import StoryCard from './story-card';
 import { arrayUnion } from 'firebase/firestore';
-import { useEffectOnce } from '@/hooks/use-effect-once';
-import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
+import { useEffectOnce } from '../../hooks/use-effect-once';
+import { PLACEHOLDER_IMAGE_URL } from '../../lib/config';
 
 const FONT_SIZES = [
   'text-base',   // 16px

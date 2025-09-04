@@ -1,29 +1,29 @@
 
 "use client";
 
-import { useAuth } from '@/contexts/auth-context';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
+import { useAuth } from '../../contexts/auth-context';
+import { Button } from '../ui/button';
+import { Label } from '../ui/label';
+import { Input } from '../ui/input';
 import { Coins, Mail, UserCircle, LogOut, History, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { signOut, verifyBeforeUpdateEmail } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
-import { useToast } from '@/hooks/use-toast';
+import { auth } from '../../lib/firebase/client';
+import { useToast } from '../../hooks/use-toast';
 import { Separator } from '../ui/separator';
 import StoryListCard from './story-list-card';
 import TransactionHistoryCard from './transaction-history-card';
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '../ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '../ui/dialog';
 import { useState, useEffect } from 'react';
-import { type Story, type CoinTransaction } from '@/lib/types';
-import { getStoriesByIds } from '@/lib/actions/storyActions';
-import { getCoinPurchaseHistory } from '@/lib/actions/paymentActions';
+import { type Story, type CoinTransaction } from '../../lib/types';
+import { getStoriesByIds } from '../../lib/actions/storyActions';
+import { getCoinPurchaseHistory } from '../../lib/actions/paymentActions';
 import { Skeleton } from '../ui/skeleton';
-import { useEffectOnce } from '@/hooks/use-effect-once';
-import { resyncUserBalanceAction } from '@/lib/actions/adminActions';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useEffectOnce } from '../../hooks/use-effect-once';
+import { resyncUserBalanceAction } from '../../lib/actions/adminActions';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 
 export default function ProfileView() {

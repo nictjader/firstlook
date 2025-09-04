@@ -1,18 +1,18 @@
 
 "use client";
 import { useState, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/hooks/use-toast';
-import { auth } from '@/lib/firebase/client';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { useToast } from '../../hooks/use-toast';
+import { auth } from '../../lib/firebase/client';
 import { 
   sendSignInLinkToEmail, 
 } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
-import Logo from '@/components/layout/logo';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import Logo from '../layout/logo';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '../../contexts/auth-context';
 
 export default function AuthForm() {
   const { user, loading: authLoading } = useAuth();

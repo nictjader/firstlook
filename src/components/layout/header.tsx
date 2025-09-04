@@ -2,11 +2,11 @@
 "use client";
 
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { useAuth } from '@/contexts/auth-context';
+import { Button } from '../ui/button';
+import { useAuth } from '../../contexts/auth-context';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase/client';
+import { auth } from '../../lib/firebase/client';
 import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Coins, MessageSquareHeart } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Logo from './logo';
@@ -15,7 +15,7 @@ import {
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '../ui/tooltip';
 
 export default function Header() {
   const { user, userProfile, loading: authLoading } = useAuth();

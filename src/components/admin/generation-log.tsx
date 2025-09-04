@@ -1,7 +1,7 @@
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import { Separator } from '../ui/separator';
+import { Button } from '../ui/button';
 import Link from 'next/link';
 import { Loader2, Bot, AlertCircle, CheckCircle, ArrowRight, BookText } from 'lucide-react';
 

@@ -1,15 +1,15 @@
 
 "use client";
 
-import type { Story } from '@/lib/types';
+import type { Story } from '../../lib/types';
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Lock, CheckCircle2, Library } from 'lucide-react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth } from '../../contexts/auth-context';
 import { useEffect, useState } from 'react';
-import { capitalizeWords } from '@/lib/utils';
+import { capitalizeWords } from '../../lib/utils';
 import { useRouter } from 'next/navigation';
-import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
+import { PLACEHOLDER_IMAGE_URL } from '../../lib/config';
 
 type StoryCardProps = {
   story: Story;

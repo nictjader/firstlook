@@ -8,9 +8,9 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { ALL_SUBGENRES, type Subgenre } from '@/lib/types';
-import { capitalizeWords } from '@/lib/utils';
+} from "../ui/select";
+import { ALL_SUBGENRES, type Subgenre } from '../../lib/types';
+import { capitalizeWords } from '../../lib/utils';
 import { ListFilter } from 'lucide-react';
 
 export default function SubgenreFilter() {

@@ -1,12 +1,13 @@
+
 import type { Metadata } from 'next';
 import { Playfair_Display } from 'next/font/google';
-import '@/app/globals.css';
-import { Toaster } from '@/components/ui/toaster';
-import { AuthProvider } from '@/contexts/auth-context';
-import { ThemeProvider } from '@/contexts/theme-context';
-import GoogleAnalytics from '@/components/analytics/google-analytics';
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
+import './globals.css';
+import { Toaster } from '../components/ui/toaster';
+import { AuthProvider } from '../contexts/auth-context';
+import { ThemeProvider } from '../contexts/theme-context';
+import GoogleAnalytics from '../components/analytics/google-analytics';
+import Header from '../components/layout/header';
+import Footer from '../components/layout/footer';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],

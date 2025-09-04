@@ -2,7 +2,7 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { Loader2 } from 'lucide-react';
-import ProfileView from '@/components/profile/profile-view';
+import ProfileView from '../../../components/profile/profile-view';
 
 export const metadata: Metadata = {
   title: 'My Profile - FirstLook',
