@@ -1,7 +1,7 @@
 
 'use server';
 
-import { getAdminDb, adminAppPromise } from '@/lib/firebase/admin';
+import { getAdminDb } from '@/lib/firebase/admin';
 import type { Story, Subgenre } from '@/lib/types';
 import { docToStory } from '@/lib/types';
 import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore';
@@ -13,7 +13,6 @@ import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore';
  */
 export async function getStoryById(storyId: string): Promise<Story | null> {
     try {
-        await adminAppPromise; // Ensure app is initialized
         const db = await getAdminDb();
         const storyRef = db.collection('stories').doc(storyId);
         const storyDoc = await storyRef.get();
@@ -42,7 +41,6 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
     }
     
     try {
-        await adminAppPromise; // Ensure app is initialized
         const db = await getAdminDb();
         const storiesRef = db.collection('stories');
         
@@ -72,7 +70,6 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
  */
 export async function getStories(): Promise<Story[]> {
     try {
-        await adminAppPromise; // Ensure app is initialized
         const db = await getAdminDb();
         const storiesRef = db.collection('stories');
         const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
