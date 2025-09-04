@@ -1,7 +1,7 @@
 
 import { MetadataRoute } from 'next';
-import { getAdminDb } from '@/lib/firebase/admin';
-import type { Story } from '@/lib/types';
+import { getAdminDb } from './lib/firebase/admin';
+import type { Story } from './lib/types';
 import { type Timestamp } from 'firebase-admin/firestore';
 
 // This is a simplified version of the Story type for the sitemap

@@ -1,11 +1,11 @@
 
 'use server';
 
-import { COIN_PACKAGES } from '@/lib/config';
+import { COIN_PACKAGES } from '../config';
 import { getAdminDb } from '../firebase/admin';
 import { FieldValue, FieldPath, type DocumentData } from 'firebase-admin/firestore';
-import type { CoinTransaction, Story } from '@/lib/types';
-import { docToStoryAdmin } from '@/lib/firebase/server-types';
+import type { CoinTransaction, Story } from '../types';
+import { docToStoryAdmin } from '../firebase/server-types';
 import { resyncUserBalanceAction } from './adminActions';
 
 /**
