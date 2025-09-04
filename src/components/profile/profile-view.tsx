@@ -18,7 +18,7 @@ import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { useState, useEffect } from 'react';
 import { type Story, type CoinTransaction } from '@/lib/types';
-import { getStoriesByIds } from '@/lib/actions/storyActions.client';
+import { getStoriesByIds } from '@/lib/actions/storyActions';
 import { getCoinPurchaseHistory } from '@/lib/actions/paymentActions';
 import { Skeleton } from '../ui/skeleton';
 import { useEffectOnce } from '@/hooks/use-effect-once';
