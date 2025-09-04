@@ -1,4 +1,3 @@
-
 // THIS FILE IS FOR SERVER-SIDE FIREBASE INIT ONLY
 
 import { initializeApp, getApps, App, cert, type AppOptions } from 'firebase-admin/app';

@@ -4,7 +4,6 @@
 import { getAdminDb } from '@/lib/firebase/admin';
 import type { Story, Subgenre } from '@/lib/types';
 import { docToStoryAdmin } from '@/lib/firebase/server-types';
-import type { Query, QueryDocumentSnapshot, DocumentData } from 'firebase-admin/firestore';
 import { collection, query, where, getDocs, documentId, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 import { docToStoryClient } from '@/lib/types';

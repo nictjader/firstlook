@@ -5,6 +5,7 @@ import { getStoryById, getSeriesParts, getStories } from '@/lib/actions/storyAct
 import type { Metadata } from 'next';
 import { PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 
+export const dynamic = 'force-dynamic';
 
 // This function generates metadata for the page based on the story details.
 export async function generateMetadata({ params }: { params: { storyId: string } }): Promise<Metadata> {
