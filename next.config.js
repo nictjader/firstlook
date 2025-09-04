@@ -12,6 +12,16 @@ const nextConfig = {
       },
     ],
   },
+  
+  webpack: (config, { isServer }) => {
+    // Suppress warnings that don't break the build
+    config.ignoreWarnings = [
+      /require\.extensions is not supported by webpack/,
+      /Critical dependency: require function is used in a way/,
+    ];
+    
+    return config;
+  },
 };
 
 module.exports = nextConfig;

@@ -2,3 +2,9 @@
 runtime: nodejs20
 entrypoint: npm start
 
+build:
+  - npm ci
+  - npm run build
+env:
+  - variable: NODE_ENV
+    value: production
