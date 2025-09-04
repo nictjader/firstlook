@@ -4,7 +4,7 @@
 import { getAdminDb } from '@/lib/firebase/admin';
 import type { Story, Subgenre } from '@/lib/types';
 import { docToStory } from '@/lib/types';
-import type { Query, QueryDocumentSnapshot } from 'firebase-admin/firestore';
+import type { Query, QueryDocumentSnapshot, DocumentData } from 'firebase-admin/firestore';
 
 // A type guard to assert the admin SDK's snapshot type, which has a different method signature
 // for `data()` than the client SDK's snapshot. This helps TypeScript understand the context.
