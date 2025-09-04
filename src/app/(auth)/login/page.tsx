@@ -3,22 +3,19 @@
 
   import { Suspense, useEffect, useState } from 'react';
   import AuthForm from '@/components/auth/auth-form';
-  import Link from 'next/link';
-  import { ChevronLeft, Loader2, AlertCircle } from 'lucide-react';
+  import { Loader2, AlertCircle } from 'lucide-react';
   import { 
     isSignInWithEmailLink, 
     signInWithEmailLink 
   } from 'firebase/auth';
   import { auth } from '@/lib/firebase/client';
   import { useRouter, useSearchParams } from 'next/navigation';
-  import { useToast } from '@/hooks/use-toast';
   import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
   import { Card, CardContent, CardHeader } from '@/components/ui/card';
 
   function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const { toast } = useToast();
     const [isVerifying, setIsVerifying] = useState(true);
     const [authError, setAuthError] = useState<string | null>(null);
 
@@ -54,12 +51,11 @@
           }
         }
         
-        // No longer need to handle Google redirect here, it's done in the component
         setIsVerifying(false);
       };
 
       processAuth();
-    }, [router, searchParams, toast]);
+    }, [router, searchParams]);
 
 
     if (isVerifying) {

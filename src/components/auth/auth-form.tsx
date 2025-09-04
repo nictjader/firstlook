@@ -7,10 +7,8 @@ import { useToast } from '@/hooks/use-toast';
 import { auth } from '@/lib/firebase/client';
 import { 
   sendSignInLinkToEmail, 
-  signInWithCredential, 
-  GoogleAuthProvider 
 } from 'firebase/auth';
-import { Loader2, Mail, MailCheck, AlertTriangle } from 'lucide-react';
+import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '@/components/layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -24,35 +22,10 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const gsiInitialized = useRef(false);
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+  const isGoogleSignInEnabled = googleClientId && googleClientId !== 'REPLACE_WITH_A_CORRECTLY_CONFIGURED_GOOGLE_CLIENT_ID';
 
-  // Handles the credential response from Google's script
-  const handleCredentialResponse = async (response: any) => {
-    setLoading(true);
-    try {
-      const idToken = response.credential;
-      const credential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, credential);
-      
-      toast({
-        title: "Sign In Successful",
-        description: "Welcome back!",
-        variant: "success",
-      });
-      // Redirect is handled by the main useEffect
-    } catch (error: any) {
-      console.error("Google Sign-In Error:", error);
-      toast({
-        title: "Authentication Failed",
-        description: error.message || "Could not sign in with Google. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Redirect user if they are already logged in
   useEffect(() => {
@@ -61,38 +34,6 @@ export default function AuthForm() {
       router.push(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
-
-  // Initialize Google Sign-In
-  useEffect(() => {
-    if (gsiInitialized.current || !googleClientId || authLoading || user) {
-      return;
-    }
-
-    // Ensure the Google script is loaded
-    if (typeof window.google === 'undefined' || !window.google.accounts) {
-      // Script not loaded yet, this effect will re-run
-      return;
-    }
-    
-    gsiInitialized.current = true;
-
-    window.google.accounts.id.initialize({
-      client_id: googleClientId,
-      callback: handleCredentialResponse,
-    });
-
-    const googleButtonParent = document.getElementById('google-button-parent');
-    if (googleButtonParent) {
-      window.google.accounts.id.renderButton(
-        googleButtonParent,
-        { theme: 'outline', size: 'large', type: 'standard', shape: 'rectangular', logo_alignment: 'left' }
-      );
-    }
-
-    // Show the One Tap prompt
-    window.google.accounts.id.prompt();
-
-  }, [googleClientId, authLoading, user]);
 
   const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -139,26 +80,6 @@ export default function AuthForm() {
     );
   }
 
-  if (!googleClientId) {
-    return (
-        <Card className="w-full max-w-md text-center shadow-2xl bg-destructive/10 border-destructive">
-            <CardHeader>
-                <CardTitle className="text-destructive flex items-center justify-center">
-                  <AlertTriangle className="mr-2 h-6 w-6" />
-                  Configuration Error
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-sm text-destructive-foreground">
-                    The Google Client ID is missing. Please add the 
-                    <code className="bg-destructive/20 text-destructive-foreground font-mono p-1 rounded-sm mx-1">NEXT_PUBLIC_GOOGLE_CLIENT_ID</code>
-                    variable to your environment.
-                </p>
-            </CardContent>
-        </Card>
-    );
-  }
-
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
       <CardHeader className="text-center">
@@ -169,15 +90,17 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {/* The Google button will be rendered here by the GSI script */}
-        <div id="google-button-parent" className="w-full flex justify-center min-h-[40px]"></div>
-        
-        <div className="relative">
-            <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-            </div>
-        </div>
+        {isGoogleSignInEnabled && (
+            <>
+                <div id="google-button-parent" className="w-full flex justify-center min-h-[40px]"></div>
+                <div className="relative">
+                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
+                    </div>
+                </div>
+            </>
+        )}
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
