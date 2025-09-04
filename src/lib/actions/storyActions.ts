@@ -6,10 +6,6 @@ import type { Story, Subgenre } from '@/lib/types';
 import { docToStory } from '@/lib/types';
 import type { Query, QueryDocumentSnapshot, DocumentData } from 'firebase-admin/firestore';
 
-// A type guard to assert the admin SDK's snapshot type, which has a different method signature
-// for `data()` than the client SDK's snapshot. This helps TypeScript understand the context.
-type AdminQueryDocumentSnapshot = QueryDocumentSnapshot<DocumentData>;
-
 /**
  * Fetches a single story by its ID using a direct document lookup.
  * @param storyId The ID of the story to fetch.
@@ -26,7 +22,7 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
             return null;
         }
 
-        return docToStory(storyDoc as AdminQueryDocumentSnapshot);
+        return docToStory(storyDoc);
     } catch (error) {
         console.error(`Error fetching story by ID ${storyId}:`, error);
         return null;
@@ -55,7 +51,7 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
             return [];
         }
         
-        const stories = querySnapshot.docs.map(doc => docToStory(doc as AdminQueryDocumentSnapshot));
+        const stories = querySnapshot.docs.map(doc => docToStory(doc));
         
         // Sort by partNumber in memory to ensure correct order.
         stories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
