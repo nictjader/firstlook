@@ -7,7 +7,7 @@ import { onAuthStateChanged } from 'firebase/auth';
 import type { UserProfile } from '@/lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
-import { docToUserProfile } from '@/lib/types';
+import { docToUserProfileClient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
 const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const userDocRef = doc(db, "users", userId);
       const userDocSnap = await getDoc(userDocRef);
       if (userDocSnap.exists()) {
-        return docToUserProfile(userDocSnap.data(), userId);
+        return docToUserProfileClient(userDocSnap.data(), userId);
       }
       return null;
     } catch (error) {
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (!finalDocSnap.exists()) {
             throw new Error("Failed to create and fetch user profile.");
         }
-        return docToUserProfile(finalDocSnap.data(), user.uid);
+        return docToUserProfileClient(finalDocSnap.data(), user.uid);
     } catch (error) {
         return null;
     }

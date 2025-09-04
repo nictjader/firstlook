@@ -3,7 +3,7 @@
 
 import { getAdminDb } from '@/lib/firebase/admin';
 import type { Story, Subgenre } from '@/lib/types';
-import { docToStory } from '@/lib/types';
+import { docToStoryAdmin } from '@/lib/firebase/server-types';
 import type { Query, QueryDocumentSnapshot, DocumentData } from 'firebase-admin/firestore';
 
 /**
@@ -22,7 +22,7 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
             return null;
         }
 
-        return docToStory(storyDoc);
+        return docToStoryAdmin(storyDoc);
     } catch (error) {
         console.error(`Error fetching story by ID ${storyId}:`, error);
         return null;
@@ -51,7 +51,7 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
             return [];
         }
         
-        const stories = querySnapshot.docs.map(doc => docToStory(doc));
+        const stories = querySnapshot.docs.map(doc => docToStoryAdmin(doc));
         
         // Sort by partNumber in memory to ensure correct order.
         stories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
@@ -76,7 +76,7 @@ export async function getStories(): Promise<Story[]> {
         if (snapshot.empty) {
             return [];
         }
-        return snapshot.docs.map(doc => docToStory(doc));
+        return snapshot.docs.map(doc => docToStoryAdmin(doc));
     } catch (error) {
         console.error(`Error fetching all stories:`, error);
         return [];

@@ -7,11 +7,11 @@ import { storySeeds, type StorySeed } from '@/lib/story-seeds';
 import { getAdminDb } from '@/lib/firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '@/ai';
-import { FieldValue, FieldPath } from 'firebase-admin/firestore';
+import { FieldValue, FieldPath, type DocumentData } from 'firebase-admin/firestore';
 import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '@/lib/types';
 import { extractBase64FromDataUri, capitalizeWords } from '@/lib/utils';
 import { v4 as uuidv4 } from 'uuid';
-import { docToStory } from '@/lib/types';
+import { docToStoryAdmin } from '@/lib/firebase/server-types';
 import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '@/lib/config';
 import { chapterPricingData } from '@/lib/pricing-data';
 import { getCoinPurchaseHistory } from './paymentActions';
@@ -271,7 +271,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         return emptyMetrics;
     }
 
-    const allStories = snapshot.docs.map(doc => docToStory(doc));
+    const allStories = snapshot.docs.map(doc => docToStoryAdmin(doc));
     
     // Group all chapters by their unique story (seriesId or storyId for standalones)
     const storyGroups = new Map<string, Story[]>();
@@ -384,7 +384,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
         return { success: true, message: "No stories found.", checked: 0, updated: 0 };
     }
 
-    const allStories = snapshot.docs.map(doc => docToStory(doc));
+    const allStories = snapshot.docs.map(doc => docToStoryAdmin(doc));
     
     const storyGroups = new Map<string, Story[]>();
 
@@ -496,7 +496,7 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         return [];
     }
 
-    const allChapters = snapshot.docs.map(doc => docToStory(doc));
+    const allChapters = snapshot.docs.map(doc => docToStoryAdmin(doc));
 
     return allChapters.map(chapter => ({
         chapterId: chapter.storyId,
@@ -566,7 +566,7 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
         
         const storiesMap = new Map<string, Story>();
         storySnapshots.forEach(snapshot => {
-            snapshot.docs.forEach(doc => storiesMap.set(doc.id, docToStory(doc)));
+            snapshot.docs.forEach(doc => storiesMap.set(doc.id, docToStoryAdmin(doc)));
         });
 
         unlockedStoryIds.forEach((storyId: string) => {

@@ -3,9 +3,9 @@
 
 import { COIN_PACKAGES } from '@/lib/config';
 import { getAdminDb } from '../firebase/admin';
-import { FieldValue, FieldPath } from 'firebase-admin/firestore';
+import { FieldValue, FieldPath, type DocumentData } from 'firebase-admin/firestore';
 import type { CoinTransaction, Story } from '@/lib/types';
-import { docToStory } from '@/lib/types';
+import { docToStoryAdmin } from '@/lib/firebase/server-types';
 import { resyncUserBalanceAction } from './adminActions';
 
 /**

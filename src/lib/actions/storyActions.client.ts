@@ -2,7 +2,7 @@
 "use client";
 
 import type { Story, Subgenre } from "@/lib/types";
-import { docToStory } from "@/lib/types";
+import { docToStoryClient } from "@/lib/types";
 import { collection, query, where, getDocs, documentId, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase/client';
 
@@ -30,7 +30,7 @@ export async function getStoriesClient(options: GetStoriesOptions = {}): Promise
   }
 
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => docToStory(doc));
+  return querySnapshot.docs.map(doc => docToStoryClient(doc));
 }
 
 
@@ -57,7 +57,7 @@ export async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
   const q = query(storiesRef, where(documentId(), 'in', storyIds));
   const querySnapshot = await getDocs(q);
   
-  const stories = querySnapshot.docs.map(doc => docToStory(doc));
+  const stories = querySnapshot.docs.map(doc => docToStoryClient(doc));
 
   // Reorder the fetched stories to match the original order of storyIds
   const storyMap = new Map(stories.map(s => [s.storyId, s]));

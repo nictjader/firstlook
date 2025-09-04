@@ -1,6 +1,5 @@
 
-import { type Timestamp as ClientTimestamp, type DocumentData, type QueryDocumentSnapshot as ClientQueryDocumentSnapshot, FieldPath } from 'firebase/firestore'; // For client-side
-import { type Timestamp as AdminTimestamp, type QueryDocumentSnapshot as AdminQueryDocumentSnapshot, FieldPath as AdminFieldPath } from 'firebase-admin/firestore'; // For server-side
+import { type Timestamp, type DocumentData, type QueryDocumentSnapshot } from 'firebase/firestore';
 
 // --- Type Definitions ---
 
@@ -56,31 +55,27 @@ export interface Story {
 export const ALL_SUBGENRES = ['contemporary', 'paranormal', 'historical', 'billionaire', 'second-chance', 'sci-fi'] as const;
 export type Subgenre = (typeof ALL_SUBGENRES)[number];
 
-// This helper function robustly handles Timestamps from both client and server,
-// as well as already-serialized date strings.
+
 function safeToISOString(timestamp: any): string {
     if (!timestamp) return new Date().toISOString();
-    // Handle Firestore Timestamps (both client and admin)
     if (typeof timestamp === 'object' && timestamp !== null && typeof timestamp.toDate === 'function') {
         return timestamp.toDate().toISOString();
     }
-    // Handle JS Date objects
     if (timestamp instanceof Date) {
         return timestamp.toISOString();
     }
-    // Handle ISO date strings (pass them through)
     if (typeof timestamp === 'string') {
         const date = new Date(timestamp);
         if (!isNaN(date.getTime())) {
             return date.toISOString();
         }
     }
-    // Fallback for unexpected types
     console.warn("Unsupported timestamp format:", timestamp, "Returning current date as fallback.");
     return new Date().toISOString();
 }
 
-export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocumentSnapshot | DocumentData): Story {
+// Client-side helper for converting Firestore doc to Story
+export function docToStoryClient(doc: QueryDocumentSnapshot | DocumentData): Story {
     const data = doc.data();
     if (!data) {
       throw new Error(`Document with id ${doc.id} has no data.`);
@@ -112,8 +107,8 @@ export function docToStory(doc: ClientQueryDocumentSnapshot | AdminQueryDocument
     };
 }
 
-
-export function docToUserProfile(docData: DocumentData, userId: string): UserProfile {
+// Client-side helper for converting Firestore doc to UserProfile
+export function docToUserProfileClient(docData: DocumentData, userId: string): UserProfile {
     const data = docData;
     return {
       userId: userId,
@@ -121,9 +116,8 @@ export function docToUserProfile(docData: DocumentData, userId: string): UserPro
       displayName: data.displayName,
       coins: data.coins || 0,
       unlockedStories: (data.unlockedStories || []).map((s: any): UnlockedStoryInfo => {
-          // Handle legacy format (array of strings)
           if (typeof s === 'string') {
-              return { storyId: s, unlockedAt: new Date(0).toISOString() }; // Use epoch for old data
+              return { storyId: s, unlockedAt: new Date(0).toISOString() }; 
           }
           return { storyId: s.storyId, unlockedAt: safeToISOString(s.unlockedAt) };
       }),
