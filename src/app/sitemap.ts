@@ -1,7 +1,7 @@
 
 import { MetadataRoute } from 'next';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { docToStory } from '@/lib/types';
+import { docToStoryAdmin } from '@/lib/firebase/server-types';
 import type { Story } from '@/lib/types';
 
 async function getAllStoriesForSitemap(): Promise<Story[]> {
@@ -12,7 +12,7 @@ async function getAllStoriesForSitemap(): Promise<Story[]> {
         if (snapshot.empty) {
             return [];
         }
-        return snapshot.docs.map(doc => docToStory(doc));
+        return snapshot.docs.map(doc => docToStoryAdmin(doc));
     } catch (error) {
         console.error("Failed to fetch stories for sitemap, returning empty array.", error);
         return [];
