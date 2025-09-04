@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
@@ -22,10 +22,6 @@ export default function AuthForm() {
   const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
-
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
-  const isGoogleSignInEnabled = googleClientId && googleClientId !== 'REPLACE_WITH_A_CORRECTLY_CONFIGURED_GOOGLE_CLIENT_ID';
-
 
   // Redirect user if they are already logged in
   useEffect(() => {
@@ -90,17 +86,6 @@ export default function AuthForm() {
         <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        {isGoogleSignInEnabled && (
-            <>
-                <div id="google-button-parent" className="w-full flex justify-center min-h-[40px]"></div>
-                <div className="relative">
-                    <div className="absolute inset-0 flex items-center"><span className="w-full border-t" /></div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">Or continue with</span>
-                    </div>
-                </div>
-            </>
-        )}
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">

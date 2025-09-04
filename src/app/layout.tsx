@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/contexts/auth-context';
 import { ThemeProvider } from '@/contexts/theme-context';
 import GoogleAnalytics from '@/components/analytics/google-analytics';
-import Script from 'next/script';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 
@@ -52,8 +51,6 @@ export default function RootLayout({
             <Toaster />
           </AuthProvider>
         </ThemeProvider>
-        {/* The GSI client library is loaded here, at the end of the body. */}
-        <Script src="https://accounts.google.com/gsi/client" async defer />
       </body>
     </html>
   );
