@@ -1,18 +1,32 @@
 
 import { MetadataRoute } from 'next';
 import { getAdminDb } from '@/lib/firebase/admin';
-import { docToStoryAdmin } from '@/lib/firebase/server-types';
 import type { Story } from '@/lib/types';
+import { type Timestamp } from 'firebase-admin/firestore';
 
-async function getAllStoriesForSitemap(): Promise<Story[]> {
+// This is a simplified version of the Story type for the sitemap
+interface SitemapStory {
+    storyId: string;
+    publishedAt: Timestamp;
+}
+
+async function getAllStoriesForSitemap(): Promise<SitemapStory[]> {
     try {
         const db = await getAdminDb();
         const storiesRef = db.collection('stories');
-        const snapshot = await storiesRef.orderBy('publishedAt', 'desc').get();
+        // Fetch only the fields needed for the sitemap
+        const snapshot = await storiesRef.select('storyId', 'publishedAt').orderBy('publishedAt', 'desc').get();
         if (snapshot.empty) {
             return [];
         }
-        return snapshot.docs.map(doc => docToStoryAdmin(doc));
+        // Map to a simpler object to avoid complex type issues during build
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                storyId: doc.id,
+                publishedAt: data.publishedAt as Timestamp,
+            };
+        });
     } catch (error) {
         console.error("Failed to fetch stories for sitemap, returning empty array.", error);
         return [];
@@ -35,7 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const stories = await getAllStoriesForSitemap();
   const storyRoutes = stories.map((story) => ({
     url: `${siteUrl}/stories/${story.storyId}`,
-    lastModified: new Date(story.publishedAt).toISOString(),
+    lastModified: story.publishedAt.toDate().toISOString(),
     changeFrequency: 'weekly' as const,
     priority: 0.9,
   }));
