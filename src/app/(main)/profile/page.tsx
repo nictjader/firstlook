@@ -1,11 +1,13 @@
-'use client';
 
-import ProfileView from '@/components/profile/profile-view';
 import { Suspense } from 'react';
+import type { Metadata } from 'next';
 import { Loader2 } from 'lucide-react';
+import ProfileView from '@/components/profile/profile-view';
 
-// Force dynamic rendering because ProfileView uses useSearchParams
-export const dynamic = 'force-dynamic';
+export const metadata: Metadata = {
+  title: 'My Profile - FirstLook',
+  description: 'Manage your FirstLook account, view your reading history, and check your coin balance.',
+};
 
 export default function ProfilePage() {
   return (

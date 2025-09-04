@@ -4,6 +4,8 @@
 import { initializeApp, getApps, App, cert, type AppOptions } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
+
 
 let adminApp: App;
 
@@ -28,5 +30,4 @@ const getAdminAuth = async (): Promise<Auth> => {
     return adminAuth;
 };
 
-export { getAdminDb, getAdminAuth };
-
+export { getAdminDb, getAdminAuth, getStorage };

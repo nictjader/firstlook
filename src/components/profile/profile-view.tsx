@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
@@ -151,7 +150,7 @@ export default function ProfileView() {
 
   if (!user || !userProfile) {
     router.push('/login');
-    return <p>Redirecting to login...</p>;
+    return <div className="flex justify-center items-center h-64"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>;
   }
 
   const favoriteStories = (userProfile.favoriteStories || []).map(id => storiesMap.get(id)).filter((s): s is Story => !!s);
