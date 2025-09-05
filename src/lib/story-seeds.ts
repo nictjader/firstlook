@@ -10,20 +10,7 @@
  * `storySeeds` array. Ensure each seed is unique and high-quality.
  */
 
-import type { Subgenre } from './types';
-
-// We define the StorySeed type directly to remove dependencies on deleted files.
-export interface StorySeed {
-  titleIdea: string;
-  subgenre: Subgenre; // Now strictly typed
-  mainCharacters: string;
-  characterNames: string[];
-  plotSynopsis: string;
-  keyTropes: string[];
-  desiredTone: string;
-  approxWordCount: number;
-  coverImagePrompt: string;
-}
+import type { StorySeed } from './types';
 
 export const storySeeds: StorySeed[] = [
   // Seed 1: Historical / Forbidden Romance

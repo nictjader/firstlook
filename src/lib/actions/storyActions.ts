@@ -3,10 +3,9 @@
 
 import { getAdminDb } from '../firebase/admin';
 import type { Story, Subgenre } from '../types';
-import { docToStoryAdmin } from '../firebase/server-types';
+import { docToStory } from '../types';
 import { collection, query, where, getDocs, documentId, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/client';
-import { docToStoryClient } from '../types';
 
 
 // --- SERVER-ONLY ACTIONS ---
@@ -28,7 +27,7 @@ export async function getStoryById(storyId: string): Promise<Story | null> {
             return null;
         }
 
-        return docToStoryAdmin(storyDoc);
+        return docToStory(storyDoc);
     } catch (error) {
         console.error(`Error fetching story by ID ${storyId}:`, error);
         return null;
@@ -57,7 +56,7 @@ export async function getSeriesParts(seriesId: string): Promise<Story[]> {
             return [];
         }
         
-        const stories = querySnapshot.docs.map(doc => docToStoryAdmin(doc));
+        const stories = querySnapshot.docs.map(doc => docToStory(doc));
         
         // Sort by partNumber in memory to ensure correct order.
         stories.sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0));
@@ -82,7 +81,7 @@ export async function getStories(): Promise<Story[]> {
         if (snapshot.empty) {
             return [];
         }
-        return snapshot.docs.map(doc => docToStoryAdmin(doc));
+        return snapshot.docs.map(doc => docToStory(doc));
     } catch (error) {
         console.error(`Error fetching all stories:`, error);
         return [];
@@ -118,7 +117,7 @@ export async function getStoriesClient(options: GetStoriesOptions = {}): Promise
   }
 
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => docToStoryClient(doc));
+  return querySnapshot.docs.map(doc => docToStory(doc));
 }
 
 
@@ -146,7 +145,7 @@ export async function getStoriesByIds(storyIds: string[]): Promise<Story[]> {
   const q = query(storiesRef, where(documentId(), 'in', storyIds));
   const querySnapshot = await getDocs(q);
   
-  const stories = querySnapshot.docs.map(doc => docToStoryClient(doc));
+  const stories = querySnapshot.docs.map(doc => docToStory(doc));
 
   // Reorder the fetched stories to match the original order of storyIds
   const storyMap = new Map(stories.map(s => [s.storyId, s]));

@@ -11,7 +11,7 @@ import { FieldValue, FieldPath, type DocumentData } from 'firebase-admin/firesto
 import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '../types';
 import { extractBase64FromDataUri, capitalizeWords } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
-import { docToStoryAdmin } from '../firebase/server-types';
+import { docToStory } from '../types';
 import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '../config';
 import { chapterPricingData } from '../pricing-data';
 import { getCoinPurchaseHistory } from './paymentActions';
@@ -271,7 +271,7 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
         return emptyMetrics;
     }
 
-    const allStories = snapshot.docs.map(doc => docToStoryAdmin(doc));
+    const allStories = snapshot.docs.map(doc => docToStory(doc));
     
     // Group all chapters by their unique story (seriesId or storyId for standalones)
     const storyGroups = new Map<string, Story[]>();
@@ -384,7 +384,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
         return { success: true, message: "No stories found.", checked: 0, updated: 0 };
     }
 
-    const allStories = snapshot.docs.map(doc => docToStoryAdmin(doc));
+    const allStories = snapshot.docs.map(doc => docToStory(doc));
     
     const storyGroups = new Map<string, Story[]>();
 
@@ -496,7 +496,7 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         return [];
     }
 
-    const allChapters = snapshot.docs.map(doc => docToStoryAdmin(doc));
+    const allChapters = snapshot.docs.map(doc => docToStory(doc));
 
     return allChapters.map(chapter => ({
         chapterId: chapter.storyId,
@@ -512,14 +512,58 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
 }
 
 
+// Refactored helper to fetch total coins purchased for a user.
+async function getTotalCoinsPurchased(userId: string): Promise<number> {
+    const purchaseHistory = await getCoinPurchaseHistory(userId);
+    const totalCoins = purchaseHistory.reduce((acc, transaction) => acc + transaction.coins, 0);
+    console.log(`[Resync] Found ${totalCoins} total coins purchased for user ${userId}.`);
+    return totalCoins;
+}
+
+// Refactored helper to fetch total coins spent by a user.
+async function getTotalCoinsSpent(userId: string, unlockedStoryIds: string[]): Promise<number> {
+    if (unlockedStoryIds.length === 0) {
+        return 0;
+    }
+    const db = await getAdminDb();
+    const storiesRef = db.collection('stories');
+    let totalCoinsSpent = 0;
+
+    // Firestore 'in' queries are limited to 30 items, so we process in chunks.
+    const storyChunks: string[][] = [];
+    for (let i = 0; i < unlockedStoryIds.length; i += 30) {
+        storyChunks.push(unlockedStoryIds.slice(i, i + 30));
+    }
+    
+    console.log(`[Resync] Fetching costs for ${unlockedStoryIds.length} unlocked stories in ${storyChunks.length} chunks.`);
+
+    const storyDocsPromises = storyChunks.map(chunk => 
+        storiesRef.where(FieldPath.documentId(), 'in', chunk).get()
+    );
+    const storySnapshots = await Promise.all(storyDocsPromises);
+    
+    const storiesMap = new Map<string, Story>();
+    storySnapshots.forEach(snapshot => {
+        snapshot.docs.forEach(doc => storiesMap.set(doc.id, docToStory(doc)));
+    });
+
+    unlockedStoryIds.forEach((storyId: string) => {
+        const story = storiesMap.get(storyId);
+        if (story) {
+            totalCoinsSpent += story.coinCost;
+        } else {
+            console.warn(`[Resync] Note: Unlocked story with ID ${storyId} not found. Its cost will be ignored.`);
+        }
+    });
+
+    console.log(`[Resync] Found ${totalCoinsSpent} total coins spent on unlocks for user ${userId}.`);
+    return totalCoinsSpent;
+}
+
+
 /**
  * A server action to recalculate and correct a user's coin balance.
- * This function takes a holistic approach by rebuilding the balance from scratch,
- * ensuring ultimate data consistency. It is triggered by the Stripe webhook
- * after a purchase or by a manual developer tool.
- *
- * @param userId The ID of the user whose balance needs to be resynchronized.
- * @returns A promise that resolves to an object indicating success, a message, and the final balance.
+ * This function is now refactored to use smaller helper functions.
  */
 export async function resyncUserBalanceAction(userId: string): Promise<{ success: boolean; message: string; finalBalance?: number; }> {
   if (!userId) {
@@ -530,9 +574,7 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
     console.log(`[Resync] Starting balance resynchronization for user: ${userId}`);
     const db = await getAdminDb();
     const userRef = db.collection('users').doc(userId);
-    const storiesRef = db.collection('stories');
     
-    // 1. Get the user document to access their unlock history.
     const userDoc = await userRef.get();
     if (!userDoc.exists) {
       console.error(`[Resync] Error: User with ID ${userId} not found.`);
@@ -541,50 +583,13 @@ export async function resyncUserBalanceAction(userId: string): Promise<{ success
     const userProfile = userDoc.data()!;
     console.log(`[Resync] User found. Current balance (before sync): ${userProfile.coins}`);
 
-    // 2. Fetch all successful purchases from Stripe to calculate total "coins in".
-    const purchaseHistory = await getCoinPurchaseHistory(userId);
-    const totalCoinsPurchased = purchaseHistory.reduce((acc, transaction) => acc + transaction.coins, 0);
-    console.log(`[Resync] Found ${totalCoinsPurchased} total coins purchased from Stripe.`);
-
-    // 3. Fetch all unlocked stories from Firestore to calculate total "coins out".
+    const totalCoinsPurchased = await getTotalCoinsPurchased(userId);
     const unlockedStoryIds = (userProfile.unlockedStories || []).map((s: { storyId: string }) => s.storyId);
-    let totalCoinsSpent = 0;
-    
-    if (unlockedStoryIds.length > 0) {
-        // Firestore 'in' queries are limited to 30 items, so we process in chunks.
-        const storyChunks: string[][] = [];
-        for (let i = 0; i < unlockedStoryIds.length; i += 30) {
-            storyChunks.push(unlockedStoryIds.slice(i, i + 30));
-        }
-        
-        console.log(`[Resync] Fetching costs for ${unlockedStoryIds.length} unlocked stories in ${storyChunks.length} chunks.`);
+    const totalCoinsSpent = await getTotalCoinsSpent(userId, unlockedStoryIds);
 
-        const storyDocsPromises = storyChunks.map(chunk => 
-            storiesRef.where(FieldPath.documentId(), 'in', chunk).get()
-        );
-        const storySnapshots = await Promise.all(storyDocsPromises);
-        
-        const storiesMap = new Map<string, Story>();
-        storySnapshots.forEach(snapshot => {
-            snapshot.docs.forEach(doc => storiesMap.set(doc.id, docToStoryAdmin(doc)));
-        });
-
-        unlockedStoryIds.forEach((storyId: string) => {
-            const story = storiesMap.get(storyId);
-            if (story) {
-                totalCoinsSpent += story.coinCost;
-            } else {
-                console.warn(`[Resync] Note: Unlocked story with ID ${storyId} not found. Its cost will be ignored.`);
-            }
-        });
-    }
-    console.log(`[Resync] Found ${totalCoinsSpent} total coins spent on unlocks.`);
-
-    // 4. Calculate the correct final balance by subtracting debits from credits.
     const finalBalance = totalCoinsPurchased - totalCoinsSpent;
     console.log(`[Resync] Calculated final balance: ${finalBalance} (Purchased: ${totalCoinsPurchased} - Spent: ${totalCoinsSpent})`);
 
-    // 5. Overwrite the old balance in Firestore with the newly calculated correct balance.
     await userRef.update({ coins: finalBalance });
 
     const successMessage = `Resync successful for user ${userId}. Final balance of ${finalBalance.toLocaleString()} has been set.`;

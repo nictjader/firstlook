@@ -1,5 +1,18 @@
 
-import { type Timestamp, type DocumentData, type QueryDocumentSnapshot } from 'firebase/firestore';
+import { type DocumentData, type QueryDocumentSnapshot } from 'firebase/firestore';
+
+// We define the StorySeed type directly to remove dependencies on deleted files.
+export interface StorySeed {
+  titleIdea: string;
+  subgenre: Subgenre; // Now strictly typed
+  mainCharacters: string;
+  characterNames: string[];
+  plotSynopsis: string;
+  keyTropes: string[];
+  desiredTone: string;
+  approxWordCount: number;
+  coverImagePrompt: string;
+}
 
 // --- Type Definitions ---
 
@@ -75,7 +88,7 @@ function safeToISOString(timestamp: any): string {
 }
 
 // Client-side helper for converting Firestore doc to Story
-export function docToStoryClient(doc: QueryDocumentSnapshot | DocumentData): Story {
+export function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
     const data = doc.data();
     if (!data) {
       throw new Error(`Document with id ${doc.id} has no data.`);
