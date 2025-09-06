@@ -21,10 +21,14 @@ import { type Story, type CoinTransaction } from '../../lib/types';
 import { getStoriesByIds } from '../../lib/actions/storyActions';
 import { getCoinPurchaseHistory } from '../../lib/actions/paymentActions';
 import { Skeleton } from '../ui/skeleton';
+import { useEffectOnce } from '../../hooks/use-effect-once';
+import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 export default function ProfileView() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading, refreshUserProfile } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [newEmail, setNewEmail] = useState('');
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
@@ -32,6 +36,21 @@ export default function ProfileView() {
   const [storiesMap, setStoriesMap] = useState<Map<string, Story>>(new Map());
   const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  // This effect runs once on mount to check for a successful purchase redirect.
+  useEffectOnce(() => {
+    if (searchParams.get('purchase_success')) {
+        toast({
+            variant: 'success',
+            title: 'Purchase Successful!',
+            description: 'Your new coin balance has been updated.',
+        });
+        refreshUserProfile();
+        // Clean the URL to avoid showing the toast on every refresh
+        router.replace('/profile', { scroll: false });
+    }
+  });
+
 
   useEffect(() => {
     const fetchAllHistory = async () => {
