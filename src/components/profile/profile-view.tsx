@@ -22,7 +22,6 @@ import { getStoriesByIds } from '../../lib/actions/storyActions';
 import { getCoinPurchaseHistory } from '../../lib/actions/paymentActions';
 import { Skeleton } from '../ui/skeleton';
 import { useEffectOnce } from '../../hooks/use-effect-once';
-import { resyncUserBalanceAction } from '../../lib/actions/adminActions';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 import { AlertCircle } from 'lucide-react';
 
