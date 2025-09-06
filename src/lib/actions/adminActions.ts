@@ -3,7 +3,8 @@
 
 import { generateStory } from '../../ai/flows/story-generator';
 import type { GeneratedStoryIdentifiers } from '../types';
-import { storySeeds, type StorySeed } from '../story-seeds';
+import { storySeeds } from '../story-seeds';
+import type { StorySeed } from '../types';
 import { getAdminDb } from '../firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '../../ai';
