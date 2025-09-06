@@ -7,7 +7,7 @@ import { Label } from '../ui/label';
 import { Input } from '../ui/input';
 import { Coins, Mail, UserCircle, LogOut, History, Heart, Loader2 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { signOut, verifyBeforeUpdateEmail } from 'firebase/auth';
 import { auth } from '../../lib/firebase/client';
 import { useToast } from '../../hooks/use-toast';
@@ -28,7 +28,6 @@ import { AlertCircle } from 'lucide-react';
 export default function ProfileView() {
   const { user, userProfile, loading: authLoading, refreshUserProfile } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [newEmail, setNewEmail] = useState('');
   const [isUpdatingEmail, setIsUpdatingEmail] = useState(false);
@@ -36,21 +35,6 @@ export default function ProfileView() {
   const [storiesMap, setStoriesMap] = useState<Map<string, Story>>(new Map());
   const [coinTransactions, setCoinTransactions] = useState<CoinTransaction[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
-
-  // This effect runs once on mount to check for a successful purchase redirect.
-  useEffectOnce(() => {
-    if (searchParams.get('purchase_success')) {
-        toast({
-            variant: 'success',
-            title: 'Purchase Successful!',
-            description: 'Your new coin balance has been updated.',
-        });
-        refreshUserProfile();
-        // Clean the URL to avoid showing the toast on every refresh
-        router.replace('/profile', { scroll: false });
-    }
-  });
-
 
   useEffect(() => {
     const fetchAllHistory = async () => {
@@ -263,5 +247,3 @@ export default function ProfileView() {
     </div>
   );
 }
-
-    

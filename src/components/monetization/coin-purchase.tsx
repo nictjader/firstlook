@@ -7,24 +7,12 @@ import { useAuth } from '../../contexts/auth-context';
 import { COIN_PACKAGES } from '../../lib/config';
 import { cn } from '../../lib/utils';
 import { Check, Coins, Loader2, Star, Trophy, AlertTriangle } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
 import { useToast } from '../../hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '../ui/alert';
 
 function CoinPurchaseContent() {
-  const { user, loading: authLoading } = useAuth();
-  const [loadingPackageId, setLoadingPackageId] = useState<string | null>(null);
-  const router = useRouter();
+  const { loading: authLoading } = useAuth();
   const { toast } = useToast();
-
-  const handlePurchase = async (packageId: string) => {
-    toast({
-        title: "Purchasing Disabled",
-        description: "This feature is not currently available. Please check back later.",
-        variant: "destructive",
-    });
-  };
 
   if (authLoading) {
     return (
@@ -66,7 +54,6 @@ function CoinPurchaseContent() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {COIN_PACKAGES.map((pkg) => {
           const labelInfo = getLabelInfo(pkg.label);
-          const isLoading = loadingPackageId === pkg.id;
           return (
               <Card key={pkg.id} className={cn(
               "flex flex-col shadow-lg transition-all duration-300 relative overflow-hidden",
@@ -95,15 +82,17 @@ function CoinPurchaseContent() {
                   <p className="text-4xl font-bold mb-4">${pkg.priceUSD.toFixed(2)}</p>
                   <Button 
                       className="w-full h-12 text-lg" 
-                      onClick={() => handlePurchase(pkg.id)}
+                      onClick={() => {
+                        toast({
+                            title: "Purchasing Disabled",
+                            description: "This feature is not currently available.",
+                            variant: "destructive",
+                        });
+                      }}
                       disabled={true}
                   >
-                  {isLoading ? (
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                  ) : (
                       <Check className="mr-2 h-5 w-5" />
-                  )}
-                  Purchase
+                      Purchase
                   </Button>
               </CardFooter>
               </Card>

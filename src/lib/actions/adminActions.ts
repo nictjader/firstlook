@@ -14,7 +14,6 @@ import { v4 as uuidv4 } from 'uuid';
 import { docToStory } from '../types';
 import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '../config';
 import { chapterPricingData } from '../pricing-data';
-import { getCoinPurchaseHistory } from './paymentActions';
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
@@ -509,99 +508,4 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         seriesTitle: chapter.seriesTitle,
         subgenre: chapter.subgenre,
     }));
-}
-
-
-// Refactored helper to fetch total coins purchased for a user.
-async function getTotalCoinsPurchased(userId: string): Promise<number> {
-    const purchaseHistory = await getCoinPurchaseHistory(userId);
-    const totalCoins = purchaseHistory.reduce((acc, transaction) => acc + transaction.coins, 0);
-    console.log(`[Resync] Found ${totalCoins} total coins purchased for user ${userId}.`);
-    return totalCoins;
-}
-
-// Refactored helper to fetch total coins spent by a user.
-async function getTotalCoinsSpent(userId: string, unlockedStoryIds: string[]): Promise<number> {
-    if (unlockedStoryIds.length === 0) {
-        return 0;
-    }
-    const db = await getAdminDb();
-    const storiesRef = db.collection('stories');
-    let totalCoinsSpent = 0;
-
-    // Firestore 'in' queries are limited to 30 items, so we process in chunks.
-    const storyChunks: string[][] = [];
-    for (let i = 0; i < unlockedStoryIds.length; i += 30) {
-        storyChunks.push(unlockedStoryIds.slice(i, i + 30));
-    }
-    
-    console.log(`[Resync] Fetching costs for ${unlockedStoryIds.length} unlocked stories in ${storyChunks.length} chunks.`);
-
-    const storyDocsPromises = storyChunks.map(chunk => 
-        storiesRef.where(FieldPath.documentId(), 'in', chunk).get()
-    );
-    const storySnapshots = await Promise.all(storyDocsPromises);
-    
-    const storiesMap = new Map<string, Story>();
-    storySnapshots.forEach(snapshot => {
-        snapshot.docs.forEach(doc => storiesMap.set(doc.id, docToStory(doc)));
-    });
-
-    unlockedStoryIds.forEach((storyId: string) => {
-        const story = storiesMap.get(storyId);
-        if (story) {
-            totalCoinsSpent += story.coinCost;
-        } else {
-            console.warn(`[Resync] Note: Unlocked story with ID ${storyId} not found. Its cost will be ignored.`);
-        }
-    });
-
-    console.log(`[Resync] Found ${totalCoinsSpent} total coins spent on unlocks for user ${userId}.`);
-    return totalCoinsSpent;
-}
-
-
-/**
- * A server action to recalculate and correct a user's coin balance.
- * This function is now refactored to use smaller helper functions.
- */
-export async function resyncUserBalanceAction(userId: string): Promise<{ success: boolean; message: string; finalBalance?: number; }> {
-  if (!userId) {
-    return { success: false, message: 'Error: User ID is required.' };
-  }
-  
-  try {
-    console.log(`[Resync] Starting balance resynchronization for user: ${userId}`);
-    const db = await getAdminDb();
-    const userRef = db.collection('users').doc(userId);
-    
-    const userDoc = await userRef.get();
-    if (!userDoc.exists) {
-      console.error(`[Resync] Error: User with ID ${userId} not found.`);
-      return { success: false, message: `Error: User with ID ${userId} not found.` };
-    }
-    const userProfile = userDoc.data()!;
-    console.log(`[Resync] User found. Current balance (before sync): ${userProfile.coins}`);
-
-    const totalCoinsPurchased = await getTotalCoinsPurchased(userId);
-    const unlockedStoryIds = (userProfile.unlockedStories || []).map((s: { storyId: string }) => s.storyId);
-    const totalCoinsSpent = await getTotalCoinsSpent(userId, unlockedStoryIds);
-
-    const finalBalance = totalCoinsPurchased - totalCoinsSpent;
-    console.log(`[Resync] Calculated final balance: ${finalBalance} (Purchased: ${totalCoinsPurchased} - Spent: ${totalCoinsSpent})`);
-
-    await userRef.update({ coins: finalBalance });
-
-    const successMessage = `Resync successful for user ${userId}. Final balance of ${finalBalance.toLocaleString()} has been set.`;
-    console.log(`[Resync] SUCCESS: ${successMessage}`);
-    return { 
-      success: true, 
-      message: successMessage,
-      finalBalance: finalBalance,
-    };
-
-  } catch (error: any) {
-    console.error(`[Resync] CRITICAL: An unexpected error occurred during balance resync for user ${userId}:`, error);
-    return { success: false, message: `An unexpected error occurred: ${error.message}` };
-  }
 }

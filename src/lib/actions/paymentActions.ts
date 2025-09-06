@@ -1,12 +1,8 @@
 
 'use server';
 
-import { COIN_PACKAGES } from '../config';
-import { getAdminDb } from '../firebase/admin';
-import { FieldValue, FieldPath, type DocumentData } from 'firebase-admin/firestore';
-import type { CoinTransaction, Story } from '../types';
-import { docToStoryAdmin } from '../firebase/server-types';
-import { resyncUserBalanceAction } from './adminActions';
+import type { CoinTransaction } from '../types';
+
 
 /**
  * Creates a checkout session.
@@ -17,17 +13,7 @@ export async function createCheckoutSession(
   userId: string,
   redirectPath?: string | null,
 ): Promise<{ checkoutUrl?: string; error?: string }> {
-  if (!userId) {
-    return { error: 'User is not authenticated.' };
-  }
-
-  const coinPackage = COIN_PACKAGES.find((p) => p.id === packageId);
-  if (!coinPackage) {
-    return { error: 'Invalid coin package selected.' };
-  }
-  
   console.log(`Checkout for user ${userId} and package ${packageId} is disabled.`);
-
   return { error: 'Purchasing is currently disabled.' };
 }
 
