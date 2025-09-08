@@ -17,18 +17,23 @@ function LoginContent() {
   const [isVerifying, setIsVerifying] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [emailLinkProcessed, setEmailLinkProcessed] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Redirect authenticated users
   useEffect(() => {
-    if (!authLoading && user && !emailLinkProcessed) {
+    if (!authLoading && user && !emailLinkProcessed && mounted) {
       router.replace('/');
     }
-  }, [user, authLoading, router, emailLinkProcessed]);
+  }, [user, authLoading, router, emailLinkProcessed, mounted]);
 
   useEffect(() => {
-    // This effect runs when the page loads after a potential redirect.
+    if (!mounted) return;
+
     const processAuth = async () => {
-      // Check for error parameters first
       const errorParam = searchParams.get('error');
       if (errorParam) {
         setAuthError(decodeURIComponent(errorParam));
@@ -37,7 +42,6 @@ function LoginContent() {
         return;
       }
 
-      // Check for email link sign-in specifically.
       if (isSignInWithEmailLink(auth, window.location.href)) {
         setEmailLinkProcessed(true);
         let email = window.localStorage.getItem('emailForSignIn');
@@ -51,12 +55,10 @@ function LoginContent() {
             await signInWithEmailLink(auth, email, window.location.href);
             window.localStorage.removeItem('emailForSignIn');
             
-            // Clean up the URL
             const url = new URL(window.location.href);
             url.search = '';
             window.history.replaceState({}, document.title, url.toString());
             
-            // The onAuthStateChanged listener will handle the redirect
           } catch (error: any) {
             console.error("Error signing in with email link:", error);
             setAuthError(error.message || "Failed to sign in with email link.");
@@ -69,26 +71,23 @@ function LoginContent() {
       setIsVerifying(false);
     };
 
-    // Only process auth if the main auth context isn't still loading from a redirect
-    if (!authLoading || isSignInWithEmailLink(auth, window.location.href)) {
+    if (!authLoading) {
       processAuth();
     } else {
-      // If auth is loading (potentially from redirect), wait a bit then set verifying to false
       const timer = setTimeout(() => {
         setIsVerifying(false);
       }, 3000);
       
       return () => clearTimeout(timer);
     }
-  }, [authLoading, router, searchParams]);
+  }, [authLoading, router, searchParams, mounted]);
 
-  // Show loading state while verifying or if auth is loading
   if (isVerifying || (authLoading && !emailLinkProcessed)) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-semibold tracking-tight">
-            {isSignInWithEmailLink(auth, window.location.href) 
+            {mounted && isSignInWithEmailLink(auth, window.location.href) 
               ? "Completing Email Sign-In..." 
               : "Finalizing Sign-In..."
             }
@@ -106,7 +105,6 @@ function LoginContent() {
     );
   }
 
-  // If user is authenticated, show a brief success message while redirecting
   if (user && !emailLinkProcessed) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
@@ -154,4 +152,3 @@ export default function LoginPage() {
     </div>
   );
 }
-    

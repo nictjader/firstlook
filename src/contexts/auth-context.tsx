@@ -42,6 +42,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [redirectProcessed, setRedirectProcessed] = useState(false);
   const { toast } = useToast();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
@@ -83,6 +88,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const syncLocalReadHistory = useCallback(async (userId: string) => {
+    if (typeof window === 'undefined') return;
     try {
       const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
       if (localReadJson) {
@@ -120,16 +126,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          variant: "destructive" 
        });
     }
-    // Don't set loading to false here - let the auth state change handle it
   }, [toast]);
   
   const initializeOneTap = useCallback(() => {
-    // Only initialize One Tap if:
-    // 1. Google API is available
-    // 2. Client ID is configured
-    // 3. We're not on the login page (to avoid conflicts)
-    // 4. No redirect has been processed recently
     if (
+      typeof window === 'undefined' ||
       typeof window.google === 'undefined' || 
       !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID ||
       window.location.pathname === '/login' ||
@@ -143,7 +144,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           client_id: process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID,
           callback: handleCredentialResponse,
           cancel_on_tap_outside: false,
-          auto_select: false, // Changed to false to avoid conflicts
+          auto_select: false,
           context: 'signin',
       });
       
@@ -158,11 +159,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleCredentialResponse, redirectProcessed]);
 
   useEffect(() => {
-    let mounted = true;
+    if (!mounted) return;
 
     const handleRedirect = async () => {
-      if (!mounted) return;
-      
       try {
         const result = await getRedirectResult(auth);
         if (result && result.user) {
@@ -173,7 +172,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               variant: 'success' 
             });
             
-            // Redirect to home page or dashboard
             if (window.location.pathname === '/login') {
               window.location.href = '/';
             }
@@ -189,12 +187,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Handle redirect result first
     handleRedirect();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (!mounted) return;
-      
       setLoading(true);
       try {
         if (user) {
@@ -217,8 +212,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setUserProfile(null);
           
-          // Only initialize One Tap if no redirect was processed
-          // and we've waited a bit for things to settle
           setTimeout(() => {
             if (mounted && !redirectProcessed) {
               initializeOneTap();
@@ -230,23 +223,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setUserProfile(null);
       } finally {
-        if (mounted) {
           setLoading(false);
-        }
       }
     });
 
     return () => {
-      mounted = false;
       unsubscribe();
     };
-  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap, toast, redirectProcessed]);
+  }, [mounted, fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap, toast, redirectProcessed]);
   
   const signInWithGoogle = useCallback(() => {
     setLoading(true);
     
-    // Cancel any One Tap prompts to avoid conflicts
-    if (typeof window.google !== 'undefined') {
+    if (typeof window !== 'undefined' && typeof window.google !== 'undefined') {
       try {
         window.google.accounts.id.cancel();
       } catch (error) {
@@ -306,6 +295,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile(prev => prev ? { ...prev, readStories: [...prev.readStories, storyId] } : null);
       }
     } else {
+      if (typeof window === 'undefined') return;
       try {
         const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
@@ -344,5 +334,3 @@ export function useAuth() {
   }
   return context;
 }
-
-    
