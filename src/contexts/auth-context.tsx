@@ -194,7 +194,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user, userProfile, toast]);
 
   const markStoryAsRead = useCallback((storyId: string) => {
-    if (typeof window === 'undefined') return;
     if (user && userProfile) {
       if (!userProfile.readStories.includes(storyId)) {
         const userDocRef = doc(db, 'users', user.uid);
@@ -202,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile(prev => prev ? { ...prev, readStories: [...prev.readStories, storyId] } : null);
       }
     } else {
+       if (typeof window === 'undefined') return;
       try {
         const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
         const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
