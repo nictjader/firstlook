@@ -24,6 +24,7 @@ function LoginContent() {
     if (typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)) {
       let email = window.localStorage.getItem('emailForSignIn');
       if (!email) {
+        // As a fallback, prompt the user for their email.
         email = window.prompt('Please provide your email for confirmation');
       }
 
