@@ -26,6 +26,7 @@ function LoginContent() {
   // Redirect authenticated users
   useEffect(() => {
     if (!authLoading && user && !emailLinkProcessed && mounted) {
+      console.log('User is authenticated, redirecting...');
       router.replace('/');
     }
   }, [user, authLoading, router, emailLinkProcessed, mounted]);
@@ -34,6 +35,8 @@ function LoginContent() {
     if (!mounted) return;
 
     const processAuth = async () => {
+      console.log('Processing auth on login page...');
+      
       const errorParam = searchParams.get('error');
       if (errorParam) {
         setAuthError(decodeURIComponent(errorParam));
@@ -42,7 +45,9 @@ function LoginContent() {
         return;
       }
 
-      if (isSignInWithEmailLink(auth, window.location.href)) {
+      // Handle email link sign-in
+      if (typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)) {
+        console.log('Handling email link sign-in...');
         setEmailLinkProcessed(true);
         let email = window.localStorage.getItem('emailForSignIn');
         
@@ -55,10 +60,12 @@ function LoginContent() {
             await signInWithEmailLink(auth, email, window.location.href);
             window.localStorage.removeItem('emailForSignIn');
             
+            // Clean up URL
             const url = new URL(window.location.href);
             url.search = '';
             window.history.replaceState({}, document.title, url.toString());
             
+            console.log('Email link sign-in successful');
           } catch (error: any) {
             console.error("Error signing in with email link:", error);
             setAuthError(error.message || "Failed to sign in with email link.");
@@ -71,25 +78,23 @@ function LoginContent() {
       setIsVerifying(false);
     };
 
-    if (!authLoading) {
+    // Wait a bit for auth state to settle, then process
+    const timer = setTimeout(() => {
       processAuth();
-    } else {
-      const timer = setTimeout(() => {
-        setIsVerifying(false);
-      }, 3000);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [authLoading, router, searchParams, mounted]);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, [mounted, router, searchParams]);
 
-  if (isVerifying || (authLoading && !emailLinkProcessed)) {
+  // Show loading while verifying or if auth is still loading
+  if (isVerifying || authLoading) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-semibold tracking-tight">
-            {mounted && isSignInWithEmailLink(auth, window.location.href) 
+            {mounted && typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)
               ? "Completing Email Sign-In..." 
-              : "Finalizing Sign-In..."
+              : "Checking Authentication..."
             }
           </CardTitle>
         </CardHeader>
@@ -105,6 +110,7 @@ function LoginContent() {
     );
   }
 
+  // Show success message for authenticated users
   if (user && !emailLinkProcessed) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">

@@ -40,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [redirectProcessed, setRedirectProcessed] = useState(false);
-  const { toast } = useToast();
   const [mounted, setMounted] = useState(false);
+  const [redirectHandled, setRedirectHandled] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     setMounted(true);
@@ -125,16 +125,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
          description: "Could not sign in with One Tap. Please try the standard sign-in button.", 
          variant: "destructive" 
        });
+       setLoading(false);
     }
   }, [toast]);
   
   const initializeOneTap = useCallback(() => {
     if (
+      !mounted ||
       typeof window === 'undefined' ||
       typeof window.google === 'undefined' || 
       !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID ||
-      window.location.pathname === '/login' ||
-      redirectProcessed
+      window.location.pathname === '/login'
     ) {
       return;
     }
@@ -156,45 +157,79 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('One Tap initialization error:', error);
     }
-  }, [handleCredentialResponse, redirectProcessed]);
+  }, [handleCredentialResponse, mounted]);
 
+  // Handle redirect result separately and early
   useEffect(() => {
     if (!mounted) return;
 
-    const handleRedirect = async () => {
+    let isHandlingRedirect = false;
+
+    const handleRedirectResult = async () => {
+      if (isHandlingRedirect || redirectHandled) return;
+      
+      isHandlingRedirect = true;
+      
       try {
+        console.log('Checking for redirect result...');
         const result = await getRedirectResult(auth);
+        
         if (result && result.user) {
-            setRedirectProcessed(true);
-            toast({ 
-              title: "Signed In Successfully!", 
-              description: `Welcome back, ${result.user.displayName || result.user.email}!`, 
-              variant: 'success' 
-            });
-            
-            if (window.location.pathname === '/login') {
+          console.log('Redirect result found:', result.user.email);
+          setRedirectHandled(true);
+          
+          toast({ 
+            title: "Signed In Successfully!", 
+            description: `Welcome back, ${result.user.displayName || result.user.email}!`, 
+            variant: 'success' 
+          });
+
+          // Navigate away from login page if we're on it
+          if (typeof window !== 'undefined' && window.location.pathname === '/login') {
+            setTimeout(() => {
               window.location.href = '/';
-            }
+            }, 500);
+          }
+        } else {
+          console.log('No redirect result found');
+          setRedirectHandled(true);
         }
       } catch (error: any) {
         console.error('Redirect result error:', error);
-        setRedirectProcessed(true);
-        toast({ 
-          title: "Sign-In Failed", 
-          description: "Could not complete sign-in. Please try again.", 
-          variant: "destructive" 
-        });
+        setRedirectHandled(true);
+        
+        // Only show error if it's not a popup closed error
+        if (error.code !== 'auth/popup-closed-by-user' && error.code !== 'auth/cancelled-popup-request') {
+          toast({ 
+            title: "Sign-In Error", 
+            description: error.message || "Could not complete sign-in. Please try again.", 
+            variant: "destructive" 
+          });
+        }
+      } finally {
+        isHandlingRedirect = false;
       }
-    }
+    };
 
-    handleRedirect();
+    // Handle redirect immediately when mounted
+    handleRedirectResult();
+  }, [mounted, redirectHandled, toast]);
 
+  // Auth state listener
+  useEffect(() => {
+    if (!mounted || !redirectHandled) return;
+
+    console.log('Setting up auth state listener');
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user?.email || 'No user');
       setLoading(true);
+      
       try {
         if (user) {
           await syncLocalReadHistory(user.uid);
           setUser(user);
+          
           let profile = await fetchUserProfile(user.uid);
           if (profile) {
             const userDocRef = doc(db, "users", user.uid);
@@ -212,11 +247,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(null);
           setUserProfile(null);
           
-          setTimeout(() => {
-            if (mounted && !redirectProcessed) {
+          // Only initialize One Tap for non-authenticated users, not on login page
+          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+            setTimeout(() => {
               initializeOneTap();
-            }
-          }, 1000);
+            }, 2000);
+          }
         }
       } catch (error) {
           console.error('Auth state change error:', error);
@@ -228,13 +264,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      console.log('Cleaning up auth state listener');
       unsubscribe();
     };
-  }, [mounted, fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap, toast, redirectProcessed]);
+  }, [mounted, redirectHandled, fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap]);
   
   const signInWithGoogle = useCallback(() => {
+    console.log('Starting Google sign-in...');
     setLoading(true);
     
+    // Cancel any One Tap prompts
     if (typeof window !== 'undefined' && typeof window.google !== 'undefined') {
       try {
         window.google.accounts.id.cancel();
@@ -246,6 +285,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const provider = new GoogleAuthProvider();
     provider.addScope('email');
     provider.addScope('profile');
+    
+    // Reset redirect handled state
+    setRedirectHandled(false);
     
     signInWithRedirect(auth, provider);
   }, []);
