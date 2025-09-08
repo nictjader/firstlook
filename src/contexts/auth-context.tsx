@@ -3,12 +3,24 @@
 
 import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { 
+    onAuthStateChanged,
+    GoogleAuthProvider,
+    signInWithRedirect,
+    getRedirectResult,
+    signInWithCredential,
+} from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
+
+declare global {
+  interface Window {
+    google: any;
+  }
+}
 
 const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
 
@@ -16,6 +28,7 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  signInWithGoogle: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
@@ -23,7 +36,6 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -40,7 +52,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
-        // This error is critical for developers but not for users.
         return null;
     }
   }, []);
@@ -85,7 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
       }
     } catch (error) {
-        // Silently fail on sync error, not critical for user experience
+        // Silently fail
     }
   }, []);
 
@@ -96,7 +107,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, fetchUserProfile]);
 
+  const handleCredentialResponse = useCallback(async (response: any) => {
+    setLoading(true);
+    try {
+      const credential = GoogleAuthProvider.credential(response.credential);
+      await signInWithCredential(auth, credential);
+    } catch (error) {
+       toast({ title: "Google Sign-In Failed", description: "Could not sign in with One Tap. Please try the standard sign-in button.", variant: "destructive" });
+    } finally {
+        // Auth state change will handle loading false
+    }
+  }, [toast]);
+  
+  const initializeOneTap = useCallback(() => {
+    if (typeof window.google === 'undefined' || !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID) return;
+
+    window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID,
+        callback: handleCredentialResponse,
+        cancel_on_tap_outside: false,
+        auto_select: true,
+        context: 'signin',
+    });
+    window.google.accounts.id.prompt((notification: any) => {
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+            console.log('One Tap UI was not displayed or was skipped.');
+        }
+    });
+
+  }, [handleCredentialResponse]);
+
+
   useEffect(() => {
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result) {
+            toast({ title: "Signed In Successfully!", description: `Welcome back, ${result.user.displayName || result.user.email}!`, variant: 'success' });
+        }
+      } catch (error: any) {
+        toast({ title: "Sign-In Failed", description: "Could not complete sign-in. Please try again.", variant: "destructive" });
+      }
+    }
+    handleRedirect();
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       try {
@@ -119,6 +173,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setUser(null);
           setUserProfile(null);
+          initializeOneTap();
         }
       } catch (error) {
           setUser(null);
@@ -129,7 +184,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory]);
+  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap, toast]);
+  
+  const signInWithGoogle = () => {
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    signInWithRedirect(auth, provider);
+  };
   
   const updateUserProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (user) {
@@ -184,6 +245,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.setItem(LOCAL_STORAGE_READ_KEY, JSON.stringify(localReadStories));
         }
       } catch (error) {
+        // silent fail
       }
     }
   }, [user, userProfile]);
@@ -192,6 +254,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     user,
     userProfile,
     loading,
+    signInWithGoogle,
     updateUserProfile,
     refreshUserProfile,
     toggleFavoriteStory,

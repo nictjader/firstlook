@@ -5,17 +5,26 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useToast } from '../../hooks/use-toast';
 import { auth } from '../../lib/firebase/client';
-import { 
-  sendSignInLinkToEmail, 
-} from 'firebase/auth';
+import { sendSignInLinkToEmail } from 'firebase/auth';
 import { Loader2, Mail, MailCheck } from 'lucide-react';
 import Logo from '../layout/logo';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '../ui/card';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/auth-context';
+import { Separator } from '../ui/separator';
+
+const GoogleIcon = () => (
+  <svg className="mr-2 h-4 w-4" viewBox="0 0 48 48">
+    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.804 12.191C34.553 8.273 29.624 6 24 6C12.955 6 4 14.955 4 26s8.955 20 20 20s20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"></path>
+    <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039L38.804 12.191C34.553 8.273 29.624 6 24 6C16.318 6 9.656 10.337 6.306 14.691z"></path>
+    <path fill="#4CAF50" d="M24 46c5.64 0 10.573-1.848 14.124-5.025l-6.502-5.025C28.852 38.384 26.602 40 24 40c-5.223 0-9.65-3.662-11.303-8.624l-6.571 4.819C9.656 41.663 16.318 46 24 46z"></path>
+    <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.502 5.025C40.945 34.622 44 28.754 44 24c0-1.341-.138-2.65-.389-3.917z"></path>
+  </svg>
+);
+
 
 export default function AuthForm() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, signInWithGoogle } = useAuth();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
@@ -23,7 +32,6 @@ export default function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Redirect user if they are already logged in
   useEffect(() => {
     if (user && !authLoading) {
       const redirectUrl = searchParams.get('redirect') || '/profile';
@@ -82,10 +90,18 @@ export default function AuthForm() {
         <div className="flex justify-center items-center mb-4">
           <Logo />
         </div>
-        <h3 className="text-2xl font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</h3>
-        <p className="text-sm text-muted-foreground">Fall in love with a story.</p>
+        <CardTitle className="text-2xl font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</CardTitle>
+        <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
+        <Button onClick={signInWithGoogle} variant="outline" className="h-11">
+          <GoogleIcon /> Continue with Google
+        </Button>
+        <div className="flex items-center">
+          <Separator className="flex-grow" />
+          <span className="mx-2 text-xs text-muted-foreground">OR</span>
+          <Separator className="flex-grow" />
+        </div>
         {linkSentTo ? (
           <div className="space-y-4 text-center">
              <div className="text-center space-y-2">
@@ -106,6 +122,7 @@ export default function AuthForm() {
               onChange={(e) => setEmail(e.target.value)}
               required
               disabled={loading}
+              className="h-11"
             />
             <Button type="submit" className="w-full h-11" disabled={loading}>
               {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
