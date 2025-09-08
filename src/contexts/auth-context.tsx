@@ -131,11 +131,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // IMPORTANT: Replace the placeholder below with your actual Google OAuth Client ID.
-    const googleAuthClientId = "958286415810-5lrmshpsdaskr6gd3j8gt2q4809mclfa.apps.googleusercontent.com";
+    const googleAuthClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 
-    if (!googleAuthClientId || googleAuthClientId.includes("YOUR_GOOGLE_OAUTH")) {
-        console.error("Google OAuth Client ID is not configured. Please replace the placeholder in auth-context.tsx.");
+    if (!googleAuthClientId) {
+        console.error("Google OAuth Client ID is not configured in your .env file.");
         return;
     }
 
