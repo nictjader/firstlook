@@ -126,13 +126,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [toast]);
   
   const initializeOneTap = useCallback(() => {
-    if (typeof window === 'undefined' || typeof window.google === 'undefined' || !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID) {
+    if (typeof window === 'undefined' || typeof window.google === 'undefined') {
       return;
+    }
+    
+    // IMPORTANT: Replace the placeholder below with your actual Google OAuth Client ID.
+    const googleAuthClientId = "YOUR_GOOGLE_OAUTH_CLIENT_ID_HERE";
+
+    if (!googleAuthClientId || googleAuthClientId.includes("YOUR_GOOGLE_OAUTH")) {
+        console.error("Google OAuth Client ID is not configured. Please replace the placeholder in auth-context.tsx.");
+        return;
     }
 
     try {
       window.google.accounts.id.initialize({
-        client_id: process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID,
+        client_id: googleAuthClientId,
         callback: handleCredentialResponse,
         cancel_on_tap_outside: false,
         auto_select: false,
