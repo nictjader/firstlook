@@ -22,7 +22,7 @@ function LoginContent() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    if (isSignInWithEmailLink(auth, window.location.href)) {
+    if (typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)) {
       let email = window.localStorage.getItem('emailForSignIn');
       if (!email) {
         email = window.prompt('Please provide your email for confirmation');

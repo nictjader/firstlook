@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       return null;
     } catch (error) {
+        console.error("Error fetching user profile:", error);
         return null;
     }
   }, []);
@@ -77,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         return docToUserProfileClient(finalDocSnap.data(), user.uid);
     } catch (error) {
+        console.error("Error creating user profile:", error);
         return null;
     }
   }, []);
@@ -96,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
       }
     } catch (error) {
-        // Silently fail
+        console.error("Error syncing local read history:", error);
     }
   }, []);
 
@@ -148,6 +150,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [handleCredentialResponse]);
 
   useEffect(() => {
+    getRedirectResult(auth)
+      .then(async (result) => {
+        if (result) {
+          toast({
+            title: "Signed In Successfully!",
+            description: `Welcome, ${result.user.displayName || result.user.email}!`,
+            variant: "success",
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error handling redirect result:", error);
+        toast({
+          title: "Sign-In Error",
+          description: "Could not complete sign-in with Google. Please try again.",
+          variant: "destructive",
+        });
+      });
+    
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setLoading(true);
       if (user) {
@@ -175,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => unsubscribe();
-  }, [fetchUserProfile, createUserProfile, initializeOneTap, syncLocalReadHistory]);
+  }, [fetchUserProfile, createUserProfile, initializeOneTap, syncLocalReadHistory, toast]);
   
   const signInWithGoogle = useCallback(() => {
     if (typeof window !== 'undefined' && typeof window.google !== 'undefined') {
@@ -248,28 +269,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [user, userProfile]);
-
-  // Handle the redirect result from Google Sign-In
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result) {
-          toast({
-            title: "Signed In Successfully!",
-            description: `Welcome, ${result.user.displayName || result.user.email}!`,
-            variant: "success",
-          });
-        }
-      })
-      .catch((error) => {
-        console.error("Error handling redirect result:", error);
-        toast({
-          title: "Sign-In Error",
-          description: "Could not complete sign-in with Google. Please try again.",
-          variant: "destructive",
-        });
-      });
-  }, [toast]);
 
   const value: AuthContextType = {
     user,
