@@ -1,68 +1,51 @@
 "use client";
 
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect } from 'react';
 import AuthForm from '../../../components/auth/auth-form';
-import { Loader2, AlertCircle } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '../../../contexts/auth-context';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import { auth } from '../../../lib/firebase/client';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
-import { useAuth } from '../../../contexts/auth-context';
 
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loading: authLoading, user } = useAuth();
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [emailLinkProcessed, setEmailLinkProcessed] = useState(false);
-  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Redirect authenticated users away from the login page
-  useEffect(() => {
-    if (mounted && user && !authLoading) {
-      console.log('User is authenticated, redirecting from login page...');
-      router.replace('/');
+    if (user && !authLoading) {
+      const redirectUrl = searchParams.get('redirect') || '/';
+      router.replace(redirectUrl);
     }
-  }, [user, authLoading, mounted, router]);
+  }, [user, authLoading, router, searchParams]);
 
-  // Handle email link sign-in
   useEffect(() => {
-    if (mounted && !user) {
-      if (isSignInWithEmailLink(auth, window.location.href)) {
-        setEmailLinkProcessed(true); // Mark that we are processing an email link
-        let email = window.localStorage.getItem('emailForSignIn');
-        if (!email) {
-          email = window.prompt('Please provide your email for confirmation');
-        }
-        
-        if (email) {
-          signInWithEmailLink(auth, email, window.location.href)
-            .then(() => {
-              window.localStorage.removeItem('emailForSignIn');
-              // The onAuthStateChanged listener in auth-context will handle the redirect.
-            })
-            .catch((error) => {
-              setAuthError(error.message || "Failed to sign in with email link.");
-            });
-        } else {
-          setAuthError("Email is required to complete sign-in.");
-        }
+    if (isSignInWithEmailLink(auth, window.location.href)) {
+      let email = window.localStorage.getItem('emailForSignIn');
+      if (!email) {
+        email = window.prompt('Please provide your email for confirmation');
+      }
+      if (email) {
+        signInWithEmailLink(auth, email, window.location.href)
+          .then(() => {
+            window.localStorage.removeItem('emailForSignIn');
+            // The onAuthStateChanged listener in auth-context will handle the redirect.
+          })
+          .catch((error) => {
+            console.error("Failed to sign in with email link.", error);
+          });
       }
     }
-  }, [mounted, user, router, searchParams]);
+  }, []);
 
-  // Handle UI state based on auth loading and user status
-  if (authLoading || (mounted && user)) {
+  if (authLoading || user) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-semibold tracking-tight">
-            {user ? "Welcome Back!" : "Checking Authentication..."}
+            Authenticating...
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -70,26 +53,14 @@ function LoginContent() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
           <p className="text-muted-foreground">
-            {user ? "Redirecting you to the main page..." : "Please wait..."}
+            Please wait while we sign you in.
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  // If not loading and no user, show the auth form
-  return (
-    <div className="w-full max-w-md space-y-4">
-      {authError && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Authentication Failed</AlertTitle>
-          <AlertDescription>{authError}</AlertDescription>
-        </Alert>
-      )}
-      <AuthForm />
-    </div>
-  );
+  return <AuthForm />;
 }
 
 export default function LoginPage() {

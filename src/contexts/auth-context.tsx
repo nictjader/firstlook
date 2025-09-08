@@ -40,12 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [mounted, setMounted] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
     try {
@@ -61,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const createUserProfile = useCallback(async (user: User): Promise<UserProfile | null> => {
-    try {
+     try {
         const userDocRef = doc(db, "users", user.uid);
         const newUserProfileData = {
           userId: user.uid,
@@ -129,121 +124,60 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [toast]);
   
   const initializeOneTap = useCallback(() => {
-    if (
-      !mounted ||
-      typeof window === 'undefined' ||
-      typeof window.google === 'undefined' || 
-      !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID ||
-      (typeof window !== 'undefined' && window.location.pathname === '/login')
-    ) {
+    if (typeof window === 'undefined' || typeof window.google === 'undefined' || !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID) {
       return;
     }
 
     try {
       window.google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID,
-          callback: handleCredentialResponse,
-          cancel_on_tap_outside: false,
-          auto_select: false,
-          context: 'signin',
+        client_id: process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID,
+        callback: handleCredentialResponse,
+        cancel_on_tap_outside: false,
+        auto_select: false,
+        context: 'signin',
       });
-      
+
       window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-              console.log('One Tap UI was not displayed or was skipped.');
-          }
+        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+          console.log('One Tap UI was not displayed or was skipped.');
+        }
       });
     } catch (error) {
       console.error('One Tap initialization error:', error);
     }
-  }, [handleCredentialResponse, mounted]);
-
+  }, [handleCredentialResponse]);
 
   useEffect(() => {
-    if (!mounted) return;
-
-    let redirectHandled = false;
-
-    const processAuth = async () => {
-        try {
-            console.log('Checking for redirect result...');
-            const result = await getRedirectResult(auth);
-            if (result && result.user) {
-                console.log('Redirect result found:', result.user.email);
-                redirectHandled = true;
-                toast({
-                    title: "Signed In Successfully!",
-                    description: `Welcome back, ${result.user.displayName || result.user.email}!`,
-                    variant: 'success'
-                });
-                // No need to set user state here, onAuthStateChanged will handle it.
-            } else {
-                console.log('No redirect result found');
-            }
-        } catch (error: any) {
-            console.error('Redirect result error:', error);
-            toast({
-                title: "Sign-In Error",
-                description: error.message || "Could not complete sign-in. Please try again.",
-                variant: "destructive"
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setLoading(true);
+      if (user) {
+        await syncLocalReadHistory(user.uid);
+        setUser(user);
+        let profile = await fetchUserProfile(user.uid);
+        if (profile) {
+            const userDocRef = doc(db, "users", user.uid);
+            await updateDoc(userDocRef, {
+                lastLogin: serverTimestamp(),
+                email: user.email,
+                displayName: user.displayName
             });
+            profile = await fetchUserProfile(user.uid);
+        } else {
+            profile = await createUserProfile(user);
         }
+        setUserProfile(profile);
+      } else {
+        setUser(null);
+        setUserProfile(null);
+        initializeOneTap();
+      }
+      setLoading(false);
+    });
 
-        console.log('Setting up auth state listener');
-        const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            console.log('Auth state changed:', user?.email || 'No user');
-            setLoading(true);
-            try {
-                if (user) {
-                    await syncLocalReadHistory(user.uid);
-                    setUser(user);
-                    let profile = await fetchUserProfile(user.uid);
-                    if (profile) {
-                        const userDocRef = doc(db, "users", user.uid);
-                        await updateDoc(userDocRef, {
-                            lastLogin: serverTimestamp(),
-                            email: user.email,
-                            displayName: user.displayName
-                        });
-                        profile = await fetchUserProfile(user.uid);
-                    } else {
-                        profile = await createUserProfile(user);
-                    }
-                    setUserProfile(profile);
-                } else {
-                    setUser(null);
-                    setUserProfile(null);
-                    // Only initialize One Tap if no user is found after checks
-                    if (!redirectHandled) {
-                        setTimeout(initializeOneTap, 1000);
-                    }
-                }
-            } catch (error) {
-                console.error('Auth state change error:', error);
-                setUser(null);
-                setUserProfile(null);
-            } finally {
-                setLoading(false);
-            }
-        });
-
-        return () => {
-            console.log('Cleaning up auth state listener');
-            unsubscribe();
-        };
-    };
-
-    const finalCleanup = processAuth();
-
-    return () => {
-      finalCleanup.then(cleanup => cleanup && cleanup());
-    }
-
-  }, [mounted, toast, fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap]);
+    return () => unsubscribe();
+  }, [fetchUserProfile, createUserProfile, initializeOneTap, syncLocalReadHistory]);
   
   const signInWithGoogle = useCallback(() => {
-    setLoading(true);
-    
     if (typeof window !== 'undefined' && typeof window.google !== 'undefined') {
       try {
         window.google.accounts.id.cancel();
@@ -251,11 +185,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ignore errors from canceling
       }
     }
-    
+
     const provider = new GoogleAuthProvider();
-    provider.addScope('email');
-    provider.addScope('profile');
-    
     signInWithRedirect(auth, provider);
   }, []);
   
@@ -317,6 +248,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [user, userProfile]);
+
+  // Handle the redirect result from Google Sign-In
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) {
+          toast({
+            title: "Signed In Successfully!",
+            description: `Welcome, ${result.user.displayName || result.user.email}!`,
+            variant: "success",
+          });
+        }
+      })
+      .catch((error) => {
+        console.error("Error handling redirect result:", error);
+        toast({
+          title: "Sign-In Error",
+          description: "Could not complete sign-in with Google. Please try again.",
+          variant: "destructive",
+        });
+      });
+  }, [toast]);
 
   const value: AuthContextType = {
     user,
