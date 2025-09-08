@@ -1,9 +1,8 @@
-
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
@@ -16,7 +15,6 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  signInWithGoogle: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
@@ -83,44 +81,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [syncLocalReadHistory]);
 
   useEffect(() => {
-    // This effect runs once on mount
-    const checkRedirect = async () => {
-      try {
-        const result = await getRedirectResult(auth);
-        if (result) {
-          // If there's a redirect result, a sign-in happened.
-          // The onAuthStateChanged listener will handle the user state update.
-          toast({
-            title: "Signed In Successfully!",
-            description: `Welcome, ${result.user.displayName || result.user.email}!`,
-            variant: "success",
-          });
-        }
-      } catch (error) {
-        console.error("Error processing redirect result:", error);
-      }
-      
-      // After processing any potential redirect, set up the permanent auth state listener.
-      const unsubscribe = onAuthStateChanged(auth, handleUser);
-      return unsubscribe;
-    };
-
-    const unsubscribePromise = checkRedirect();
-    
-    return () => {
-      unsubscribePromise.then(unsubscribe => unsubscribe && unsubscribe());
-    };
-  }, [handleUser, toast]);
-
-  const signInWithGoogle = useCallback(() => {
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    signInWithRedirect(auth, provider);
-  }, []);
+    const unsubscribe = onAuthStateChanged(auth, handleUser);
+    return () => unsubscribe();
+  }, [handleUser]);
 
   const refreshUserProfile = useCallback(async () => {
     if (user) {
-        const profile = await docToUserProfileClient((await getDoc(doc(db, "users", user.uid))).data()!, user.uid);
+        const profile = docToUserProfileClient((await getDoc(doc(db, "users", user.uid))).data()!, user.uid);
         setUserProfile(profile);
     }
   }, [user]);
@@ -184,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signInWithGoogle, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
+  const value = { user, userProfile, loading, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
 
   return (
     <AuthContext.Provider value={value}>
