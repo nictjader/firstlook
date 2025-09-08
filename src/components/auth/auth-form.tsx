@@ -97,10 +97,15 @@ export default function AuthForm() {
         <Button onClick={signInWithGoogle} variant="outline" className="h-11">
           <GoogleIcon /> Continue with Google
         </Button>
-        <div className="flex items-center">
-          <Separator className="flex-grow" />
-          <span className="mx-2 text-xs text-muted-foreground">OR</span>
-          <Separator className="flex-grow" />
+        <div className="relative my-2">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+              Or continue with
+            </span>
+          </div>
         </div>
         {linkSentTo ? (
           <div className="space-y-4 text-center">
