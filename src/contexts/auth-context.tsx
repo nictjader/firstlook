@@ -1,14 +1,9 @@
 
 "use client";
 
-import type { User } from 'firebase/auth';
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
-import { 
-    onAuthStateChanged,
-    GoogleAuthProvider,
-    signInWithRedirect,
-    getRedirectResult,
-} from 'firebase/auth';
+import type { User } from 'firebase/auth';
+import { onAuthStateChanged, GoogleAuthProvider, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
@@ -33,43 +28,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading] = useState(true); // Start as true
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-
-  const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
-    try {
-      const userDocRef = doc(db, "users", userId);
-      const userDocSnap = await getDoc(userDocRef);
-      return userDocSnap.exists() ? docToUserProfileClient(userDocSnap.data(), userId) : null;
-    } catch (error) {
-        console.error("Error fetching user profile:", error);
-        return null;
-    }
-  }, []);
-
-  const createUserProfile = useCallback(async (user: User): Promise<UserProfile | null> => {
-     try {
-        const userDocRef = doc(db, "users", user.uid);
-        const newUserProfileData = {
-          userId: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          coins: 0, 
-          unlockedStories: [],
-          readStories: [],
-          favoriteStories: [],
-          preferences: { subgenres: [] },
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
-        };
-        await setDoc(userDocRef, newUserProfileData, { merge: true }); // Use merge to avoid overwriting
-        const finalDocSnap = await getDoc(userDocRef);
-        return finalDocSnap.exists() ? docToUserProfileClient(finalDocSnap.data(), user.uid) : null;
-    } catch (error) {
-        console.error("Error creating user profile:", error);
-        return null;
-    }
-  }, []);
 
   const syncLocalReadHistory = useCallback(async (userId: string) => {
     if (typeof window === 'undefined') return;
@@ -88,15 +48,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const handleUser = useCallback(async (user: User | null) => {
+    if (user) {
+      await syncLocalReadHistory(user.uid);
+      const userDocRef = doc(db, "users", user.uid);
+      let userDocSnap = await getDoc(userDocRef);
+      if (!userDocSnap.exists()) {
+        // Create profile if it doesn't exist
+        const newUserProfileData = {
+          userId: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          coins: 0, 
+          unlockedStories: [],
+          readStories: [],
+          favoriteStories: [],
+          preferences: { subgenres: [] },
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+        };
+        await setDoc(userDocRef, newUserProfileData, { merge: true });
+        userDocSnap = await getDoc(userDocRef);
+      } else {
+        // Update last login time
+        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
+      }
+      setUser(user);
+      setUserProfile(docToUserProfileClient(userDocSnap.data()!, user.uid));
+    } else {
+      setUser(null);
+      setUserProfile(null);
+    }
+    setLoading(false);
+  }, [syncLocalReadHistory]);
+
   useEffect(() => {
-    // This effect runs only once when the provider mounts.
-    const initializeAuth = async () => {
+    // This effect runs once on mount
+    const checkRedirect = async () => {
       try {
-        // First, check if there's a redirect result to process.
         const result = await getRedirectResult(auth);
         if (result) {
-          // A user has just signed in via redirect.
-          // The onAuthStateChanged listener below will handle setting the user state.
+          // If there's a redirect result, a sign-in happened.
+          // The onAuthStateChanged listener will handle the user state update.
           toast({
             title: "Signed In Successfully!",
             description: `Welcome, ${result.user.displayName || result.user.email}!`,
@@ -104,58 +97,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch (error) {
-        console.error("Error handling redirect result:", error);
-        toast({
-          title: "Sign-In Error",
-          description: "Could not complete sign-in with Google. Please try again.",
-          variant: "destructive",
-        });
+        console.error("Error processing redirect result:", error);
       }
-
-      // Now, set up the central listener for auth state.
-      // This will fire immediately with the current user (or null),
-      // and again whenever the auth state changes.
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          await syncLocalReadHistory(user.uid);
-          let profile = await fetchUserProfile(user.uid);
-          if (!profile) {
-            profile = await createUserProfile(user);
-          } else {
-             const userDocRef = doc(db, "users", user.uid);
-             await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
-          }
-          setUser(user);
-          setUserProfile(profile);
-        } else {
-          setUser(null);
-          setUserProfile(null);
-        }
-        // We are done loading only AFTER the first auth state check is complete.
-        setLoading(false);
-      });
-
+      
+      // After processing any potential redirect, set up the permanent auth state listener.
+      const unsubscribe = onAuthStateChanged(auth, handleUser);
       return unsubscribe;
     };
 
-    const unsubscribePromise = initializeAuth();
-
+    const unsubscribePromise = checkRedirect();
+    
     return () => {
       unsubscribePromise.then(unsubscribe => unsubscribe && unsubscribe());
     };
-  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory, toast]);
-  
+  }, [handleUser, toast]);
+
   const signInWithGoogle = useCallback(() => {
+    setLoading(true);
     const provider = new GoogleAuthProvider();
     signInWithRedirect(auth, provider);
   }, []);
-  
+
   const refreshUserProfile = useCallback(async () => {
     if (user) {
-        const profile = await fetchUserProfile(user.uid);
+        const profile = await docToUserProfileClient((await getDoc(doc(db, "users", user.uid))).data()!, user.uid);
         setUserProfile(profile);
     }
-  }, [user, fetchUserProfile]);
+  }, [user]);
   
   const updateUserProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (user) {
@@ -216,16 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value: AuthContextType = {
-    user,
-    userProfile,
-    loading,
-    signInWithGoogle,
-    updateUserProfile,
-    refreshUserProfile,
-    toggleFavoriteStory,
-    markStoryAsRead,
-  };
+  const value = { user, userProfile, loading, signInWithGoogle, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
 
   return (
     <AuthContext.Provider value={value}>
