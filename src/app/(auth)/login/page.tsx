@@ -13,19 +13,22 @@ import { useAuth } from '../../../contexts/auth-context';
 function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { loading: authLoading } = useAuth();
+  const { loading: authLoading, user } = useAuth();
   const [isVerifying, setIsVerifying] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [emailLinkProcessed, setEmailLinkProcessed] = useState(false);
+
+  // Redirect authenticated users
+  useEffect(() => {
+    if (!authLoading && user && !emailLinkProcessed) {
+      router.replace('/');
+    }
+  }, [user, authLoading, router, emailLinkProcessed]);
 
   useEffect(() => {
     // This effect runs when the page loads after a potential redirect.
     const processAuth = async () => {
-      // Don't do anything if the main auth context is still loading,
-      // as it might be handling a redirect result.
-      if (authLoading) {
-        return;
-      }
-      
+      // Check for error parameters first
       const errorParam = searchParams.get('error');
       if (errorParam) {
         setAuthError(decodeURIComponent(errorParam));
@@ -36,15 +39,24 @@ function LoginContent() {
 
       // Check for email link sign-in specifically.
       if (isSignInWithEmailLink(auth, window.location.href)) {
+        setEmailLinkProcessed(true);
         let email = window.localStorage.getItem('emailForSignIn');
+        
         if (!email) {
           email = window.prompt('Please provide your email for confirmation');
         }
+        
         if (email) {
           try {
             await signInWithEmailLink(auth, email, window.location.href);
             window.localStorage.removeItem('emailForSignIn');
-            // The onAuthStateChanged listener in auth-context will handle the redirect.
+            
+            // Clean up the URL
+            const url = new URL(window.location.href);
+            url.search = '';
+            window.history.replaceState({}, document.title, url.toString());
+            
+            // The onAuthStateChanged listener will handle the redirect
           } catch (error: any) {
             console.error("Error signing in with email link:", error);
             setAuthError(error.message || "Failed to sign in with email link.");
@@ -57,15 +69,30 @@ function LoginContent() {
       setIsVerifying(false);
     };
 
-    processAuth();
+    // Only process auth if the main auth context isn't still loading from a redirect
+    if (!authLoading || isSignInWithEmailLink(auth, window.location.href)) {
+      processAuth();
+    } else {
+      // If auth is loading (potentially from redirect), wait a bit then set verifying to false
+      const timer = setTimeout(() => {
+        setIsVerifying(false);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
   }, [authLoading, router, searchParams]);
 
-  // A more robust loading state that considers the main auth context
-  if (isVerifying || authLoading) {
+  // Show loading state while verifying or if auth is loading
+  if (isVerifying || (authLoading && !emailLinkProcessed)) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold tracking-tight">Finalizing Sign-In...</CardTitle>
+          <CardTitle className="text-2xl font-semibold tracking-tight">
+            {isSignInWithEmailLink(auth, window.location.href) 
+              ? "Completing Email Sign-In..." 
+              : "Finalizing Sign-In..."
+            }
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="flex justify-center items-center py-4">
@@ -73,6 +100,27 @@ function LoginContent() {
           </div>
           <p className="text-muted-foreground">
             Please wait while we complete the sign-in process.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // If user is authenticated, show a brief success message while redirecting
+  if (user && !emailLinkProcessed) {
+    return (
+      <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl font-semibold tracking-tight text-green-600">
+            Welcome Back!
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex justify-center items-center py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+          <p className="text-muted-foreground">
+            Redirecting you to the main page...
           </p>
         </CardContent>
       </Card>
@@ -95,6 +143,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-secondary/20 px-4">
       <Suspense fallback={
         <div className="flex justify-center items-center py-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -102,5 +151,7 @@ export default function LoginPage() {
       }>
         <LoginContent />
       </Suspense>
+    </div>
   );
 }
+    

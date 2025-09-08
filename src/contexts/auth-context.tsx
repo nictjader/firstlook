@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { User } from 'firebase/auth';
@@ -41,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [redirectProcessed, setRedirectProcessed] = useState(false);
   const { toast } = useToast();
 
   const fetchUserProfile = useCallback(async (userId: string): Promise<UserProfile | null> => {
@@ -112,46 +112,89 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const credential = GoogleAuthProvider.credential(response.credential);
       await signInWithCredential(auth, credential);
-    } catch (error) {
-       toast({ title: "Google Sign-In Failed", description: "Could not sign in with One Tap. Please try the standard sign-in button.", variant: "destructive" });
-    } finally {
-        // Auth state change will handle loading false
+    } catch (error: any) {
+       console.error('One Tap sign-in error:', error);
+       toast({ 
+         title: "Google Sign-In Failed", 
+         description: "Could not sign in with One Tap. Please try the standard sign-in button.", 
+         variant: "destructive" 
+       });
     }
+    // Don't set loading to false here - let the auth state change handle it
   }, [toast]);
   
   const initializeOneTap = useCallback(() => {
-    if (typeof window.google === 'undefined' || !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID) return;
+    // Only initialize One Tap if:
+    // 1. Google API is available
+    // 2. Client ID is configured
+    // 3. We're not on the login page (to avoid conflicts)
+    // 4. No redirect has been processed recently
+    if (
+      typeof window.google === 'undefined' || 
+      !process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID ||
+      window.location.pathname === '/login' ||
+      redirectProcessed
+    ) {
+      return;
+    }
 
-    window.google.accounts.id.initialize({
-        client_id: process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID,
-        callback: handleCredentialResponse,
-        cancel_on_tap_outside: false,
-        auto_select: true,
-        context: 'signin',
-    });
-    window.google.accounts.id.prompt((notification: any) => {
-        if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
-            console.log('One Tap UI was not displayed or was skipped.');
-        }
-    });
-
-  }, [handleCredentialResponse]);
-
+    try {
+      window.google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_FIREBASE_OAUTH_CLIENT_ID,
+          callback: handleCredentialResponse,
+          cancel_on_tap_outside: false,
+          auto_select: false, // Changed to false to avoid conflicts
+          context: 'signin',
+      });
+      
+      window.google.accounts.id.prompt((notification: any) => {
+          if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+              console.log('One Tap UI was not displayed or was skipped.');
+          }
+      });
+    } catch (error) {
+      console.error('One Tap initialization error:', error);
+    }
+  }, [handleCredentialResponse, redirectProcessed]);
 
   useEffect(() => {
+    let mounted = true;
+
     const handleRedirect = async () => {
+      if (!mounted) return;
+      
       try {
         const result = await getRedirectResult(auth);
-        if (result) {
-            toast({ title: "Signed In Successfully!", description: `Welcome back, ${result.user.displayName || result.user.email}!`, variant: 'success' });
+        if (result && result.user) {
+            setRedirectProcessed(true);
+            toast({ 
+              title: "Signed In Successfully!", 
+              description: `Welcome back, ${result.user.displayName || result.user.email}!`, 
+              variant: 'success' 
+            });
+            
+            // Redirect to home page or dashboard
+            if (window.location.pathname === '/login') {
+              window.location.href = '/';
+            }
         }
       } catch (error: any) {
-        toast({ title: "Sign-In Failed", description: "Could not complete sign-in. Please try again.", variant: "destructive" });
+        console.error('Redirect result error:', error);
+        setRedirectProcessed(true);
+        toast({ 
+          title: "Sign-In Failed", 
+          description: "Could not complete sign-in. Please try again.", 
+          variant: "destructive" 
+        });
       }
     }
+
+    // Handle redirect result first
     handleRedirect();
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!mounted) return;
+      
       setLoading(true);
       try {
         if (user) {
@@ -173,24 +216,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setUser(null);
           setUserProfile(null);
-          initializeOneTap();
+          
+          // Only initialize One Tap if no redirect was processed
+          // and we've waited a bit for things to settle
+          setTimeout(() => {
+            if (mounted && !redirectProcessed) {
+              initializeOneTap();
+            }
+          }, 1000);
         }
       } catch (error) {
+          console.error('Auth state change error:', error);
           setUser(null);
           setUserProfile(null);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       }
     });
 
-    return () => unsubscribe();
-  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap, toast]);
+    return () => {
+      mounted = false;
+      unsubscribe();
+    };
+  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory, initializeOneTap, toast, redirectProcessed]);
   
-  const signInWithGoogle = () => {
+  const signInWithGoogle = useCallback(() => {
     setLoading(true);
+    
+    // Cancel any One Tap prompts to avoid conflicts
+    if (typeof window.google !== 'undefined') {
+      try {
+        window.google.accounts.id.cancel();
+      } catch (error) {
+        // Ignore errors from canceling
+      }
+    }
+    
     const provider = new GoogleAuthProvider();
+    provider.addScope('email');
+    provider.addScope('profile');
+    
     signInWithRedirect(auth, provider);
-  };
+  }, []);
   
   const updateUserProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (user) {
@@ -275,3 +344,5 @@ export function useAuth() {
   }
   return context;
 }
+
+    
