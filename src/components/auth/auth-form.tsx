@@ -37,6 +37,7 @@ export default function AuthForm() {
     };
     try {
       await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      // Save the email locally as per Firebase best practices.
       window.localStorage.setItem('emailForSignIn', email);
       toast({
         variant: "success",

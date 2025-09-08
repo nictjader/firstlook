@@ -16,15 +16,12 @@ function LoginContent() {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  // State to track if we are actively processing an email link sign-in.
   const [isHandlingEmailLink, setIsHandlingEmailLink] = useState(true);
 
-  // This effect runs only once to check for an email sign-in link in the URL.
   useEffect(() => {
     if (typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)) {
       let email = window.localStorage.getItem('emailForSignIn');
       if (!email) {
-        // As a fallback, prompt the user for their email.
         email = window.prompt('Please provide your email for confirmation');
       }
 
@@ -37,7 +34,6 @@ function LoginContent() {
               description: `Welcome back!`,
               variant: "success",
             });
-            // Success! The onAuthStateChanged listener in the context will now take over.
           })
           .catch((error) => {
             console.error("Error signing in with email link:", error);
@@ -46,33 +42,24 @@ function LoginContent() {
               description: error.message || "The sign-in link is invalid or has expired.",
               variant: "destructive"
             });
-            setIsHandlingEmailLink(false); // Stop loading on error
+            setIsHandlingEmailLink(false);
           });
       } else {
-        // User cancelled the prompt
         toast({ title: "Email Required", description: "Your email is needed to complete the sign-in.", variant: "destructive" });
         setIsHandlingEmailLink(false);
       }
     } else {
-      // Not an email link sign-in, so we are done with this check.
       setIsHandlingEmailLink(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Empty dependency array ensures this runs only once on mount.
+  }, [toast]);
 
-  // This effect handles redirecting the user once they are authenticated.
   useEffect(() => {
-    // If auth is no longer loading AND we have a user object...
     if (!authLoading && user) {
       const redirectUrl = searchParams.get('redirect') || '/';
       router.replace(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
 
-  // Show a loading spinner for all "in-between" states:
-  // 1. The auth context is initially loading.
-  // 2. We are processing an email link.
-  // 3. We have a user and are about to redirect.
   if (authLoading || isHandlingEmailLink || user) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -81,7 +68,6 @@ function LoginContent() {
     );
   }
 
-  // Only if all loading is done and there's no user, show the sign-in form.
   return <AuthForm />;
 }
 
