@@ -110,6 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, fetchUserProfile]);
 
+  /*
   const handleCredentialResponse = useCallback(async (response: any) => {
     setLoading(true);
     try {
@@ -125,7 +126,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
        setLoading(false);
     }
   }, [toast]);
-  
+  */
+
+  /*
   const initializeOneTap = useCallback(() => {
     if (typeof window === 'undefined' || typeof window.google === 'undefined') {
       return;
@@ -156,6 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error('One Tap initialization error:', error);
     }
   }, [handleCredentialResponse]);
+  */
 
   useEffect(() => {
     getRedirectResult(auth)
@@ -198,15 +202,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setUser(null);
         setUserProfile(null);
-        initializeOneTap();
+        // initializeOneTap();
       }
       setLoading(false);
     });
 
     return () => unsubscribe();
-  }, [fetchUserProfile, createUserProfile, initializeOneTap, syncLocalReadHistory, toast]);
+  }, [fetchUserProfile, createUserProfile, syncLocalReadHistory, toast]);
   
   const signInWithGoogle = useCallback(() => {
+    /*
     if (typeof window !== 'undefined' && typeof window.google !== 'undefined') {
       try {
         window.google.accounts.id.cancel();
@@ -214,6 +219,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Ignore errors from canceling
       }
     }
+    */
 
     const provider = new GoogleAuthProvider();
     signInWithRedirect(auth, provider);
