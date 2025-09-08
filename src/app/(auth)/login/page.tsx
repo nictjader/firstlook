@@ -96,7 +96,6 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <div className="flex flex-col items-center justify-center -mt-16">
       <Suspense fallback={
         <div className="flex justify-center items-center py-4">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -104,6 +103,5 @@ export default function LoginPage() {
       }>
         <LoginContent />
       </Suspense>
-    </div>
   );
 }
