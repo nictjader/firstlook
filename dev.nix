@@ -10,13 +10,14 @@
   idx = {
     extensions = [];
     workspace = {
-      onCreate = { default.openFiles = ["src/app/page.tsx"]; };
+      onCreate = { default.openFiles = ["src/app/page.tsx"];
+      };
     };
     previews = {
       enable = true;
       previews = {
         web = {
-          command = ["npm" "run" "dev" "--" "--port" "3001" "--hostname" "0.0.0.0"];
+          command = ["npm" "run" "dev" "--" "--port" "$PORT" "--hostname" "0.0.0.0"];
           manager = "web";
         };
       };
