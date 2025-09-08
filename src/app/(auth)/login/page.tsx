@@ -14,7 +14,6 @@ function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loading: authLoading, user } = useAuth();
-  const [isVerifying, setIsVerifying] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [emailLinkProcessed, setEmailLinkProcessed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -23,79 +22,47 @@ function LoginContent() {
     setMounted(true);
   }, []);
 
-  // Redirect authenticated users
+  // Redirect authenticated users away from the login page
   useEffect(() => {
-    if (!authLoading && user && !emailLinkProcessed && mounted) {
-      console.log('User is authenticated, redirecting...');
+    if (mounted && user && !authLoading) {
+      console.log('User is authenticated, redirecting from login page...');
       router.replace('/');
     }
-  }, [user, authLoading, router, emailLinkProcessed, mounted]);
+  }, [user, authLoading, mounted, router]);
 
+  // Handle email link sign-in
   useEffect(() => {
-    if (!mounted) return;
-
-    const processAuth = async () => {
-      console.log('Processing auth on login page...');
-      
-      const errorParam = searchParams.get('error');
-      if (errorParam) {
-        setAuthError(decodeURIComponent(errorParam));
-        setIsVerifying(false);
-        router.replace('/login', { scroll: false }); 
-        return;
-      }
-
-      // Handle email link sign-in
-      if (typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)) {
-        console.log('Handling email link sign-in...');
-        setEmailLinkProcessed(true);
+    if (mounted && !user) {
+      if (isSignInWithEmailLink(auth, window.location.href)) {
+        setEmailLinkProcessed(true); // Mark that we are processing an email link
         let email = window.localStorage.getItem('emailForSignIn');
-        
         if (!email) {
           email = window.prompt('Please provide your email for confirmation');
         }
         
         if (email) {
-          try {
-            await signInWithEmailLink(auth, email, window.location.href);
-            window.localStorage.removeItem('emailForSignIn');
-            
-            // Clean up URL
-            const url = new URL(window.location.href);
-            url.search = '';
-            window.history.replaceState({}, document.title, url.toString());
-            
-            console.log('Email link sign-in successful');
-          } catch (error: any) {
-            console.error("Error signing in with email link:", error);
-            setAuthError(error.message || "Failed to sign in with email link.");
-          }
+          signInWithEmailLink(auth, email, window.location.href)
+            .then(() => {
+              window.localStorage.removeItem('emailForSignIn');
+              // The onAuthStateChanged listener in auth-context will handle the redirect.
+            })
+            .catch((error) => {
+              setAuthError(error.message || "Failed to sign in with email link.");
+            });
         } else {
           setAuthError("Email is required to complete sign-in.");
         }
       }
-      
-      setIsVerifying(false);
-    };
+    }
+  }, [mounted, user, router, searchParams]);
 
-    // Wait a bit for auth state to settle, then process
-    const timer = setTimeout(() => {
-      processAuth();
-    }, 1000);
-    
-    return () => clearTimeout(timer);
-  }, [mounted, router, searchParams]);
-
-  // Show loading while verifying or if auth is still loading
-  if (isVerifying || authLoading) {
+  // Handle UI state based on auth loading and user status
+  if (authLoading || (mounted && user)) {
     return (
       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
         <CardHeader>
           <CardTitle className="text-2xl font-semibold tracking-tight">
-            {mounted && typeof window !== 'undefined' && isSignInWithEmailLink(auth, window.location.href)
-              ? "Completing Email Sign-In..." 
-              : "Checking Authentication..."
-            }
+            {user ? "Welcome Back!" : "Checking Authentication..."}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -103,34 +70,14 @@ function LoginContent() {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
           <p className="text-muted-foreground">
-            Please wait while we complete the sign-in process.
+            {user ? "Redirecting you to the main page..." : "Please wait..."}
           </p>
         </CardContent>
       </Card>
     );
   }
 
-  // Show success message for authenticated users
-  if (user && !emailLinkProcessed) {
-    return (
-      <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl font-semibold tracking-tight text-green-600">
-            Welcome Back!
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex justify-center items-center py-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-          <p className="text-muted-foreground">
-            Redirecting you to the main page...
-          </p>
-        </CardContent>
-      </Card>
-    );
-  }
-
+  // If not loading and no user, show the auth form
   return (
     <div className="w-full max-w-md space-y-4">
       {authError && (
