@@ -9,12 +9,42 @@ import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firest
 import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
+import { toast as toaster } from '../hooks/use-toast';
 
 declare global {
   interface Window {
     google: any;
   }
 }
+
+// This function is now outside the component, so it's not affected by re-renders.
+const handleCredentialResponse = async (response: any) => {
+    try {
+      const res = await fetch('/api/auth/google/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json();
+        throw new Error(errorBody.error || 'Failed to authenticate with the server.');
+      }
+      
+      const { token } = await res.json();
+      await signInWithCustomToken(auth, token);
+      // The onAuthStateChanged listener will handle the rest.
+      
+    } catch (error: any) {
+      console.error("Sign-in process failed:", error);
+      // Use the global toaster function since we are outside the hook context
+      toaster({
+        title: "Sign-In Failed",
+        description: error.message || "Could not sign in with Google. Please try again.",
+        variant: "destructive"
+      });
+    }
+};
 
 interface AuthContextType {
   user: User | null;
@@ -38,39 +68,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
   const { toast } = useToast();
-
-  const handleCredentialResponse = useCallback(async (response: any) => {
-    // This function is the callback for Google Sign-In.
-    // It is crucial to not set loading states here, as it can cause the parent
-    // window to re-render and lose its connection to the popup.
-    try {
-      const res = await fetch('/api/auth/google/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-
-      if (!res.ok) {
-        const errorBody = await res.json();
-        throw new Error(errorBody.error || 'Failed to authenticate with the server.');
-      }
-      
-      const { token } = await res.json();
-      await signInWithCustomToken(auth, token);
-      // The onAuthStateChanged listener below will handle setting the user,
-      // the profile, and setting loading=false. This is the final step.
-      
-    } catch (error: any) {
-      console.error("Sign-in process failed:", error);
-      toast({
-        title: "Sign-In Failed",
-        description: error.message || "Could not sign in with Google. Please try again.",
-        variant: "destructive"
-      });
-      // We don't set loading to false here because the onAuthStateChanged
-      // listener is the single source of truth for the auth state.
-    }
-  }, [toast]);
 
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
@@ -107,7 +104,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      // We just need to know the script is loaded. Initialization will happen in the form component.
+      // The only job of onload is to set the script loaded flag.
+      // The initialization will now happen inside the AuthForm component.
       setIsGsiScriptLoaded(true);
     };
     document.body.appendChild(script);
