@@ -1,3 +1,4 @@
+
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
@@ -12,7 +13,7 @@ import { useToast } from '../hooks/use-toast';
 declare global {
   interface Window {
     google?: any;
-    handleCredentialResponse: (response: any) => void;
+    handleCredentialResponse?: (response: any) => void;
   }
 }
 
@@ -120,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem('emailForSignIn', email);
     toast({
         title: 'Sign-in Link Sent',
-        description: `A sign-in link has been sent to ${email}. Check your inbox.`,
+        description: `A sign-in link has been sent to ${email}.`,
         variant: 'success'
     });
   }, [toast]);
