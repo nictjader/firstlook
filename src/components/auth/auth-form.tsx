@@ -147,7 +147,7 @@ export default function AuthForm() {
                           type="email"
                           placeholder="Enter your email address"
                           value={email}
-                          onChange={(e) => setEmail(e.target.value)}
+                          onChange={(e) => setEmail(e.targ-et.value)}
                           required
                           disabled={isSubmitting}
                       />
