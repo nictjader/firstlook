@@ -10,7 +10,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
 export default function AuthForm() {
-  const { user, loading: authLoading, isGsiScriptLoaded, sendSignInLinkToEmail } = useAuth();
+  const { user, loading: authLoading, sendSignInLinkToEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
@@ -47,12 +47,8 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
-        {!isGsiScriptLoaded || !googleClientId ? (
-          <Button disabled className="w-[320px] h-[40px]">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Loading Google Sign-In
-          </Button>
-        ) : (
+        
+        {googleClientId && (
           <>
             <div id="g_id_onload"
                  data-client_id={googleClientId}
