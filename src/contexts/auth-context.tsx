@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
@@ -26,6 +26,7 @@ interface AuthContextType {
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
+  sendSignInLinkToEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -54,7 +55,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const { token } = await res.json();
       await signInWithCustomToken(auth, token);
       
-    } catch (error: any) {
+    } catch (error: any)
+{
       console.error("Sign-in process failed:", error);
       toast({
         title: "Sign-In Failed",
@@ -73,7 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(firebaseUser);
         setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
       } else {
-        // This case should be handled by the API callback, but as a fallback:
         setUser(null);
         setUserProfile(null);
       }
@@ -85,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Load the GSI script
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -98,15 +98,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           callback: handleCredentialResponse,
         });
         setIsGsiScriptLoaded(true);
-        // Turn off One Tap for now to simplify
-        window.google.accounts.id.prompt(); 
       } else {
         console.error("Google GSI script loaded but window.google is not available or Client ID is missing.");
       }
     };
     document.body.appendChild(script);
 
-    // Set up Firebase auth listener
     const unsubscribe = onAuthStateChanged(auth, handleUser);
 
     return () => {
@@ -132,6 +129,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.error("Sign out error", error);
       toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
     }
+  }, [toast]);
+
+  const sendSignInLinkToEmail = useCallback(async (email: string) => {
+    const actionCodeSettings = {
+        url: `${window.location.origin}/login`,
+        handleCodeInApp: true,
+    };
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    window.localStorage.setItem('emailForSignIn', email);
+    toast({
+        title: 'Sign-in Link Sent',
+        description: `A sign-in link has been sent to ${email}.`,
+        variant: 'success'
+    });
   }, [toast]);
   
   const refreshUserProfile = useCallback(async () => {
@@ -188,7 +199,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isGsiScriptLoaded };
+  const value = { 
+    user, 
+    userProfile, 
+    loading, 
+    signOut, 
+    updateUserProfile, 
+    refreshUserProfile, 
+    toggleFavoriteStory, 
+    markStoryAsRead, 
+    isGsiScriptLoaded,
+    sendSignInLinkToEmail
+  };
 
   return (
     <AuthContext.Provider value={value}>

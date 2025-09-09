@@ -1,17 +1,22 @@
 
 "use client";
-import { useEffect } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/auth-context';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 export default function AuthForm() {
-  const { user, loading: authLoading, isGsiScriptLoaded } = useAuth();
+  const { user, loading: authLoading, isGsiScriptLoaded, sendSignInLinkToEmail } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -23,7 +28,7 @@ export default function AuthForm() {
   useEffect(() => {
     if (isGsiScriptLoaded && window.google) {
       const buttonContainer = document.getElementById("gsi-button");
-      if (buttonContainer && !buttonContainer.hasChildNodes()) {
+      if (buttonContainer && !buttonContainer.hasChildNodes()) { // Prevent re-rendering
         window.google.accounts.id.renderButton(
           buttonContainer,
           { 
@@ -37,6 +42,21 @@ export default function AuthForm() {
       }
     }
   }, [isGsiScriptLoaded]);
+
+  const handleEmailSignIn = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setEmailSent(false);
+
+    try {
+      await sendSignInLinkToEmail(email);
+      setEmailSent(true);
+    } catch (error) {
+      console.error("Failed to send sign-in link", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   if (authLoading || (user && !authLoading)) {
      return (
@@ -74,6 +94,48 @@ export default function AuthForm() {
             Loading Google Sign-In
           </Button>
         )}
+
+        <div className="relative w-full max-w-[320px]">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-card px-2 text-muted-foreground">
+                OR
+                </span>
+            </div>
+        </div>
+
+        {emailSent ? (
+            <div className="text-center p-4 bg-green-100 dark:bg-green-900/20 rounded-lg max-w-[320px]">
+                <p className="text-sm font-medium text-green-800 dark:text-green-300">Check your email!</p>
+                <p className="text-xs text-muted-foreground mt-1">A sign-in link has been sent to <strong>{email}</strong>.</p>
+            </div>
+        ) : (
+             <form onSubmit={handleEmailSignIn} className="w-full max-w-[320px] space-y-4">
+                <div className="space-y-1">
+                    <Label htmlFor="email" className="sr-only">Email address</Label>
+                    <Input 
+                        id="email"
+                        type="email"
+                        placeholder="Enter your email address"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={isSubmitting}
+                    />
+                </div>
+                <Button type="submit" className="w-full" disabled={isSubmitting || !email}>
+                    {isSubmitting ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                        <Mail className="mr-2 h-4 w-4" />
+                    )}
+                    Send Sign-In Link
+                </Button>
+            </form>
+        )}
+        
       </CardContent>
       <CardFooter>
         <p className="text-xs text-center text-muted-foreground w-full">
