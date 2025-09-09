@@ -61,6 +61,7 @@ function LoginContent() {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="ml-4 text-muted-foreground">Signing in & redirecting...</p>
       </div>
     );
   }

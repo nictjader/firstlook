@@ -41,8 +41,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const handleCredentialResponse = useCallback(async (response: any) => {
     // This function is the callback for Google Sign-In.
-    // We set loading to true here to indicate the sign-in process is finalizing.
-    setLoading(true);
+    // It is crucial to not set loading states here, as it can cause the parent
+    // window to re-render and lose its connection to the popup.
     try {
       const res = await fetch('/api/auth/google/callback', {
         method: 'POST',
@@ -57,7 +57,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const { token } = await res.json();
       await signInWithCustomToken(auth, token);
-      // The onAuthStateChanged listener below will handle setting user/profile and loading=false
+      // The onAuthStateChanged listener below will handle setting the user,
+      // the profile, and setting loading=false. This is the final step.
       
     } catch (error: any) {
       console.error("Sign-in process failed:", error);
@@ -66,7 +67,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: error.message || "Could not sign in with Google. Please try again.",
         variant: "destructive"
       });
-      setLoading(false); // Reset loading on failure
+      // We don't set loading to false here because the onAuthStateChanged
+      // listener is the single source of truth for the auth state.
     }
   }, [toast]);
 
@@ -105,6 +107,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
+      // We just need to know the script is loaded. Initialization will happen in the form component.
       setIsGsiScriptLoaded(true);
     };
     document.body.appendChild(script);
