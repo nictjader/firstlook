@@ -86,6 +86,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    if (isGsiScriptLoaded) return;
+    
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -108,13 +110,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return () => {
       try {
-        document.body.removeChild(script);
+        if(script.parentNode) {
+            document.body.removeChild(script);
+        }
       } catch (e) {
         // ignore if script is already gone
       }
       unsubscribe();
     };
-  }, [handleCredentialResponse, handleUser]);
+  }, [handleCredentialResponse, handleUser, isGsiScriptLoaded]);
 
   const signOut = useCallback(async () => {
     try {
