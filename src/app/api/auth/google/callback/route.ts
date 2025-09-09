@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
-import { getAdminAuth, getAdminDb } from '@/lib/firebase/admin';
+import { getAdminAuth, getAdminDb } from '../../../../../lib/firebase/admin';
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase-admin/firestore';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
