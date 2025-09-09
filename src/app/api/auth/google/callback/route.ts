@@ -1,8 +1,7 @@
-
 import { type NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
 import { getAdminAuth, getAdminDb } from '../../../../lib/firebase/admin';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase-admin/firestore';
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase-admin/firestore';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 const oAuth2Client = new OAuth2Client(CLIENT_ID);
@@ -20,20 +19,25 @@ async function verifyGoogleToken(token: string) {
   }
 }
 
-// This function now primarily handles POST requests from the client-side popup flow.
+// This function handles the POST request from Google's redirect.
 export async function POST(req: NextRequest) {
+  const loginPageUrl = new URL('/login', req.nextUrl.origin);
+
   try {
-    const { credential } = await req.json();
+    const formData = await req.formData();
+    const credential = formData.get('credential')?.toString();
 
     if (!credential) {
-      return NextResponse.json({ error: 'Credential not provided' }, { status: 400 });
+      loginPageUrl.searchParams.set('error', 'Credential not provided');
+      return NextResponse.redirect(loginPageUrl);
     }
-
+    
     const payload = await verifyGoogleToken(credential);
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid Google token' }, { status: 401 });
+      loginPageUrl.searchParams.set('error', 'Invalid Google token');
+      return NextResponse.redirect(loginPageUrl);
     }
-
+    
     const { sub: uid, email, name, picture } = payload;
     const adminAuth = await getAdminAuth();
     const adminDb = await getAdminDb();
@@ -56,7 +60,7 @@ export async function POST(req: NextRequest) {
       };
       await setDoc(userDocRef, newUserProfile);
     } else {
-      await userDocRef.update({
+      await updateDoc(userDocRef, {
         lastLogin: serverTimestamp(),
         displayName: name,
         photoUrl: picture,
@@ -65,11 +69,13 @@ export async function POST(req: NextRequest) {
 
     const customToken = await adminAuth.createCustomToken(uid);
     
-    // Return the custom token in the JSON response
-    return NextResponse.json({ token: customToken }, { status: 200 });
+    // Redirect back to the login page with the custom token
+    loginPageUrl.searchParams.set('token', customToken);
+    return NextResponse.redirect(loginPageUrl);
 
   } catch (error: any) {
     console.error('API Callback Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    loginPageUrl.searchParams.set('error', 'Internal Server Error');
+    return NextResponse.redirect(loginPageUrl);
   }
 }

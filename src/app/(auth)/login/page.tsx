@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Suspense, useEffect } from 'react';
@@ -9,7 +8,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { auth } from '@/lib/firebase/client';
 import { isSignInWithEmailLink, signInWithEmailLink, signInWithCustomToken } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
-import { Card } from '@/components/ui/card';
 
 function LoginContent() {
   const { user, loading: authLoading } = useAuth();
@@ -55,6 +53,7 @@ function LoginContent() {
       } else if (token) {
         try {
           await signInWithCustomToken(auth, token);
+          // The main useEffect will handle the redirect to '/'
         } catch (e) {
           console.error("Failed to sign in with custom token", e);
           toast({
@@ -62,6 +61,7 @@ function LoginContent() {
             description: "There was a problem signing you in. Please try again.",
             variant: "destructive"
           });
+          // Clear the token from the URL to prevent retry loops
           router.replace('/login', { scroll: false });
         }
       }
@@ -78,6 +78,7 @@ function LoginContent() {
       router.replace(redirectUrl);
     }
   }, [user, authLoading, router, searchParams]);
+
 
   if (authLoading || user) {
     return (

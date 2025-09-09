@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import { Playfair_Display } from 'next/font/google';
 import './globals.css';
@@ -8,6 +7,7 @@ import { ThemeProvider } from '../contexts/theme-context';
 import GoogleAnalytics from '../components/analytics/google-analytics';
 import Header from '../components/layout/header';
 import Footer from '../components/layout/footer';
+import Script from 'next/script';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -30,7 +30,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head />
+      <head>
+        <Script src="https://accounts.google.com/gsi/client" async defer />
+      </head>
       <body
         className={`${playfairDisplay.variable} font-body`}
       >
