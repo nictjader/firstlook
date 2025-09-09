@@ -8,7 +8,7 @@ import { Loader2, Mail } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { useToast } from '../../hooks/use-toast';
 import Script from 'next/script';
 
 export default function AuthForm() {
