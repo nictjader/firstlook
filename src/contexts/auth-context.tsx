@@ -71,7 +71,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      // Just set the flag. The component will handle the rest.
       setIsGsiScriptLoaded(true);
     };
     document.body.appendChild(script);
