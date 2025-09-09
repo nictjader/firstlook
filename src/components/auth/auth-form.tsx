@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
@@ -9,14 +9,24 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useToast } from '../../hooks/use-toast';
-import Script from 'next/script';
 
 export default function AuthForm() {
-  const { loading: authLoading, sendSignInLinkToEmail } = useAuth();
+  const { loading: authLoading, sendSignInLinkToEmail, isGsiScriptLoaded } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // This effect ensures the Google button is rendered only after the script is loaded.
+    if (isGsiScriptLoaded) {
+      window.google.accounts.id.renderButton(
+        document.getElementById("googleSignInButton"),
+        { theme: "outline", size: "large", type: 'standard', text: 'signin_with', shape: 'rectangular', logo_alignment: 'left', width: '320' } 
+      );
+    }
+  }, [isGsiScriptLoaded]);
+
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -44,11 +54,8 @@ export default function AuthForm() {
      return null; // The parent page will handle the loading spinner
   }
 
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
-
   return (
     <Card className="w-full max-w-md shadow-xl">
-      <Script src="https://accounts.google.com/gsi/client" async defer />
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />
@@ -58,26 +65,15 @@ export default function AuthForm() {
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4">
         
-        {googleClientId && (
-          <>
-            <div id="g_id_onload"
-                 data-client_id={googleClientId}
-                 data-login_uri="/api/auth/google/callback"
-                 data-ux_mode="redirect"
-                 >
-            </div>
-            <div className="g_id_signin"
-                 data-type="standard"
-                 data-size="large"
-                 data-theme="outline"
-                 data-text="signin_with"
-                 data-shape="rectangular"
-                 data-logo_alignment="left"
-                 data-width="320">
-            </div>
-          </>
-        )}
-
+        <div id="googleSignInButton" className="max-w-[320px] h-[40px]">
+           {!isGsiScriptLoaded && (
+             <Button disabled className="w-[320px]">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading Google Sign-In
+             </Button>
+           )}
+        </div>
+       
         <div className="relative w-full max-w-[320px]">
             <div className="absolute inset-0 flex items-center">
                 <span className="w-full border-t" />

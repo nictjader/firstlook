@@ -1,19 +1,26 @@
-
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, sendSignInLinkToEmail, signInWithCustomToken } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
 
+// CORRECTED: Add this block to tell TypeScript about window.google
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  isGsiScriptLoaded: boolean;
   signOut: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -28,7 +35,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
   const { toast } = useToast();
+
+  const handleCredentialResponse = useCallback(async (response: any) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/google/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json();
+        throw new Error(errorBody.error || 'Failed to authenticate with the server.');
+      }
+      
+      const { token } = await res.json();
+      await signInWithCustomToken(auth, token);
+      // onAuthStateChanged will handle the rest
+      
+    } catch (error: any) {
+      console.error("Sign-in process failed:", error);
+      toast({
+        title: "Sign-In Failed",
+        description: error.message || "Could not sign in with Google. Please try again.",
+        variant: "destructive"
+      });
+      setLoading(false);
+    }
+  }, [toast]);
 
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
@@ -39,8 +76,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(firebaseUser);
           setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
         } else {
-          // This case can happen if a user is created in Auth but not in Firestore.
-          // Forcing a sign-out is a safe fallback.
           await firebaseSignOut(auth);
           setUser(null);
           setUserProfile(null);
@@ -58,13 +93,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+      if (window.google && clientId) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleCredentialResponse,
+        });
+        setIsGsiScriptLoaded(true);
+      } else {
+        console.error("Google GSI script loaded but window.google is not available or Client ID is missing.");
+      }
+    };
+    document.body.appendChild(script);
+
     const unsubscribe = onAuthStateChanged(auth, handleUser);
-    return () => unsubscribe();
-  }, [handleUser]);
+
+    return () => {
+      try {
+        document.body.removeChild(script);
+      } catch (e) {
+        // ignore if script is already gone
+      }
+      unsubscribe();
+    };
+  }, [handleCredentialResponse, handleUser]);
+
 
   const signOut = useCallback(async () => {
     try {
-      if (typeof window !== 'undefined' && window.google) {
+      if (window.google) {
         window.google.accounts.id.disableAutoSelect();
       }
       await firebaseSignOut(auth);
@@ -154,6 +216,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUserProfile, 
     toggleFavoriteStory, 
     markStoryAsRead, 
+    isGsiScriptLoaded,
     sendSignInLinkToEmail: handleSendSignInLink,
   };
 

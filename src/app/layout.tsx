@@ -7,7 +7,6 @@ import { ThemeProvider } from '../contexts/theme-context';
 import GoogleAnalytics from '../components/analytics/google-analytics';
 import Header from '../components/layout/header';
 import Footer from '../components/layout/footer';
-import Script from 'next/script';
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
