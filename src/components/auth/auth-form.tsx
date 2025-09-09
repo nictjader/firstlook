@@ -1,3 +1,4 @@
+
 "use client";
 import { useState, FormEvent } from 'react';
 import Logo from '../layout/logo';
@@ -8,6 +9,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useToast } from '@/hooks/use-toast';
+import Script from 'next/script';
 
 export default function AuthForm() {
   const { loading: authLoading, sendSignInLinkToEmail } = useAuth();
@@ -46,6 +48,7 @@ export default function AuthForm() {
 
   return (
     <Card className="w-full max-w-md shadow-xl">
+      <Script src="https://accounts.google.com/gsi/client" async defer />
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />

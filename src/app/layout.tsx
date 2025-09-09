@@ -31,7 +31,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <Script src="https://accounts.google.com/gsi/client" async defer />
       </head>
       <body
         className={`${playfairDisplay.variable} font-body`}
