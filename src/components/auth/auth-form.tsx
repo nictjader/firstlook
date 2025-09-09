@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
@@ -9,12 +9,64 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import Script from 'next/script';
+import { signInWithCustomToken } from 'firebase/auth';
+import { auth } from '@/lib/firebase/client';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function AuthForm() {
   const { user, loading: authLoading, sendSignInLinkToEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const { toast } = useToast();
+  const router = useRouter();
+
+
+  const handleGoogleCredentialResponse = async (response: any) => {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch('/api/auth/google/callback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to authenticate with backend.');
+      }
+      
+      const { token } = await res.json();
+      await signInWithCustomToken(auth, token);
+      
+      // Redirect on successful sign-in
+      router.push('/');
+
+    } catch (error: any) {
+      console.error('Google Sign-In Error:', error);
+      toast({
+        title: 'Sign-In Failed',
+        description: error.message || 'There was a problem signing you in with Google.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  useEffect(() => {
+    // Make the callback function global so the GSI library can call it
+    (window as any).handleGoogleCredentialResponse = handleGoogleCredentialResponse;
+
+    // Cleanup function to remove the global function when the component unmounts
+    return () => {
+      delete (window as any).handleGoogleCredentialResponse;
+    };
+  }, []); // Empty dependency array ensures this runs only once
+
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -36,7 +88,6 @@ export default function AuthForm() {
   }
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
-  const loginUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
 
   return (
     <>
@@ -51,13 +102,13 @@ export default function AuthForm() {
         </CardHeader>
         <CardContent className="flex flex-col items-center justify-center gap-4">
           
-          {googleClientId && loginUri && (
+          {googleClientId && (
             <>
               <div id="g_id_onload"
                    data-client_id={googleClientId}
-                   data-login_uri={loginUri}
-                   data-auto_prompt="false"
-                   data-ux_mode="redirect"> 
+                   data-callback="handleGoogleCredentialResponse"
+                   data-ux_mode="popup"
+                   data-auto_prompt="false">
               </div>
               <div className="g_id_signin"
                    data-type="standard"

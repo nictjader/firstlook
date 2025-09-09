@@ -1,7 +1,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
-import { getAdminAuth, getAdminDb } from '../../../../../lib/firebase/admin';
+import { getAdminAuth, getAdminDb } from '../../../../lib/firebase/admin';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase-admin/firestore';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
@@ -20,45 +20,18 @@ async function verifyGoogleToken(token: string) {
   }
 }
 
-// This function handles both POST requests from the GSI HTML API 
-// and GET requests for redirects.
-export async function GET(req: NextRequest) {
-  return handleRequest(req);
-}
+// This function now primarily handles POST requests from the client-side popup flow.
 export async function POST(req: NextRequest) {
-  return handleRequest(req);
-}
-
-async function handleRequest(req: NextRequest) {
   try {
-    let credential;
-    
-    // The base URL for redirects should be the origin of the request.
-    const baseUrl = req.nextUrl.origin;
-    const loginUrl = new URL('/login', baseUrl);
-
-    if (req.method === 'POST') {
-      const formData = await req.formData();
-      credential = formData.get('credential') as string | null;
-    } else { // GET
-      loginUrl.searchParams.set('error', 'Invalid+request+method');
-      return NextResponse.redirect(loginUrl);
-    }
-
+    const { credential } = await req.json();
 
     if (!credential) {
-      const errorMsg = 'Credential not provided';
-      console.error(`API Callback Error: ${errorMsg}`);
-      loginUrl.searchParams.set('error', errorMsg);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.json({ error: 'Credential not provided' }, { status: 400 });
     }
 
     const payload = await verifyGoogleToken(credential);
     if (!payload) {
-      const errorMsg = 'Invalid Google token';
-      console.error(`API Callback Error: ${errorMsg}`);
-      loginUrl.searchParams.set('error', errorMsg);
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.json({ error: 'Invalid Google token' }, { status: 401 });
     }
 
     const { sub: uid, email, name, picture } = payload;
@@ -92,16 +65,11 @@ async function handleRequest(req: NextRequest) {
 
     const customToken = await adminAuth.createCustomToken(uid);
     
-    // Redirect back to the login page with the token
-    loginUrl.searchParams.set('token', customToken);
-    return NextResponse.redirect(loginUrl);
+    // Return the custom token in the JSON response
+    return NextResponse.json({ token: customToken }, { status: 200 });
 
   } catch (error: any) {
     console.error('API Callback Error:', error);
-    // Ensure we redirect to a fully qualified URL in case of a crash
-    const baseUrl = req.nextUrl.origin || 'http://localhost:3000'; 
-    const errorRedirectUrl = new URL('/login', baseUrl);
-    errorRedirectUrl.searchParams.set('error', 'Internal+Server+Error');
-    return NextResponse.redirect(errorRedirectUrl);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
