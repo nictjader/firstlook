@@ -47,6 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(firebaseUser);
           setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
         } else {
+          // This case can happen if a user is created in Auth but not in Firestore.
+          // For robustness, sign them out to force a clean login flow.
           await firebaseSignOut(auth);
           setUser(null);
           setUserProfile(null);
@@ -63,6 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // Effect to load the Google Sign-In script
   useEffect(() => {
     if (isGsiScriptLoaded) return;
     
@@ -75,19 +78,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
     document.body.appendChild(script);
 
-    const unsubscribe = onAuthStateChanged(auth, handleUser);
-
     return () => {
-      try {
+       try {
         if(script.parentNode) {
             document.body.removeChild(script);
         }
       } catch (e) {
         // ignore if script is already gone
       }
-      unsubscribe();
     };
-  }, [handleUser, isGsiScriptLoaded]);
+  }, [isGsiScriptLoaded]);
+
+  // Effect to listen for Firebase auth state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, handleUser);
+    return () => unsubscribe();
+  }, [handleUser]);
 
   const signOut = useCallback(async () => {
     try {
@@ -104,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [toast]);
 
-  const sendSignInLinkToEmail = useCallback(async (email: string) => {
+  const handleSendSignInLink = useCallback(async (email: string) => {
     const actionCodeSettings = {
         url: `${window.location.origin}/login`,
         handleCodeInApp: true,
@@ -113,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem('emailForSignIn', email);
     toast({
         title: 'Sign-in Link Sent',
-        description: `A sign-in link has been sent to ${email}.`,
+        description: `A sign-in link has been sent to ${email}. Check your inbox.`,
         variant: 'success'
     });
   }, [toast]);
@@ -182,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     toggleFavoriteStory, 
     markStoryAsRead, 
     isGsiScriptLoaded,
-    sendSignInLinkToEmail,
+    sendSignInLinkToEmail: handleSendSignInLink,
   };
 
   return (
