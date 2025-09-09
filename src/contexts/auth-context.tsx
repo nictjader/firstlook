@@ -3,25 +3,29 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
 
+declare global {
+  interface Window {
+    google: any;
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  isMobile: boolean;
   isGsiScriptLoaded: boolean;
   signOut: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
-  sendSignInLinkToEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -30,45 +34,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
   const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    const mobileCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    setIsMobile(mobileCheck);
-  }, []);
 
   const handleCredentialResponse = useCallback(async (response: any) => {
     setLoading(true);
     try {
       const res = await fetch('/api/auth/google/callback', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: response.credential }),
       });
 
       if (!res.ok) {
-        throw new Error('Failed to authenticate with the server.');
+        const errorBody = await res.json();
+        throw new Error(errorBody.error || 'Failed to authenticate with the server.');
       }
       
       const { token } = await res.json();
       await signInWithCustomToken(auth, token);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Sign-in process failed:", error);
       toast({
         title: "Sign-In Failed",
-        description: "Could not sign in with Google. Please try again.",
+        description: error.message || "Could not sign in with Google. Please try again.",
         variant: "destructive"
       });
-    } finally {
-        // The onAuthStateChanged listener will set loading to false
+      setLoading(false);
     }
   }, [toast]);
-  
+
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
       const userDocRef = doc(db, "users", firebaseUser.uid);
@@ -76,6 +72,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userDocSnap.exists()) {
         setUser(firebaseUser);
         setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
+      } else {
+        // This case should be handled by the API callback, but as a fallback:
+        setUser(null);
+        setUserProfile(null);
       }
     } else {
       setUser(null);
@@ -85,6 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Load the GSI script
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
@@ -97,15 +98,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           callback: handleCredentialResponse,
         });
         setIsGsiScriptLoaded(true);
+        // Turn off One Tap for now to simplify
+        window.google.accounts.id.prompt(); 
       } else {
         console.error("Google GSI script loaded but window.google is not available or Client ID is missing.");
       }
     };
     document.body.appendChild(script);
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-      handleUser(firebaseUser);
-    });
+    // Set up Firebase auth listener
+    const unsubscribe = onAuthStateChanged(auth, handleUser);
 
     return () => {
       try {
@@ -116,15 +118,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       unsubscribe();
     };
   }, [handleCredentialResponse, handleUser]);
-
-  const sendSignInLinkToEmail = useCallback(async (email: string) => {
-    const actionCodeSettings = {
-      url: `${window.location.origin}/login`,
-      handleCodeInApp: true,
-    };
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-    window.localStorage.setItem('emailForSignIn', email);
-  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -143,8 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   
   const refreshUserProfile = useCallback(async () => {
     if (user) {
-        const profile = docToUserProfileClient((await getDoc(doc(db, "users", user.uid))).data()!, user.uid);
-        setUserProfile(profile);
+      const profile = docToUserProfileClient((await getDoc(doc(db, "users", user.uid))).data()!, user.uid);
+      setUserProfile(profile);
     }
   }, [user]);
   
@@ -195,7 +188,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isMobile, sendSignInLinkToEmail, isGsiScriptLoaded };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isGsiScriptLoaded };
 
   return (
     <AuthContext.Provider value={value}>

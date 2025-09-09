@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
     const { sub: uid, email, name, picture } = payload;
     const adminAuth = await getAdminAuth();
     const adminDb = await getAdminDb();
-    const userDocRef = adminDb.collection('users').doc(uid);
+    const userDocRef = doc(adminDb, 'users', uid);
 
     // Check if user exists in Firestore, if not, create a new profile
     const userDoc = await getDoc(userDocRef);
