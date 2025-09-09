@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, FormEvent, useEffect } from 'react';
+import { useState, FormEvent } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
@@ -35,6 +35,7 @@ export default function AuthForm() {
   }
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+  // Ensure this runs only on the client where `window` is available.
   const loginUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
 
   return (
