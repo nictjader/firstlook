@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
 import { getAdminAuth, getAdminDb } from '../../../../../lib/firebase/admin';
-import { serverTimestamp } from 'firebase-admin/firestore';
+import { FieldValue } from 'firebase-admin/firestore';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 const oAuth2Client = new OAuth2Client(CLIENT_ID);
@@ -55,13 +55,13 @@ export async function POST(req: NextRequest) {
         readStories: [],
         favoriteStories: [],
         preferences: { subgenres: [] },
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
+        createdAt: FieldValue.serverTimestamp(),
+        lastLogin: FieldValue.serverTimestamp(),
       };
       await userDocRef.set(newUserProfile);
     } else {
       await userDocRef.update({
-        lastLogin: serverTimestamp(),
+        lastLogin: FieldValue.serverTimestamp(),
         displayName: name,
         photoUrl: picture,
       });
