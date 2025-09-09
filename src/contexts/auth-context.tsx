@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
@@ -14,12 +14,13 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  isMobile: boolean;
   signOut: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
-  isMobile: boolean;
+  sendSignInLinkToEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,7 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // This effect runs only on the client, where navigator is available.
     const mobileCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     setIsMobile(mobileCheck);
   }, []);
@@ -53,14 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       const { token } = await res.json();
-      const userCredential = await signInWithCustomToken(auth, token);
+      await signInWithCustomToken(auth, token);
       
-      toast({
-          title: "Signed In Successfully!",
-          description: `Welcome back, ${userCredential.user.displayName}!`,
-          variant: "success",
-      });
-
     } catch (error) {
       console.error("Sign-in process failed:", error);
       toast({
@@ -79,13 +73,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userDocSnap.exists()) {
         setUser(firebaseUser);
         setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
+        toast({
+          title: "Signed In Successfully!",
+          description: `Welcome back, ${firebaseUser.displayName || firebaseUser.email}!`,
+          variant: "success",
+        });
       }
     } else {
       setUser(null);
       setUserProfile(null);
     }
     setLoading(false);
-  }, []);
+  }, [toast]);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -96,27 +95,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (window.google) {
         window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID!,
-          callback: handleCredentialResponse, // For popup mode
-          ux_mode: isMobile ? 'redirect' : 'popup', // Conditional UX mode
-          login_uri: `${window.location.origin}/api/auth/google/callback` // For redirect mode
+          callback: handleCredentialResponse,
+          ux_mode: isMobile ? 'redirect' : 'popup',
+          login_uri: `${window.location.origin}/api/auth/google/callback`
         });
       }
     };
     document.body.appendChild(script);
 
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        if(!user) { 
-            handleUser(firebaseUser);
-        } else {
-            setLoading(false);
-        }
-    });
+    const unsubscribe = onAuthStateChanged(auth, handleUser);
 
     return () => {
-      document.body.removeChild(script);
+      try {
+        document.body.removeChild(script);
+      } catch (e) {
+        // ignore if script is already gone
+      }
       unsubscribe();
     };
-  }, [handleCredentialResponse, handleUser, user, isMobile]);
+  }, [handleCredentialResponse, handleUser, isMobile]);
+
+  const sendSignInLinkToEmail = useCallback(async (email: string) => {
+    const actionCodeSettings = {
+      url: `${window.location.origin}/login`,
+      handleCodeInApp: true,
+    };
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    window.localStorage.setItem('emailForSignIn', email);
+  }, []);
 
   const signOut = useCallback(async () => {
     try {
@@ -187,7 +193,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isMobile };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isMobile, sendSignInLinkToEmail };
 
   return (
     <AuthContext.Provider value={value}>

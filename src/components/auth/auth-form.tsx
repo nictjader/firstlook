@@ -1,16 +1,25 @@
 
 "use client";
-import { useEffect } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/auth-context';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Separator } from '../ui/separator';
+import { useToast } from '../../hooks/use-toast';
 
 export default function AuthForm() {
-  const { user, loading: authLoading, isMobile } = useAuth();
+  const { user, loading: authLoading, isMobile, sendSignInLinkToEmail } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { toast } = useToast();
+
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -21,7 +30,6 @@ export default function AuthForm() {
 
   useEffect(() => {
     if (window.google) {
-      // The button rendering is now aware of the UX mode for proper display attributes.
       const uxMode = isMobile ? 'redirect' : 'popup';
       
       window.google.accounts.id.renderButton(
@@ -37,6 +45,24 @@ export default function AuthForm() {
       );
     }
   }, [isMobile]);
+
+  const handleEmailSignIn = async (e: FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    try {
+      await sendSignInLinkToEmail(email);
+      setSubmitted(true);
+    } catch (error) {
+      console.error("Failed to send sign-in link", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Could not send sign-in link. Please try again.",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
   
   if (authLoading || (user && !authLoading)) {
      return (
@@ -56,6 +82,24 @@ export default function AuthForm() {
     );
   }
 
+  if (submitted) {
+    return (
+       <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
+            <CardHeader>
+                <CardTitle className="text-2xl font-semibold tracking-tight flex items-center justify-center">
+                  <Mail className="mr-2 h-6 w-6 text-primary" />
+                  Check Your Email
+                </CardTitle>
+            </CardHeader>
+            <CardContent>
+                <p className="text-muted-foreground">
+                    A secure sign-in link has been sent to <strong>{email}</strong>. Click the link to log in.
+                </p>
+            </CardContent>
+        </Card>
+    )
+  }
+
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
       <CardHeader className="text-center">
@@ -67,6 +111,28 @@ export default function AuthForm() {
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4">
         <div id="gsi-button"></div>
+        
+        <div className="flex items-center w-full max-w-xs">
+            <Separator className="flex-grow" />
+            <span className="mx-4 text-xs text-muted-foreground">OR</span>
+            <Separator className="flex-grow" />
+        </div>
+
+        <form onSubmit={handleEmailSignIn} className="w-full max-w-xs space-y-3">
+          <Input
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            disabled={isSubmitting}
+          />
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
+            {isSubmitting ? 'Sending...' : 'Continue with Email'}
+          </Button>
+        </form>
+
       </CardContent>
       <CardFooter>
         <p className="text-xs text-center text-muted-foreground w-full">
