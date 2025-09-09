@@ -1,7 +1,7 @@
 import { type NextRequest, NextResponse } from 'next/server';
 import { OAuth2Client } from 'google-auth-library';
 import { getAdminAuth, getAdminDb } from '../../../../../lib/firebase/admin';
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase-admin/firestore';
+import { serverTimestamp } from 'firebase-admin/firestore';
 
 const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 const oAuth2Client = new OAuth2Client(CLIENT_ID);
@@ -41,10 +41,10 @@ export async function POST(req: NextRequest) {
     const { sub: uid, email, name, picture } = payload;
     const adminAuth = await getAdminAuth();
     const adminDb = await getAdminDb();
-    const userDocRef = doc(adminDb, 'users', uid);
+    const userDocRef = adminDb.collection('users').doc(uid);
 
-    const userDoc = await getDoc(userDocRef);
-    if (!userDoc.exists()) {
+    const userDoc = await userDocRef.get();
+    if (!userDoc.exists) {
       const newUserProfile = {
         userId: uid,
         email: email,
@@ -58,9 +58,9 @@ export async function POST(req: NextRequest) {
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
       };
-      await setDoc(userDocRef, newUserProfile);
+      await userDocRef.set(newUserProfile);
     } else {
-      await updateDoc(userDocRef, {
+      await userDocRef.update({
         lastLogin: serverTimestamp(),
         displayName: name,
         photoUrl: picture,
