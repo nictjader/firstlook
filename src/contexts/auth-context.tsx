@@ -94,16 +94,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.defer = true;
     script.onload = () => {
       if (window.google) {
-        // NOTE: The backend name 'siren-h2y45' and region 'us-central1' are derived
-        // from the firebase.json configuration file. This creates a predictable
-        // URL that can be whitelisted in the Google Cloud Console.
-        const loginUri = 'https://siren-h2y45-7rq91lfa.us-central1.run.app/api/auth/google/callback';
-        
         window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID!,
           callback: handleCredentialResponse,
           ux_mode: isMobile ? 'redirect' : 'popup',
-          login_uri: loginUri
         });
       }
     };
