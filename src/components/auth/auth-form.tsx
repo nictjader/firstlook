@@ -1,6 +1,5 @@
-
 "use client";
-import { useState, FormEvent, useEffect } from 'react';
+import { FormEvent, useState } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
@@ -11,22 +10,11 @@ import { Label } from '../ui/label';
 import { useToast } from '../../hooks/use-toast';
 
 export default function AuthForm() {
-  const { loading: authLoading, sendSignInLinkToEmail, isGsiScriptLoaded } = useAuth();
+  const { isGsiScriptLoaded, user, loading, sendSignInLinkToEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    // This effect ensures the Google button is rendered only after the script is loaded.
-    if (isGsiScriptLoaded) {
-      window.google.accounts.id.renderButton(
-        document.getElementById("googleSignInButton"),
-        { theme: "outline", size: "large", type: 'standard', text: 'signin_with', shape: 'rectangular', logo_alignment: 'left', width: '320' } 
-      );
-    }
-  }, [isGsiScriptLoaded]);
-
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,8 +38,20 @@ export default function AuthForm() {
     }
   };
   
-  if (authLoading) {
-     return null; // The parent page will handle the loading spinner
+  if (loading || user) {
+     return (
+        <Card className="w-full max-w-md text-center shadow-xl border-none">
+            <CardHeader>
+                <CardTitle className="text-2xl flex items-center justify-center">
+                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                  Verifying...
+                </CardTitle>
+            </CardHeader>
+             <CardContent>
+                <p className="text-muted-foreground">Please wait while we sign you in.</p>
+            </CardContent>
+        </Card>
+    );
   }
 
   return (
@@ -64,15 +64,31 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4">
-        
-        <div id="googleSignInButton" className="max-w-[320px] h-[40px]">
-           {!isGsiScriptLoaded && (
-             <Button disabled className="w-[320px]">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Loading Google Sign-In
-             </Button>
-           )}
-        </div>
+        {!isGsiScriptLoaded ? (
+          <Button disabled className="w-[320px] h-[40px]">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading Google Sign-In
+          </Button>
+        ) : (
+          <>
+            <div id="g_id_onload"
+              data-client_id={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID}
+              data-context="signin"
+              data-login_uri="/login"
+              data-auto_prompt="false"
+              data-callback="handleCredentialResponse">
+            </div>
+            <div className="g_id_signin"
+              data-type="standard"
+              data-shape="rectangular"
+              data-theme="outline"
+              data-text="signin_with"
+              data-size="large"
+              data-logo_alignment="left"
+              data-width="320">
+            </div>
+          </>
+        )}
        
         <div className="relative w-full max-w-[320px]">
             <div className="absolute inset-0 flex items-center">
@@ -116,9 +132,9 @@ export default function AuthForm() {
         )}
         
       </CardContent>
-      <CardFooter>
+       <CardFooter>
         <p className="text-xs text-center text-muted-foreground w-full">
-          By continuing, you agree to FirstLook's Terms of Service and Privacy Policy.
+          By continuing, you agree to our Terms of Service and Privacy Policy.
         </p>
       </CardFooter>
     </Card>

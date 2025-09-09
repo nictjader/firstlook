@@ -3,6 +3,8 @@ import { getAdminAuth, getAdminDb } from '../../../../../lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request: Request) {
+  const origin = request.headers.get('origin');
+
   try {
     const adminAuth = await getAdminAuth();
     const db = await getAdminDb();
@@ -41,11 +43,35 @@ export async function POST(request: Request) {
     }
 
     const customToken = await adminAuth.createCustomToken(uid);
-
-    return NextResponse.json({ token: customToken });
+    
+    // Important: Add CORS headers to the response
+    const response = NextResponse.json({ token: customToken });
+    if (origin) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
+    
+    return response;
 
   } catch (error: any) {
     console.error('Authentication callback error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    const response = NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    if (origin) {
+        response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+    return response;
   }
+}
+
+// Add an OPTIONS method to handle preflight requests for CORS
+export async function OPTIONS(request: Request) {
+  const origin = request.headers.get('origin');
+  const response = new Response(null, { status: 204 });
+  if (origin) {
+    response.headers.set('Access-Control-Allow-Origin', origin);
+  }
+  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  return response;
 }
