@@ -112,10 +112,15 @@ export default function AuthForm() {
       <CardContent className="flex flex-col items-center justify-center gap-4">
         <div id="gsi-button"></div>
         
-        <div className="flex items-center w-full max-w-xs">
-            <Separator className="flex-grow" />
-            <span className="mx-4 text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-grow" />
+        <div className="relative w-full max-w-xs">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t" />
+          </div>
+          <div className="relative flex justify-center text-xs uppercase">
+            <span className="bg-card px-2 text-muted-foreground">
+              OR
+            </span>
+          </div>
         </div>
 
         <form onSubmit={handleEmailSignIn} className="w-full max-w-xs space-y-3">
