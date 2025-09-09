@@ -1,13 +1,13 @@
 'use client';
 
 import { Suspense, useEffect } from 'react';
-import AuthForm from '../../components/auth/auth-form';
+import AuthForm from '../../../components/auth/auth-form';
 import { Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuth } from '../../contexts/auth-context';
-import { auth } from '../../lib/firebase/client';
+import { useAuth } from '../../../contexts/auth-context';
+import { auth } from '../../../lib/firebase/client';
 import { isSignInWithEmailLink, signInWithEmailLink, signInWithCustomToken } from 'firebase/auth';
-import { useToast } from '../../hooks/use-toast';
+import { useToast } from '../../../hooks/use-toast';
 
 function LoginContent() {
   const { user, loading: authLoading } = useAuth();
