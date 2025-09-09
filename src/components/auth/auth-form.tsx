@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
@@ -38,7 +38,7 @@ export default function AuthForm() {
   const loginUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
 
   return (
-    <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
+    <Card className="w-full max-w-md shadow-xl">
       <CardHeader className="text-center">
         <div className="flex justify-center items-center mb-4">
           <Logo />
@@ -46,7 +46,7 @@ export default function AuthForm() {
         <CardTitle className="text-2xl font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</CardTitle>
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
+      <CardContent className="flex flex-col items-center justify-center gap-4">
         
         {googleClientId && loginUri && (
           <>
