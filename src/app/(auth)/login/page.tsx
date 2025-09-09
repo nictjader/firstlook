@@ -7,7 +7,7 @@ import { Loader2 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../../contexts/auth-context';
 import { auth } from '../../../lib/firebase/client';
-import { isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { isSignInWithEmailLink, signInWithEmailLink, signInWithCustomToken } from 'firebase/auth';
 import { useToast } from '../../../hooks/use-toast';
 
 
@@ -19,7 +19,7 @@ function LoginContent() {
 
   useEffect(() => {
     // This effect handles the completion of the email link sign-in
-    const completeSignIn = async () => {
+    const completeEmailSignIn = async () => {
       if (isSignInWithEmailLink(auth, window.location.href)) {
         let email = window.localStorage.getItem('emailForSignIn');
         if (!email) {
@@ -41,11 +41,42 @@ function LoginContent() {
           }
         }
       }
-    }
-    
-    completeSignIn();
+    };
 
-  }, [toast]);
+    // This effect handles the server-side callback after a Google Sign-In.
+    // The backend will redirect here with a token in the URL query parameters.
+    const completeGoogleSignIn = async () => {
+      const token = searchParams.get('token');
+      const error = searchParams.get('error');
+
+      if (error) {
+        toast({
+          title: "Sign-In Failed",
+          description: decodeURIComponent(error),
+          variant: "destructive"
+        });
+        // Clean up the URL
+        router.replace('/login', { scroll: false });
+      } else if (token) {
+        try {
+          await signInWithCustomToken(auth, token);
+          // onAuthStateChanged in AuthProvider will handle the redirect.
+        } catch (e) {
+          console.error("Failed to sign in with custom token", e);
+          toast({
+            title: "Sign-In Failed",
+            description: "There was a problem signing you in. Please try again.",
+            variant: "destructive"
+          });
+          router.replace('/login', { scroll: false });
+        }
+      }
+    };
+    
+    completeEmailSignIn();
+    completeGoogleSignIn();
+
+  }, [toast, router, searchParams]);
 
   useEffect(() => {
     // This effect handles redirecting an already logged-in user

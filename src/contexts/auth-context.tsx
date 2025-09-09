@@ -3,21 +3,18 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
-import { toast as toaster } from '../hooks/use-toast';
 
 declare global {
   interface Window {
     google: any;
   }
 }
-
-// NOTE: handleCredentialResponse is no longer needed here, as the HTML API will post directly to our backend.
 
 interface AuthContextType {
   user: User | null;
@@ -30,7 +27,6 @@ interface AuthContextType {
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
   sendSignInLinkToEmail: (email: string) => Promise<void>;
-  handleCredentialResponse: (response: any) => Promise<void>; // Keep for type safety, but it's unused now
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,6 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
+      // Just set the flag. The component will handle the rest.
       setIsGsiScriptLoaded(true);
     };
     document.body.appendChild(script);
@@ -176,12 +173,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const handleCredentialResponse = async (response: any) => {
-    // This function is now effectively unused by the primary Google Sign-In flow,
-    // but we keep it to satisfy the context type.
-    console.warn("handleCredentialResponse called, but this path is deprecated.");
-  };
-
   const value = { 
     user, 
     userProfile, 
@@ -193,7 +184,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     markStoryAsRead, 
     isGsiScriptLoaded,
     sendSignInLinkToEmail,
-    handleCredentialResponse
   };
 
   return (

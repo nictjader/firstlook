@@ -1,6 +1,6 @@
 
 "use client";
-import { useState, FormEvent, useEffect, useRef } from 'react';
+import { useState, FormEvent } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
@@ -8,54 +8,12 @@ import { Loader2, Mail } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { signInWithCustomToken } from 'firebase/auth';
-import { auth } from '../../lib/firebase/client';
-import { useToast } from '../../hooks/use-toast';
 
 export default function AuthForm() {
   const { user, loading: authLoading, isGsiScriptLoaded, sendSignInLinkToEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const gsiButtonContainerRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-
-  // This effect handles the server-side callback after a Google Sign-In.
-  // The backend will redirect here with a token in the URL query parameters.
-  useEffect(() => {
-    const signInWithToken = async () => {
-      const params = new URLSearchParams(window.location.search);
-      const token = params.get('token');
-      const error = params.get('error');
-
-      if (error) {
-        toast({
-          title: "Sign-In Failed",
-          description: decodeURIComponent(error),
-          variant: "destructive"
-        });
-        // Clean up the URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-      } else if (token) {
-        try {
-          await signInWithCustomToken(auth, token);
-          // onAuthStateChanged will handle the redirect.
-          // Clean up the URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (e) {
-          console.error("Failed to sign in with custom token", e);
-          toast({
-            title: "Sign-In Failed",
-            description: "There was a problem signing you in. Please try again.",
-            variant: "destructive"
-          });
-          // Clean up the URL
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }
-      }
-    };
-    signInWithToken();
-  }, [toast]);
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -77,7 +35,7 @@ export default function AuthForm() {
   }
 
   const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
-  const loginUri = `${window.location.origin}/api/auth/google/callback`;
+  const loginUri = typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : '';
 
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
