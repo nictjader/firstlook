@@ -1,20 +1,20 @@
+
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
-
-const LOCAL_STORAGE_READ_KEY = 'firstlook_read_stories';
 
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  signOut: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
@@ -29,62 +29,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const syncLocalReadHistory = useCallback(async (userId: string) => {
-    if (typeof window === 'undefined') return;
+  const handleCredentialResponse = useCallback(async (response: any) => {
+    setLoading(true);
     try {
-      const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
-      if (localReadJson) {
-          const localReadStories: string[] = JSON.parse(localReadJson);
-          if (localReadStories.length > 0) {
-              const userDocRef = doc(db, "users", userId);
-              await updateDoc(userDocRef, { readStories: arrayUnion(...localReadStories) });
-              localStorage.removeItem(LOCAL_STORAGE_READ_KEY);
-          }
-      }
-    } catch (error) {
-        console.error("Error syncing local read history:", error);
-    }
-  }, []);
+      const res = await fetch('/api/auth/google/callback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ credential: response.credential }),
+      });
 
-  const handleUser = useCallback(async (user: User | null) => {
-    if (user) {
-      await syncLocalReadHistory(user.uid);
-      const userDocRef = doc(db, "users", user.uid);
-      let userDocSnap = await getDoc(userDocRef);
-      if (!userDocSnap.exists()) {
-        // Create profile if it doesn't exist
-        const newUserProfileData = {
-          userId: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          coins: 0, 
-          unlockedStories: [],
-          readStories: [],
-          favoriteStories: [],
-          preferences: { subgenres: [] },
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
-        };
-        await setDoc(userDocRef, newUserProfileData, { merge: true });
-        userDocSnap = await getDoc(userDocRef);
-      } else {
-        // Update last login time
-        await updateDoc(userDocRef, { lastLogin: serverTimestamp() });
+      if (!res.ok) {
+        throw new Error('Failed to authenticate with the server.');
       }
-      setUser(user);
-      setUserProfile(docToUserProfileClient(userDocSnap.data()!, user.uid));
+      
+      const { token } = await res.json();
+      await signInWithCustomToken(auth, token);
+
+    } catch (error) {
+      console.error("Sign-in process failed:", error);
+      toast({
+        title: "Sign-In Failed",
+        description: "Could not sign in with Google. Please try again.",
+        variant: "destructive"
+      });
+      setLoading(false);
+    }
+  }, [toast]);
+  
+  const handleUser = useCallback(async (firebaseUser: User | null) => {
+    if (firebaseUser) {
+      const userDocRef = doc(db, "users", firebaseUser.uid);
+      const userDocSnap = await getDoc(userDocRef);
+      if (userDocSnap.exists()) {
+        setUser(firebaseUser);
+        setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
+         toast({
+          title: "Signed In Successfully!",
+          description: `Welcome back!`,
+          variant: "success",
+        });
+      }
     } else {
       setUser(null);
       setUserProfile(null);
     }
     setLoading(false);
-  }, [syncLocalReadHistory]);
+  }, [toast]);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, handleUser);
-    return () => unsubscribe();
-  }, [handleUser]);
+    const script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.defer = true;
+    script.onload = () => {
+      if (window.google) {
+        window.google.accounts.id.initialize({
+          client_id: process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID!,
+          callback: handleCredentialResponse,
+        });
 
+        // This is where you would call google.accounts.id.prompt() for One Tap
+        // We can add this later if desired.
+      }
+    };
+    document.body.appendChild(script);
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+        if(!user) { // only handle auth change if not already logged in
+            handleUser(firebaseUser);
+        } else {
+            setLoading(false);
+        }
+    });
+
+    return () => {
+      document.body.removeChild(script);
+      unsubscribe();
+    };
+  }, [handleCredentialResponse, handleUser, user]);
+
+  const signOut = useCallback(async () => {
+    try {
+      if (window.google) {
+        window.google.accounts.id.disableAutoSelect();
+      }
+      await firebaseSignOut(auth);
+      setUser(null);
+      setUserProfile(null);
+      toast({ title: "Signed Out", description: "You have been successfully signed out." });
+    } catch (error) {
+      console.error("Sign out error", error);
+      toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
+    }
+  }, [toast]);
+  
   const refreshUserProfile = useCallback(async () => {
     if (user) {
         const profile = docToUserProfileClient((await getDoc(doc(db, "users", user.uid))).data()!, user.uid);
@@ -136,22 +176,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         updateDoc(userDocRef, { readStories: arrayUnion(storyId) });
         setUserProfile(prev => prev ? { ...prev, readStories: [...prev.readStories, storyId] } : null);
       }
-    } else {
-       if (typeof window === 'undefined') return;
-      try {
-        const localReadJson = localStorage.getItem(LOCAL_STORAGE_READ_KEY);
-        const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
-        if (!localReadStories.includes(storyId)) {
-          localReadStories.push(storyId);
-          localStorage.setItem(LOCAL_STORAGE_READ_KEY, JSON.stringify(localReadStories));
-        }
-      } catch (error) {
-        // silent fail
-      }
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
 
   return (
     <AuthContext.Provider value={value}>

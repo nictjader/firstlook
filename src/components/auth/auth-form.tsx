@@ -1,23 +1,14 @@
 
 "use client";
-import { useState, useEffect } from 'react';
-import { Button } from '../ui/button';
-import { Input } from '../ui/input';
-import { useToast } from '../../hooks/use-toast';
-import { auth } from '../../lib/firebase/client';
-import { sendSignInLinkToEmail } from 'firebase/auth';
-import { Loader2, Mail, MailCheck } from 'lucide-react';
+import { useEffect } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/auth-context';
+import { Loader2 } from 'lucide-react';
 
 export default function AuthForm() {
   const { user, loading: authLoading } = useAuth();
-  const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [linkSentTo, setLinkSentTo] = useState<string | null>(null);
-  const { toast } = useToast();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -28,33 +19,14 @@ export default function AuthForm() {
     }
   }, [user, authLoading, router, searchParams]);
 
-  const handleEmailSignIn = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setLoading(true);
-    const actionCodeSettings = {
-      url: `${window.location.origin}/login`,
-      handleCodeInApp: true,
-    };
-    try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
-      // Save the email locally as per Firebase best practices.
-      window.localStorage.setItem('emailForSignIn', email);
-      toast({
-        variant: "success",
-        title: "Check Your Inbox!",
-        description: `A secure sign-in link was sent to ${email}.`,
-      });
-      setLinkSentTo(email);
-    } catch (error: any) {
-      toast({
-        title: "Error Sending Link",
-        description: error.message || "Could not send sign-in link.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (window.google) {
+      window.google.accounts.id.renderButton(
+        document.getElementById("gsi-button")!,
+        { theme: "outline", size: "large", type: 'standard', text: 'signin_with', width: '320' }
+      );
     }
-  };
+  }, []);
   
   if (authLoading || (user && !authLoading)) {
      return (
@@ -83,35 +55,8 @@ export default function AuthForm() {
         <CardTitle className="text-2xl font-semibold leading-none tracking-tight text-primary">Welcome to FirstLook</CardTitle>
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {linkSentTo ? (
-          <div className="space-y-4 text-center">
-             <div className="text-center space-y-2">
-                <MailCheck className="h-8 w-8 text-green-500 mx-auto" />
-                <p className="text-muted-foreground">
-                   A sign-in link has been sent to <span className="font-semibold text-primary">{linkSentTo}</span>.
-                </p>
-            </div>
-            <Button variant="link" onClick={() => setLinkSentTo(null)} disabled={loading}>Use a different email</Button>
-          </div>
-        ) : (
-          <form onSubmit={handleEmailSignIn} className="space-y-4">
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email address"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              disabled={loading}
-              className="h-11"
-            />
-            <Button type="submit" className="w-full h-11" disabled={loading}>
-              {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Mail className="mr-2 h-4 w-4" />}
-              Continue with Email
-            </Button>
-          </form>
-        )}
+      <CardContent className="flex flex-col items-center justify-center gap-4">
+        <div id="gsi-button"></div>
       </CardContent>
       <CardFooter>
         <p className="text-xs text-center text-muted-foreground w-full">

@@ -5,8 +5,6 @@ import Link from 'next/link';
 import { Button } from '../ui/button';
 import { useAuth } from '../../contexts/auth-context';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '../../lib/firebase/client';
 import { LogIn, LogOut, UserCircle, Moon, Sun, Loader2, Coins, MessageSquareHeart } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import Logo from './logo';
@@ -18,19 +16,14 @@ import {
 } from '../ui/tooltip';
 
 export default function Header() {
-  const { user, userProfile, loading: authLoading } = useAuth();
+  const { user, userProfile, loading: authLoading, signOut } = useAuth();
   const { theme, setTheme } = useTheme();
   const router = useRouter();
 
   const handleSignOut = async () => {
-    try {
-      await signOut(auth);
-      // To ensure a clean sign-out and session clearance, we reload the page.
-      // Next.js router might cache user state, a full reload prevents this.
-      window.location.href = '/';
-    } catch (error) {
-      console.error("Sign out error", error);
-    }
+    await signOut();
+    // Redirect to home page after sign out
+    router.push('/');
   };
 
   return (
