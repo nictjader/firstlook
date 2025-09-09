@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      const clientId = process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID;
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
       if (window.google && clientId) {
         window.google.accounts.id.initialize({
           client_id: clientId,

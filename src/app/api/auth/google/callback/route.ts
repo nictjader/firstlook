@@ -4,7 +4,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { getAdminAuth, getAdminDb } from '../../../../../lib/firebase/admin';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase-admin/firestore';
 
-const CLIENT_ID = process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID;
+const CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
 const oAuth2Client = new OAuth2Client(CLIENT_ID);
 
 async function verifyGoogleToken(token: string) {
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     // Check if user exists in Firestore, if not, create a new profile
     const userDoc = await getDoc(userDocRef);
-    if (!userDoc.exists) {
+    if (!userDoc.exists()) {
       const newUserProfile = {
         userId: uid,
         email: email,
