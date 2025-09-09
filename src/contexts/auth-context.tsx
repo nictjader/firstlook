@@ -47,6 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(firebaseUser);
           setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
         } else {
+          // This case can happen if a user is created in Auth but not in Firestore.
+          // Forcing a sign-out is a safe fallback.
           await firebaseSignOut(auth);
           setUser(null);
           setUserProfile(null);
@@ -63,7 +65,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+
   useEffect(() => {
+    // This effect ensures the GSI script is loaded on the client.
     if (isGsiScriptLoaded) return;
     
     const script = document.createElement('script');
@@ -71,7 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
+      // Once the script is loaded, we can set the flag.
       setIsGsiScriptLoaded(true);
+    };
+    script.onerror = () => {
+      console.error("Google Sign-In script failed to load.");
+      // We can still allow other sign-in methods to work.
+      setIsGsiScriptLoaded(true); // Set to true to unblock the UI.
     };
     document.body.appendChild(script);
 
@@ -85,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
   }, [isGsiScriptLoaded]);
+
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
