@@ -33,31 +33,32 @@ async function handleRequest(req: NextRequest) {
   try {
     let credential;
     
+    // The base URL for redirects should be the origin of the request.
+    const baseUrl = req.nextUrl.origin;
+    const loginUrl = new URL('/login', baseUrl);
+
     if (req.method === 'POST') {
       const formData = await req.formData();
       credential = formData.get('credential') as string | null;
     } else { // GET
-      // This is not standard for GSI but could be a fallback.
-      // The primary flow is POST.
-      return NextResponse.redirect(new URL('/login?error=Invalid+request+method', req.url));
+      loginUrl.searchParams.set('error', 'Invalid+request+method');
+      return NextResponse.redirect(loginUrl);
     }
 
 
     if (!credential) {
       const errorMsg = 'Credential not provided';
       console.error(`API Callback Error: ${errorMsg}`);
-      const redirectUrl = new URL('/login', req.url);
-      redirectUrl.searchParams.set('error', errorMsg);
-      return NextResponse.redirect(redirectUrl);
+      loginUrl.searchParams.set('error', errorMsg);
+      return NextResponse.redirect(loginUrl);
     }
 
     const payload = await verifyGoogleToken(credential);
     if (!payload) {
       const errorMsg = 'Invalid Google token';
       console.error(`API Callback Error: ${errorMsg}`);
-      const redirectUrl = new URL('/login', req.url);
-      redirectUrl.searchParams.set('error', errorMsg);
-      return NextResponse.redirect(redirectUrl);
+      loginUrl.searchParams.set('error', errorMsg);
+      return NextResponse.redirect(loginUrl);
     }
 
     const { sub: uid, email, name, picture } = payload;
@@ -92,14 +93,15 @@ async function handleRequest(req: NextRequest) {
     const customToken = await adminAuth.createCustomToken(uid);
     
     // Redirect back to the login page with the token
-    const redirectUrl = new URL('/login', req.url);
-    redirectUrl.searchParams.set('token', customToken);
-    return NextResponse.redirect(redirectUrl);
+    loginUrl.searchParams.set('token', customToken);
+    return NextResponse.redirect(loginUrl);
 
   } catch (error: any) {
     console.error('API Callback Error:', error);
-    const redirectUrl = new URL('/login', req.url);
-    redirectUrl.searchParams.set('error', 'Internal+Server+Error');
-    return NextResponse.redirect(redirectUrl);
+    // Ensure we redirect to a fully qualified URL in case of a crash
+    const baseUrl = req.nextUrl.origin || 'http://localhost:3000'; 
+    const errorRedirectUrl = new URL('/login', baseUrl);
+    errorRedirectUrl.searchParams.set('error', 'Internal+Server+Error');
+    return NextResponse.redirect(errorRedirectUrl);
   }
 }
