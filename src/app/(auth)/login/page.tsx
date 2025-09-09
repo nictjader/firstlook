@@ -23,8 +23,6 @@ function LoginContent() {
       if (isSignInWithEmailLink(auth, window.location.href)) {
         let email = window.localStorage.getItem('emailForSignIn');
         if (!email) {
-          // If the email is not in local storage, it means the user is on a different device.
-          // We need to prompt them for their email.
           email = window.prompt('Please provide your email for confirmation');
         }
         if (email) {
@@ -59,9 +57,9 @@ function LoginContent() {
 
   if (authLoading || user) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex flex-col justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="ml-4 text-muted-foreground">Signing in & redirecting...</p>
+        <p className="mt-4 text-muted-foreground">Signing in...</p>
       </div>
     );
   }

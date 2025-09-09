@@ -1,6 +1,6 @@
 
 "use client";
-import { useEffect, useState, FormEvent, useRef } from 'react';
+import { useState, FormEvent, useEffect, useRef } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
@@ -8,39 +8,54 @@ import { Loader2, Mail } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
+import { signInWithCustomToken } from 'firebase/auth';
+import { auth } from '../../lib/firebase/client';
+import { useToast } from '../../hooks/use-toast';
 
 export default function AuthForm() {
-  const { user, loading: authLoading, isGsiScriptLoaded, sendSignInLinkToEmail, handleCredentialResponse } = useAuth();
+  const { user, loading: authLoading, isGsiScriptLoaded, sendSignInLinkToEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
-  const gsiButtonRef = useRef<HTMLDivElement>(null);
-  const gsiInitialized = useRef(false);
+  const gsiButtonContainerRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
+  // This effect handles the server-side callback after a Google Sign-In.
+  // The backend will redirect here with a token in the URL query parameters.
   useEffect(() => {
-    if (isGsiScriptLoaded && gsiButtonRef.current && !gsiInitialized.current) {
-        if(window.google) {
-            const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
-            if (clientId) {
-                window.google.accounts.id.initialize({
-                    client_id: clientId,
-                    callback: handleCredentialResponse,
-                });
-                window.google.accounts.id.renderButton(
-                    gsiButtonRef.current,
-                    { 
-                        theme: "outline", 
-                        size: "large", 
-                        type: 'standard', 
-                        text: 'signin_with', 
-                        width: '320',
-                    }
-                );
-                gsiInitialized.current = true;
-            }
+    const signInWithToken = async () => {
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token');
+      const error = params.get('error');
+
+      if (error) {
+        toast({
+          title: "Sign-In Failed",
+          description: decodeURIComponent(error),
+          variant: "destructive"
+        });
+        // Clean up the URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } else if (token) {
+        try {
+          await signInWithCustomToken(auth, token);
+          // onAuthStateChanged will handle the redirect.
+          // Clean up the URL
+          window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {
+          console.error("Failed to sign in with custom token", e);
+          toast({
+            title: "Sign-In Failed",
+            description: "There was a problem signing you in. Please try again.",
+            variant: "destructive"
+          });
+          // Clean up the URL
+          window.history.replaceState({}, document.title, window.location.pathname);
         }
-    }
-  }, [isGsiScriptLoaded, handleCredentialResponse]);
+      }
+    };
+    signInWithToken();
+  }, [toast]);
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -61,6 +76,9 @@ export default function AuthForm() {
      return null; // The parent page will handle the loading spinner
   }
 
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+  const loginUri = `${window.location.origin}/api/auth/google/callback`;
+
   return (
     <Card className="w-full max-w-md shadow-2xl bg-card/80 backdrop-blur-sm">
       <CardHeader className="text-center">
@@ -71,13 +89,28 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
-        {!isGsiScriptLoaded ? (
+        {!isGsiScriptLoaded || !googleClientId ? (
           <Button disabled className="w-[320px] h-[40px]">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Loading Google Sign-In
           </Button>
         ) : (
-          <div ref={gsiButtonRef}></div>
+          <>
+            <div id="g_id_onload"
+                 data-client_id={googleClientId}
+                 data-login_uri={loginUri}
+                 data-auto_prompt="false"
+                 data-ux_mode="redirect"> 
+            </div>
+            <div className="g_id_signin"
+                 data-type="standard"
+                 data-size="large"
+                 data-theme="outline"
+                 data-text="signin_with"
+                 data-shape="rectangular"
+                 data-logo_alignment="left">
+            </div>
+          </>
         )}
 
         <div className="relative w-full max-w-[320px]">

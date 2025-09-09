@@ -17,34 +17,7 @@ declare global {
   }
 }
 
-// This function is now outside the component, so it's not affected by re-renders.
-const handleCredentialResponse = async (response: any) => {
-    try {
-      const res = await fetch('/api/auth/google/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-
-      if (!res.ok) {
-        const errorBody = await res.json();
-        throw new Error(errorBody.error || 'Failed to authenticate with the server.');
-      }
-      
-      const { token } = await res.json();
-      await signInWithCustomToken(auth, token);
-      // The onAuthStateChanged listener will handle the rest.
-      
-    } catch (error: any) {
-      console.error("Sign-in process failed:", error);
-      // Use the global toaster function since we are outside the hook context
-      toaster({
-        title: "Sign-In Failed",
-        description: error.message || "Could not sign in with Google. Please try again.",
-        variant: "destructive"
-      });
-    }
-};
+// NOTE: handleCredentialResponse is no longer needed here, as the HTML API will post directly to our backend.
 
 interface AuthContextType {
   user: User | null;
@@ -57,7 +30,7 @@ interface AuthContextType {
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
   sendSignInLinkToEmail: (email: string) => Promise<void>;
-  handleCredentialResponse: (response: any) => Promise<void>;
+  handleCredentialResponse: (response: any) => Promise<void>; // Keep for type safety, but it's unused now
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -78,8 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(firebaseUser);
           setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
         } else {
-          // This case might happen if Firestore profile creation failed.
-          // Signing out to allow a retry.
           await firebaseSignOut(auth);
           setUser(null);
           setUserProfile(null);
@@ -104,8 +75,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      // The only job of onload is to set the script loaded flag.
-      // The initialization will now happen inside the AuthForm component.
       setIsGsiScriptLoaded(true);
     };
     document.body.appendChild(script);
@@ -206,6 +175,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [user, userProfile]);
+
+  const handleCredentialResponse = async (response: any) => {
+    // This function is now effectively unused by the primary Google Sign-In flow,
+    // but we keep it to satisfy the context type.
+    console.warn("handleCredentialResponse called, but this path is deprecated.");
+  };
 
   const value = { 
     user, 

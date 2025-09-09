@@ -20,18 +20,44 @@ async function verifyGoogleToken(token: string) {
   }
 }
 
+// This function handles both POST requests from the GSI HTML API 
+// and GET requests for redirects.
+export async function GET(req: NextRequest) {
+  return handleRequest(req);
+}
 export async function POST(req: NextRequest) {
+  return handleRequest(req);
+}
+
+async function handleRequest(req: NextRequest) {
   try {
-    const body = await req.json();
-    const credential = body.credential;
+    let credential;
+    
+    if (req.method === 'POST') {
+      const formData = await req.formData();
+      credential = formData.get('credential') as string | null;
+    } else { // GET
+      // This is not standard for GSI but could be a fallback.
+      // The primary flow is POST.
+      return NextResponse.redirect(new URL('/login?error=Invalid+request+method', req.url));
+    }
+
 
     if (!credential) {
-      return NextResponse.json({ error: 'Credential not provided' }, { status: 400 });
+      const errorMsg = 'Credential not provided';
+      console.error(`API Callback Error: ${errorMsg}`);
+      const redirectUrl = new URL('/login', req.url);
+      redirectUrl.searchParams.set('error', errorMsg);
+      return NextResponse.redirect(redirectUrl);
     }
 
     const payload = await verifyGoogleToken(credential);
     if (!payload) {
-      return NextResponse.json({ error: 'Invalid Google token' }, { status: 401 });
+      const errorMsg = 'Invalid Google token';
+      console.error(`API Callback Error: ${errorMsg}`);
+      const redirectUrl = new URL('/login', req.url);
+      redirectUrl.searchParams.set('error', errorMsg);
+      return NextResponse.redirect(redirectUrl);
     }
 
     const { sub: uid, email, name, picture } = payload;
@@ -39,7 +65,6 @@ export async function POST(req: NextRequest) {
     const adminDb = await getAdminDb();
     const userDocRef = doc(adminDb, 'users', uid);
 
-    // Check if user exists in Firestore, if not, create a new profile
     const userDoc = await getDoc(userDocRef);
     if (!userDoc.exists()) {
       const newUserProfile = {
@@ -57,19 +82,24 @@ export async function POST(req: NextRequest) {
       };
       await setDoc(userDocRef, newUserProfile);
     } else {
-        await userDocRef.update({
-            lastLogin: serverTimestamp(),
-            displayName: name,
-            photoUrl: picture,
-        });
+      await userDocRef.update({
+        lastLogin: serverTimestamp(),
+        displayName: name,
+        photoUrl: picture,
+      });
     }
 
-    // Create a custom Firebase token for the client to sign in with
     const customToken = await adminAuth.createCustomToken(uid);
-    return NextResponse.json({ token: customToken });
+    
+    // Redirect back to the login page with the token
+    const redirectUrl = new URL('/login', req.url);
+    redirectUrl.searchParams.set('token', customToken);
+    return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('API Callback Error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    const redirectUrl = new URL('/login', req.url);
+    redirectUrl.searchParams.set('error', 'Internal+Server+Error');
+    return NextResponse.redirect(redirectUrl);
   }
 }
