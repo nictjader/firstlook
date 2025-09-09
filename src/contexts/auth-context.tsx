@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback 
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
-import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
@@ -15,6 +15,7 @@ interface AuthContextType {
   userProfile: UserProfile | null;
   loading: boolean;
   isMobile: boolean;
+  isGsiScriptLoaded: boolean;
   signOut: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -30,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -63,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         variant: "destructive"
       });
     } finally {
-        setLoading(false);
+        // The onAuthStateChanged listener will set loading to false
     }
   }, [toast]);
   
@@ -74,18 +76,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userDocSnap.exists()) {
         setUser(firebaseUser);
         setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
-        toast({
-          title: "Signed In Successfully!",
-          description: `Welcome back, ${firebaseUser.displayName || firebaseUser.email}!`,
-          variant: "success",
-        });
       }
     } else {
       setUser(null);
       setUserProfile(null);
     }
     setLoading(false);
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -93,17 +90,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      if (window.google) {
+      const clientId = process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID;
+      if (window.google && clientId) {
         window.google.accounts.id.initialize({
-          client_id: process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID!,
+          client_id: clientId,
           callback: handleCredentialResponse,
-          ux_mode: isMobile ? 'redirect' : 'popup',
         });
+        setIsGsiScriptLoaded(true);
+      } else {
+        console.error("Google GSI script loaded but window.google is not available or Client ID is missing.");
       }
     };
     document.body.appendChild(script);
 
-    const unsubscribe = onAuthStateChanged(auth, handleUser);
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      handleUser(firebaseUser);
+    });
 
     return () => {
       try {
@@ -113,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       unsubscribe();
     };
-  }, [handleCredentialResponse, handleUser, isMobile]);
+  }, [handleCredentialResponse, handleUser]);
 
   const sendSignInLinkToEmail = useCallback(async (email: string) => {
     const actionCodeSettings = {
@@ -193,7 +195,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isMobile, sendSignInLinkToEmail };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isMobile, sendSignInLinkToEmail, isGsiScriptLoaded };
 
   return (
     <AuthContext.Provider value={value}>

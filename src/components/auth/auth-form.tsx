@@ -12,7 +12,7 @@ import { Separator } from '../ui/separator';
 import { useToast } from '../../hooks/use-toast';
 
 export default function AuthForm() {
-  const { user, loading: authLoading, isMobile, sendSignInLinkToEmail } = useAuth();
+  const { user, loading: authLoading, isMobile, sendSignInLinkToEmail, isGsiScriptLoaded } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
@@ -29,22 +29,25 @@ export default function AuthForm() {
   }, [user, authLoading, router, searchParams]);
 
   useEffect(() => {
-    if (window.google) {
+    if (isGsiScriptLoaded && window.google) {
       const uxMode = isMobile ? 'redirect' : 'popup';
       
-      window.google.accounts.id.renderButton(
-        document.getElementById("gsi-button")!,
-        { 
-            theme: "outline", 
-            size: "large", 
-            type: 'standard', 
-            text: 'signin_with', 
-            width: '320',
-            ux_mode: uxMode 
-        }
-      );
+      const buttonContainer = document.getElementById("gsi-button");
+      if (buttonContainer && !buttonContainer.hasChildNodes()) {
+        window.google.accounts.id.renderButton(
+          buttonContainer,
+          { 
+              theme: "outline", 
+              size: "large", 
+              type: 'standard', 
+              text: 'signin_with', 
+              width: '320',
+              ux_mode: uxMode 
+          }
+        );
+      }
     }
-  }, [isMobile]);
+  }, [isGsiScriptLoaded, isMobile]);
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -110,7 +113,14 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4">
-        <div id="gsi-button"></div>
+        {isGsiScriptLoaded ? (
+          <div id="gsi-button"></div>
+        ) : (
+          <Button disabled className="w-[320px] h-[40px]">
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Loading Google Sign-In
+          </Button>
+        )}
         
         <div className="relative w-full max-w-xs">
           <div className="absolute inset-0 flex items-center">
