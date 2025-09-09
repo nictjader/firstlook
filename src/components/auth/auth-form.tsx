@@ -65,7 +65,8 @@ export default function AuthForm() {
                    data-theme="outline"
                    data-text="signin_with"
                    data-shape="rectangular"
-                   data-logo_alignment="left">
+                   data-logo_alignment="left"
+                   data-width="320">
               </div>
             </>
           )}
