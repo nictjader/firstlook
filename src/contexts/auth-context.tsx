@@ -3,7 +3,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail, isSignInWithEmailLink, signInWithEmailLink } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, setDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
@@ -62,7 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         description: "Could not sign in with Google. Please try again.",
         variant: "destructive"
       });
-      setLoading(false);
+    } finally {
+        setLoading(false);
     }
   }, [toast]);
   
@@ -93,11 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.defer = true;
     script.onload = () => {
       if (window.google) {
+        // NOTE: The backend name 'siren-h2y45' and region 'us-central1' are derived
+        // from the firebase.json configuration file. This creates a predictable
+        // URL that can be whitelisted in the Google Cloud Console.
+        const loginUri = 'https://siren-h2y45-7rq91lfa.us-central1.run.app/api/auth/google/callback';
+        
         window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID!,
           callback: handleCredentialResponse,
           ux_mode: isMobile ? 'redirect' : 'popup',
-          login_uri: `${window.location.origin}/api/auth/google/callback`
+          login_uri: loginUri
         });
       }
     };
