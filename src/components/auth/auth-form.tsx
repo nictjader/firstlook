@@ -48,7 +48,7 @@ export default function AuthForm() {
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
         
-        {googleClientId && (
+        {googleClientId && loginUri && (
           <>
             <div id="g_id_onload"
                  data-client_id={googleClientId}

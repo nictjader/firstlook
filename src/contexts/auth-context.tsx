@@ -10,17 +10,10 @@ import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
 
-declare global {
-  interface Window {
-    google: any;
-  }
-}
-
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  isGsiScriptLoaded: boolean;
   signOut: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -35,7 +28,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
   const { toast } = useToast();
 
   const handleUser = useCallback(async (firebaseUser: User | null) => {
@@ -65,38 +57,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-
-  useEffect(() => {
-    // This effect ensures the GSI script is loaded on the client.
-    if (isGsiScriptLoaded) return;
-    
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      // Once the script is loaded, we can set the flag.
-      setIsGsiScriptLoaded(true);
-    };
-    script.onerror = () => {
-      console.error("Google Sign-In script failed to load.");
-      // We can still allow other sign-in methods to work.
-      setIsGsiScriptLoaded(true); // Set to true to unblock the UI.
-    };
-    document.body.appendChild(script);
-
-    return () => {
-       try {
-        if(script.parentNode) {
-            document.body.removeChild(script);
-        }
-      } catch (e) {
-        // ignore if script is already gone
-      }
-    };
-  }, [isGsiScriptLoaded]);
-
-
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
     return () => unsubscribe();
@@ -104,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     try {
-      if (window.google) {
+      if (typeof window !== 'undefined' && window.google) {
         window.google.accounts.id.disableAutoSelect();
       }
       await firebaseSignOut(auth);
@@ -194,7 +154,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUserProfile, 
     toggleFavoriteStory, 
     markStoryAsRead, 
-    isGsiScriptLoaded,
     sendSignInLinkToEmail: handleSendSignInLink,
   };
 
