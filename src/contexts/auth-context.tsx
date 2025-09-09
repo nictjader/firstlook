@@ -19,6 +19,7 @@ interface AuthContextType {
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
+  isMobile: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,7 +28,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    // This effect runs only on the client, where navigator is available.
+    const mobileCheck = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    setIsMobile(mobileCheck);
+  }, []);
 
   const handleCredentialResponse = useCallback(async (response: any) => {
     setLoading(true);
@@ -45,7 +53,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       
       const { token } = await res.json();
-      await signInWithCustomToken(auth, token);
+      const userCredential = await signInWithCustomToken(auth, token);
+      
+      toast({
+          title: "Signed In Successfully!",
+          description: `Welcome back, ${userCredential.user.displayName}!`,
+          variant: "success",
+      });
 
     } catch (error) {
       console.error("Sign-in process failed:", error);
@@ -65,18 +79,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (userDocSnap.exists()) {
         setUser(firebaseUser);
         setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
-         toast({
-          title: "Signed In Successfully!",
-          description: `Welcome back!`,
-          variant: "success",
-        });
       }
     } else {
       setUser(null);
       setUserProfile(null);
     }
     setLoading(false);
-  }, [toast]);
+  }, []);
 
   useEffect(() => {
     const script = document.createElement('script');
@@ -87,17 +96,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (window.google) {
         window.google.accounts.id.initialize({
           client_id: process.env.NEXT_PUBLIC_FIREBASE_GOOGLE_CLIENT_ID!,
-          callback: handleCredentialResponse,
+          callback: handleCredentialResponse, // For popup mode
+          ux_mode: isMobile ? 'redirect' : 'popup', // Conditional UX mode
+          login_uri: `${window.location.origin}/api/auth/google/callback` // For redirect mode
         });
-
-        // This is where you would call google.accounts.id.prompt() for One Tap
-        // We can add this later if desired.
       }
     };
     document.body.appendChild(script);
 
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
-        if(!user) { // only handle auth change if not already logged in
+        if(!user) { 
             handleUser(firebaseUser);
         } else {
             setLoading(false);
@@ -108,7 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       document.body.removeChild(script);
       unsubscribe();
     };
-  }, [handleCredentialResponse, handleUser, user]);
+  }, [handleCredentialResponse, handleUser, user, isMobile]);
 
   const signOut = useCallback(async () => {
     try {
@@ -179,7 +187,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isMobile };
 
   return (
     <AuthContext.Provider value={value}>

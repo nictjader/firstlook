@@ -8,7 +8,7 @@ import { useAuth } from '../../contexts/auth-context';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthForm() {
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isMobile } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -21,12 +21,22 @@ export default function AuthForm() {
 
   useEffect(() => {
     if (window.google) {
+      // The button rendering is now aware of the UX mode for proper display attributes.
+      const uxMode = isMobile ? 'redirect' : 'popup';
+      
       window.google.accounts.id.renderButton(
         document.getElementById("gsi-button")!,
-        { theme: "outline", size: "large", type: 'standard', text: 'signin_with', width: '320' }
+        { 
+            theme: "outline", 
+            size: "large", 
+            type: 'standard', 
+            text: 'signin_with', 
+            width: '320',
+            ux_mode: uxMode 
+        }
       );
     }
-  }, []);
+  }, [isMobile]);
   
   if (authLoading || (user && !authLoading)) {
      return (
