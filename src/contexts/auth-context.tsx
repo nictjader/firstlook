@@ -47,8 +47,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(firebaseUser);
           setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
         } else {
-          // This case can happen if a user is created in Auth but not in Firestore.
-          // For robustness, sign them out to force a clean login flow.
           await firebaseSignOut(auth);
           setUser(null);
           setUserProfile(null);
@@ -65,7 +63,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  // Effect to load the Google Sign-In script
   useEffect(() => {
     if (isGsiScriptLoaded) return;
     
@@ -89,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [isGsiScriptLoaded]);
 
-  // Effect to listen for Firebase auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
     return () => unsubscribe();
