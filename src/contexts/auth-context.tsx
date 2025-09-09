@@ -27,6 +27,7 @@ interface AuthContextType {
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
   sendSignInLinkToEmail: (email: string) => Promise<void>;
+  handleCredentialResponse: (response: any) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -39,6 +40,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
 
   const handleCredentialResponse = useCallback(async (response: any) => {
+    // This function is the callback for Google Sign-In.
+    // We set loading to true here to indicate the sign-in process is finalizing.
     setLoading(true);
     try {
       const res = await fetch('/api/auth/google/callback', {
@@ -54,27 +57,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       const { token } = await res.json();
       await signInWithCustomToken(auth, token);
+      // The onAuthStateChanged listener below will handle setting user/profile and loading=false
       
-    } catch (error: any)
-{
+    } catch (error: any) {
       console.error("Sign-in process failed:", error);
       toast({
         title: "Sign-In Failed",
         description: error.message || "Could not sign in with Google. Please try again.",
         variant: "destructive"
       });
-      setLoading(false);
+      setLoading(false); // Reset loading on failure
     }
   }, [toast]);
 
   const handleUser = useCallback(async (firebaseUser: User | null) => {
     if (firebaseUser) {
-      const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
-      if (userDocSnap.exists()) {
-        setUser(firebaseUser);
-        setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
-      } else {
+      try {
+        const userDocRef = doc(db, "users", firebaseUser.uid);
+        const userDocSnap = await getDoc(userDocRef);
+        if (userDocSnap.exists()) {
+          setUser(firebaseUser);
+          setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
+        } else {
+          // This case might happen if Firestore profile creation failed.
+          // Signing out to allow a retry.
+          await firebaseSignOut(auth);
+          setUser(null);
+          setUserProfile(null);
+        }
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
         setUser(null);
         setUserProfile(null);
       }
@@ -93,16 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
-      if (window.google && clientId) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleCredentialResponse,
-        });
-        setIsGsiScriptLoaded(true);
-      } else {
-        console.error("Google GSI script loaded but window.google is not available or Client ID is missing.");
-      }
+      setIsGsiScriptLoaded(true);
     };
     document.body.appendChild(script);
 
@@ -118,7 +121,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       unsubscribe();
     };
-  }, [handleCredentialResponse, handleUser, isGsiScriptLoaded]);
+  }, [handleUser, isGsiScriptLoaded]);
 
   const signOut = useCallback(async () => {
     try {
@@ -213,7 +216,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     toggleFavoriteStory, 
     markStoryAsRead, 
     isGsiScriptLoaded,
-    sendSignInLinkToEmail
+    sendSignInLinkToEmail,
+    handleCredentialResponse
   };
 
   return (

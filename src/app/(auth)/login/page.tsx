@@ -47,12 +47,15 @@ function LoginContent() {
     
     completeSignIn();
 
+  }, [toast]);
+
+  useEffect(() => {
     // This effect handles redirecting an already logged-in user
     if (!authLoading && user) {
       const redirectUrl = searchParams.get('redirect') || '/';
       router.replace(redirectUrl);
     }
-  }, [user, authLoading, router, searchParams, toast]);
+  }, [user, authLoading, router, searchParams]);
 
   if (authLoading || user) {
     return (

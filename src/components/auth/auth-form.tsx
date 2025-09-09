@@ -1,9 +1,8 @@
 
 "use client";
-import { useEffect, useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent, useRef } from 'react';
 import Logo from '../layout/logo';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../../contexts/auth-context';
 import { Loader2, Mail } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -11,37 +10,37 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 
 export default function AuthForm() {
-  const { user, loading: authLoading, isGsiScriptLoaded, sendSignInLinkToEmail } = useAuth();
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const { user, loading: authLoading, isGsiScriptLoaded, sendSignInLinkToEmail, handleCredentialResponse } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
+  const gsiButtonRef = useRef<HTMLDivElement>(null);
+  const gsiInitialized = useRef(false);
 
   useEffect(() => {
-    if (user && !authLoading) {
-      const redirectUrl = searchParams.get('redirect') || '/profile';
-      router.push(redirectUrl);
+    if (isGsiScriptLoaded && gsiButtonRef.current && !gsiInitialized.current) {
+        if(window.google) {
+            const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+            if (clientId) {
+                window.google.accounts.id.initialize({
+                    client_id: clientId,
+                    callback: handleCredentialResponse,
+                });
+                window.google.accounts.id.renderButton(
+                    gsiButtonRef.current,
+                    { 
+                        theme: "outline", 
+                        size: "large", 
+                        type: 'standard', 
+                        text: 'signin_with', 
+                        width: '320',
+                    }
+                );
+                gsiInitialized.current = true;
+            }
+        }
     }
-  }, [user, authLoading, router, searchParams]);
-
-  useEffect(() => {
-    if (isGsiScriptLoaded && window.google) {
-      const buttonContainer = document.getElementById("gsi-button");
-      if (buttonContainer && !buttonContainer.hasChildNodes()) { // Prevent re-rendering
-        window.google.accounts.id.renderButton(
-          buttonContainer,
-          { 
-              theme: "outline", 
-              size: "large", 
-              type: 'standard', 
-              text: 'signin_with', 
-              width: '320',
-          }
-        );
-      }
-    }
-  }, [isGsiScriptLoaded]);
+  }, [isGsiScriptLoaded, handleCredentialResponse]);
 
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -59,21 +58,7 @@ export default function AuthForm() {
   };
   
   if (authLoading || (user && !authLoading)) {
-     return (
-        <Card className="w-full max-w-md text-center shadow-2xl bg-card/80 backdrop-blur-sm">
-            <CardHeader>
-                <CardTitle className="text-2xl font-semibold tracking-tight flex items-center justify-center">
-                  <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                  Verifying...
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-muted-foreground">
-                    Please wait while we check your login status.
-                </p>
-            </CardContent>
-        </Card>
-    );
+     return null; // The parent page will handle the loading spinner
   }
 
   return (
@@ -86,13 +71,13 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4 py-8">
-        {isGsiScriptLoaded ? (
-          <div id="gsi-button"></div>
-        ) : (
+        {!isGsiScriptLoaded ? (
           <Button disabled className="w-[320px] h-[40px]">
             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             Loading Google Sign-In
           </Button>
+        ) : (
+          <div ref={gsiButtonRef}></div>
         )}
 
         <div className="relative w-full max-w-[320px]">
