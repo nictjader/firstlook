@@ -74,9 +74,8 @@ export default function AuthForm() {
             <div id="g_id_onload"
               data-client_id={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID}
               data-context="signin"
-              data-login_uri="/login"
-              data-auto_prompt="false"
-              data-callback="handleCredentialResponse">
+              data-callback="handleCredentialResponse"
+              data-auto_prompt="false">
             </div>
             <div className="g_id_signin"
               data-type="standard"
