@@ -1,4 +1,3 @@
-
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
@@ -10,6 +9,7 @@ import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
 
+// This declaration tells TypeScript that window.google can exist.
 declare global {
   interface Window {
     google?: any;
@@ -47,8 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(firebaseUser);
         setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
       } else {
-         setUser(null);
-         setUserProfile(null);
+        setUser(null);
+        setUserProfile(null);
       }
     } else {
       setUser(null);
@@ -56,55 +56,76 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setLoading(false);
   }, []);
-  
-  useEffect(() => {
-    // Make the callback function globally accessible
-    window.handleCredentialResponse = async (response: any) => {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/auth/google/callback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: response.credential }),
-        });
-        if (!res.ok) throw new Error(await res.text());
-        const { token } = await res.json();
-        await signInWithCustomToken(auth, token);
-      } catch (error) {
-        console.error("Sign-in failed:", error);
-        toast({ title: "Sign-In Failed", variant: "destructive" });
-        setLoading(false);
+
+  const handleCredentialResponse = useCallback(async (response: any) => {
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/google/callback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
+      });
+
+      if (!res.ok) {
+        const errorBody = await res.json();
+        throw new Error(errorBody.error || 'Failed to authenticate with the server.');
       }
-    };
+      
+      const { token } = await res.json();
+      await signInWithCustomToken(auth, token);
+      
+    } catch (error: any) {
+      console.error("Sign-in process failed:", error);
+      toast({
+        title: "Sign-In Failed",
+        description: error.message || "Could not sign in with Google. Please try again.",
+        variant: "destructive"
+      });
+      setLoading(false);
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    window.handleCredentialResponse = handleCredentialResponse;
 
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
-    script.onload = () => setIsGsiScriptLoaded(true);
+    script.onload = () => {
+      // CORRECTED: Use the correct environment variable name
+      const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+      if (window.google && clientId) {
+        window.google.accounts.id.initialize({
+          client_id: clientId,
+          callback: handleCredentialResponse,
+        });
+        setIsGsiScriptLoaded(true);
+      } else {
+        console.error("Google GSI script loaded but window.google is not available or Client ID is missing.");
+      }
+    };
     document.body.appendChild(script);
 
     const unsubscribe = onAuthStateChanged(auth, handleUser);
 
     return () => {
-        try {
-            document.body.removeChild(script);
-        } catch (e) {
-            // ignore if script is already gone
-        }
-        unsubscribe();
-        delete window.handleCredentialResponse;
+      try {
+        document.body.removeChild(script);
+      } catch (e) {
+        // ignore if script is already gone
+      }
+      unsubscribe();
+      delete window.handleCredentialResponse;
     };
-  }, [handleUser, toast]);
+  }, [handleCredentialResponse, handleUser]);
 
   const signOut = useCallback(async () => {
     try {
-      if (window.google) {
+      if (typeof window !== 'undefined' && window.google) {
         window.google.accounts.id.disableAutoSelect();
       }
       await firebaseSignOut(auth);
-      setUser(null);
-      setUserProfile(null);
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
     } catch (error) {
       console.error("Sign out error", error);
@@ -112,7 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [toast]);
 
-  const handleSendSignInLink = useCallback(async (email: string) => {
+  const sendSignInLinkToEmail = useCallback(async (email: string) => {
     const actionCodeSettings = {
         url: `${window.location.origin}/login`,
         handleCodeInApp: true,
@@ -177,18 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { 
-    user, 
-    userProfile, 
-    loading, 
-    isGsiScriptLoaded, 
-    signOut,
-    updateUserProfile,
-    refreshUserProfile,
-    toggleFavoriteStory,
-    markStoryAsRead,
-    sendSignInLinkToEmail: handleSendSignInLink
-  };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isGsiScriptLoaded, sendSignInLinkToEmail };
 
   return (
     <AuthContext.Provider value={value}>
@@ -199,6 +209,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) throw new Error('useAuth must be used within an AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
   return context;
 }
