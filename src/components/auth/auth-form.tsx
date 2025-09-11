@@ -1,10 +1,11 @@
 "use client";
-import { FormEvent, useState } from 'react';
-import Logo from '../layout/logo';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { useAuth } from '../../contexts/auth-context';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { Button } from '../ui/button';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
+import Logo from '../layout/logo';
+import { FormEvent, useState } from 'react';
+import { Mail } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useToast } from '../../hooks/use-toast';
@@ -15,7 +16,7 @@ export default function AuthForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
-
+  
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
     if (!email) return;
@@ -37,7 +38,7 @@ export default function AuthForm() {
       setIsSubmitting(false);
     }
   };
-  
+
   if (loading || user) {
      return (
         <Card className="w-full max-w-md text-center shadow-xl border-none">
@@ -74,6 +75,7 @@ export default function AuthForm() {
             <div id="g_id_onload"
               data-client_id={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID}
               data-context="signin"
+              data-ux_mode="popup"
               data-callback="handleCredentialResponse"
               data-auto_prompt="false">
             </div>
