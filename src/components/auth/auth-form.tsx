@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -21,9 +22,12 @@ export default function AuthForm() {
     // This effect runs when the component mounts.
     // It initializes the Google Sign-In client and renders the button for REDIRECT mode.
     if (window.google?.accounts?.id) {
+        // Construct the absolute URL for the callback
+        const loginUri = `${window.location.origin}/api/auth/google/callback`;
+        
         window.google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-            login_uri: "/api/auth/google/callback",
+            login_uri: loginUri, // Use the absolute URL for redirect mode
             ux_mode: "redirect"
         });
         
