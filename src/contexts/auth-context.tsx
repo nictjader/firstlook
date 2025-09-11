@@ -10,7 +10,7 @@ import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
 
-// This declaration tells TypeScript that window.google can exist.
+// This declaration tells TypeScript that window.google and the callback can exist.
 declare global {
   interface Window {
     google?: any;
@@ -58,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
+  // This callback handles the response from Google Sign-In
   const handleCredentialResponse = useCallback(async (response: any) => {
     setLoading(true);
     try {
@@ -86,25 +87,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [toast]);
 
+  // Effect 1: Attach the callback to the window object immediately.
   useEffect(() => {
     window.handleCredentialResponse = handleCredentialResponse;
+    return () => {
+      delete window.handleCredentialResponse;
+    }
+  }, [handleCredentialResponse]);
 
+  // Effect 2: Load the Google GSI script and listen for auth state changes.
+  useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      // CORRECTED: Use the correct environment variable name
-      const clientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
-      if (window.google && clientId) {
-        window.google.accounts.id.initialize({
-          client_id: clientId,
-          callback: handleCredentialResponse,
-        });
-        setIsGsiScriptLoaded(true);
-      } else {
-        console.error("Google GSI script loaded but window.google is not available or Client ID is missing.");
-      }
+      setIsGsiScriptLoaded(true);
     };
     document.body.appendChild(script);
 
@@ -117,9 +115,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // ignore if script is already gone
       }
       unsubscribe();
-      delete window.handleCredentialResponse;
     };
-  }, [handleCredentialResponse, handleUser]);
+  }, [handleUser]);
 
   const signOut = useCallback(async () => {
     try {
@@ -133,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
     }
   }, [toast]);
-
+  
   const sendSignInLinkToEmail = useCallback(async (email: string) => {
     const actionCodeSettings = {
         url: `${window.location.origin}/login`,
