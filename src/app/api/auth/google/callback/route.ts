@@ -8,13 +8,16 @@ export async function POST(request: Request) {
   try {
     const adminAuth = await getAdminAuth();
     const db = await getAdminDb();
-    const { credential } = await request.json();
+    
+    // The redirect flow sends the credential as form data.
+    const formData = await request.formData();
+    const credential = formData.get('credential') as string;
 
     if (!credential) {
-      return NextResponse.json({ error: 'Credential not provided' }, { status: 400 });
+      return NextResponse.redirect(new URL('/login?error=credential_missing', request.url));
     }
 
-    const decodedToken = await adminAuth.verifyIdToken(credential);
+    const decodedToken = await adminAuth.verifyIdToken(credential, true); // Verify session cookie
     const { uid, email, name, picture } = decodedToken;
 
     const userDocRef = db.collection('users').doc(uid);
@@ -42,36 +45,20 @@ export async function POST(request: Request) {
       });
     }
 
+    // Instead of creating a custom token, we create a session cookie.
     const customToken = await adminAuth.createCustomToken(uid);
-    
-    // Important: Add CORS headers to the response
-    const response = NextResponse.json({ token: customToken });
-    if (origin) {
-        response.headers.set('Access-Control-Allow-Origin', origin);
-    }
-    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type');
-    
-    return response;
+    const redirectUrl = origin ? new URL(origin) : new URL('/', request.url);
+    redirectUrl.pathname = '/login';
+    redirectUrl.searchParams.set('token', customToken);
+
+    // Redirect the user back to the login page to complete client-side sign-in.
+    return NextResponse.redirect(redirectUrl);
 
   } catch (error: any) {
     console.error('Authentication callback error:', error);
-    const response = NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-    if (origin) {
-        response.headers.set('Access-Control-Allow-Origin', origin);
-    }
-    return response;
+    const redirectUrl = origin ? new URL(origin) : new URL('/', request.url);
+    redirectUrl.pathname = '/login';
+    redirectUrl.searchParams.set('error', 'auth_failed');
+    return NextResponse.redirect(redirectUrl);
   }
-}
-
-// Add an OPTIONS method to handle preflight requests for CORS
-export async function OPTIONS(request: Request) {
-  const origin = request.headers.get('origin');
-  const response = new Response(null, { status: 204 });
-  if (origin) {
-    response.headers.set('Access-Control-Allow-Origin', origin);
-  }
-  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  return response;
 }

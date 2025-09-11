@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Logo from '@/components/layout/logo';
-import { FormEvent, useState, useEffect } from 'react';
+import { FormEvent, useState } from 'react';
 import { Mail } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
@@ -16,15 +16,6 @@ export default function AuthForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
-
-  useEffect(() => {
-    if (window.google) {
-      window.google.accounts.id.renderButton(
-        document.getElementById("g_id_signin_div"),
-        { theme: "outline", size: "large", type: "standard", shape: "rectangular", text: "signin_with", logo_alignment: "left", width: "320" }
-      );
-    }
-  }, []);
   
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,7 +41,7 @@ export default function AuthForm() {
 
   if (loading || user) {
      return (
-        <Card className="w-full max-w-md text-center shadow-xl border-none">
+        <Card className="w-full max-w-md text-center">
             <CardHeader>
                 <CardTitle className="text-2xl flex items-center justify-center">
                   <Loader2 className="mr-2 h-6 w-6 animate-spin" />
@@ -78,11 +69,20 @@ export default function AuthForm() {
           id="g_id_onload"
           data-client_id={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID}
           data-context="signin"
-          data-ux_mode="popup"
-          data-callback="handleCredentialResponse"
+          data-ux_mode="redirect"
+          data-login_uri="/api/auth/google/callback"
           data-auto_prompt="false"
         ></div>
-        <div id="g_id_signin_div"></div>
+        <div
+          className="g_id_signin"
+          data-type="standard"
+          data-shape="rectangular"
+          data-theme="outline"
+          data-text="signin_with"
+          data-size="large"
+          data-logo_alignment="left"
+          data-width="320"
+        ></div>
        
         <div className="relative w-full max-w-[320px]">
             <div className="absolute inset-0 flex items-center">
