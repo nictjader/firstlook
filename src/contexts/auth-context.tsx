@@ -1,8 +1,9 @@
+
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail as firebaseSendSignInLink } from 'firebase/auth';
 import type { UserProfile } from '../lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '../lib/firebase/client';
@@ -138,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         url: `${window.location.origin}/login`,
         handleCodeInApp: true,
     };
-    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    await firebaseSendSignInLink(auth, email, actionCodeSettings);
     window.localStorage.setItem('emailForSignIn', email);
     toast({
         title: 'Sign-in Link Sent',
