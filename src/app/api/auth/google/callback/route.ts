@@ -9,15 +9,13 @@ export async function POST(request: Request) {
     const adminAuth = await getAdminAuth();
     const db = await getAdminDb();
     
-    // The redirect flow sends the credential as form data.
-    const formData = await request.formData();
-    const credential = formData.get('credential') as string;
+    const { credential } = await request.json();
 
     if (!credential) {
-      return NextResponse.redirect(new URL('/login?error=credential_missing', request.url));
+      return NextResponse.json({ error: 'Credential not provided' }, { status: 400 });
     }
 
-    const decodedToken = await adminAuth.verifyIdToken(credential, true); // Verify session cookie
+    const decodedToken = await adminAuth.verifyIdToken(credential, true);
     const { uid, email, name, picture } = decodedToken;
 
     const userDocRef = db.collection('users').doc(uid);
@@ -45,20 +43,35 @@ export async function POST(request: Request) {
       });
     }
 
-    // Instead of creating a custom token, we create a session cookie.
     const customToken = await adminAuth.createCustomToken(uid);
-    const redirectUrl = origin ? new URL(origin) : new URL('/', request.url);
-    redirectUrl.pathname = '/login';
-    redirectUrl.searchParams.set('token', customToken);
+    const response = NextResponse.json({ token: customToken });
+    
+    // Set CORS headers
+    if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    // Redirect the user back to the login page to complete client-side sign-in.
-    return NextResponse.redirect(redirectUrl);
+    return response;
 
   } catch (error: any) {
     console.error('Authentication callback error:', error);
-    const redirectUrl = origin ? new URL(origin) : new URL('/', request.url);
-    redirectUrl.pathname = '/login';
-    redirectUrl.searchParams.set('error', 'auth_failed');
-    return NextResponse.redirect(redirectUrl);
+    const response = NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+     if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+    }
+    return response;
   }
+}
+
+export async function OPTIONS(request: Request) {
+  const origin = request.headers.get('origin');
+  const response = new Response(null, { status: 204 });
+  if (origin) {
+      response.headers.set('Access-Control-Allow-Origin', origin);
+  }
+  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  return response;
 }

@@ -18,21 +18,30 @@ export default function AuthForm() {
   const { toast } = useToast();
 
   useEffect(() => {
+    // This effect runs when the component mounts.
+    // It initializes the Google Sign-In client if it's available.
     if (window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-            ux_mode: "redirect",
-            login_uri: "/api/auth/google/callback"
         });
+    }
+  }, []);
+
+  useEffect(() => {
+    // This effect runs after the initial setup to render the button.
+    // It depends on the `loading` state to ensure it doesn't try to render
+    // while authentication is already in progress.
+    if (!loading && window.google?.accounts?.id) {
         const buttonDiv = document.getElementById("g_id_signin_div");
-        if (buttonDiv) {
+        if (buttonDiv && !buttonDiv.hasChildNodes()) { // Prevents re-rendering
             window.google.accounts.id.renderButton(
                 buttonDiv,
                 { theme: "outline", size: "large", type: "standard", shape: "rectangular", text: "signin_with", logo_alignment: "left", width: "320" }
             );
         }
     }
-  }, []);
+  }, [loading]);
+
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -95,7 +104,7 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center pt-8 pb-2 space-y-6">
-        {/* This div is the target for the Google renderButton function */}
+        {/* Container for the Google Sign-In button */}
         <div id="g_id_signin_div"></div>
         
         <div className="flex items-center w-full max-w-[320px]">
