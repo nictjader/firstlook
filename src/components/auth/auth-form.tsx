@@ -19,28 +19,23 @@ export default function AuthForm() {
 
   useEffect(() => {
     // This effect runs when the component mounts.
-    // It initializes the Google Sign-In client if it's available.
+    // It initializes the Google Sign-In client and renders the button for REDIRECT mode.
     if (window.google?.accounts?.id) {
         window.google.accounts.id.initialize({
             client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+            login_uri: "/api/auth/google/callback",
+            ux_mode: "redirect"
         });
-    }
-  }, []);
-
-  useEffect(() => {
-    // This effect runs after the initial setup to render the button.
-    // It depends on the `loading` state to ensure it doesn't try to render
-    // while authentication is already in progress.
-    if (!loading && window.google?.accounts?.id) {
+        
         const buttonDiv = document.getElementById("g_id_signin_div");
-        if (buttonDiv && !buttonDiv.hasChildNodes()) { // Prevents re-rendering
+        if (buttonDiv) {
             window.google.accounts.id.renderButton(
                 buttonDiv,
                 { theme: "outline", size: "large", type: "standard", shape: "rectangular", text: "signin_with", logo_alignment: "left", width: "320" }
             );
         }
     }
-  }, [loading]);
+  }, []);
 
 
   const handleEmailSignIn = async (e: React.FormEvent) => {

@@ -1,21 +1,22 @@
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse, type NextRequest } from 'next/server';
 import { getAdminAuth, getAdminDb } from '../../../../../lib/firebase/admin';
 import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request: Request) {
-  const origin = request.headers.get('origin');
-
   try {
     const adminAuth = await getAdminAuth();
     const db = await getAdminDb();
     
-    const { credential } = await request.json();
+    // In redirect mode, the credential is sent as form data
+    const formData = await request.formData();
+    const credential = formData.get('credential') as string;
 
     if (!credential) {
-      return NextResponse.json({ error: 'Credential not provided' }, { status: 400 });
+      console.error('Credential not found in form data');
+      return NextResponse.redirect(new URL('/login?error=credential_missing', request.url));
     }
 
-    const decodedToken = await adminAuth.verifyIdToken(credential, true);
+    const decodedToken = await adminAuth.verifyIdToken(credential);
     const { uid, email, name, picture } = decodedToken;
 
     const userDocRef = db.collection('users').doc(uid);
@@ -38,40 +39,23 @@ export async function POST(request: Request) {
     } else {
       await userDocRef.update({
         lastLogin: FieldValue.serverTimestamp(),
-        displayName: name,
+        displayName: name, // Update name and picture on login
         photoUrl: picture,
       });
     }
 
+    // This is the server-side step where we create a session cookie.
+    // However, the current client-side setup uses token-based auth.
+    // To bridge this, we will create a custom token and redirect the user
+    // to a page that can consume it.
     const customToken = await adminAuth.createCustomToken(uid);
-    const response = NextResponse.json({ token: customToken });
     
-    // Set CORS headers
-    if (origin) {
-      response.headers.set('Access-Control-Allow-Origin', origin);
-    }
-    response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-
-    return response;
+    // Redirect user to the login page with the token as a query param
+    return NextResponse.redirect(new URL(`/login?token=${customToken}`, request.url));
 
   } catch (error: any) {
     console.error('Authentication callback error:', error);
-    const response = NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
-     if (origin) {
-      response.headers.set('Access-Control-Allow-Origin', origin);
-    }
-    return response;
+    const errorMessage = encodeURIComponent(error.message || 'An unknown error occurred.');
+    return NextResponse.redirect(new URL(`/login?error=${errorMessage}`, request.url));
   }
-}
-
-export async function OPTIONS(request: Request) {
-  const origin = request.headers.get('origin');
-  const response = new Response(null, { status: 204 });
-  if (origin) {
-      response.headers.set('Access-Control-Allow-Origin', origin);
-  }
-  response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-  return response;
 }
