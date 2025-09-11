@@ -1,8 +1,8 @@
 "use client";
-import { useAuth } from '../../contexts/auth-context';
+import { useAuth } from '@/contexts/auth-context';
 import { Loader2 } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
-import Logo from '../layout/logo';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import Logo from '@/components/layout/logo';
 import { FormEvent, useState, useEffect } from 'react';
 import { Mail } from 'lucide-react';
 import { Input } from '../ui/input';
@@ -19,10 +19,6 @@ export default function AuthForm() {
 
   useEffect(() => {
     if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-        callback: window.handleCredentialResponse,
-      });
       window.google.accounts.id.renderButton(
         document.getElementById("g_id_signin_div"),
         { theme: "outline", size: "large", type: "standard", shape: "rectangular", text: "signin_with", logo_alignment: "left", width: "320" }
@@ -78,7 +74,14 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4">
-        {/* Render the button directly */}
+        <div
+          id="g_id_onload"
+          data-client_id={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID}
+          data-context="signin"
+          data-ux_mode="popup"
+          data-callback="handleCredentialResponse"
+          data-auto_prompt="false"
+        ></div>
         <div id="g_id_signin_div"></div>
        
         <div className="relative w-full max-w-[320px]">

@@ -3,11 +3,11 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
 import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail as firebaseSendSignInLink } from 'firebase/auth';
-import type { UserProfile } from '../lib/types';
+import type { UserProfile } from '@/lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
-import { auth, db } from '../lib/firebase/client';
-import { docToUserProfileClient } from '../lib/types';
-import { useToast } from '../hooks/use-toast';
+import { auth, db } from '@/lib/firebase/client';
+import { docToUserProfileClient } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
 
 declare global {
   interface Window {
@@ -55,7 +55,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    // Make the callback function globally accessible for the Google script
     window.handleCredentialResponse = async (response: any) => {
       setLoading(true);
       try {
@@ -72,10 +71,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await signInWithCustomToken(auth, token);
       } catch (error: any) {
         console.error("Sign-in failed:", error);
-        toast({ title: "Sign-In Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
+        toast({
+          title: "Sign-In Failed",
+          description: error.message || "An unknown error occurred.",
+          variant: "destructive"
+        });
         setLoading(false);
       }
     };
+
+    if (typeof window !== 'undefined' && window.google) {
+        window.google.accounts.id.initialize({
+            client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+        });
+    }
 
     const unsubscribe = onAuthStateChanged(auth, handleUser);
 
