@@ -16,6 +16,17 @@
       "concurrency": 80,
       "cpu": 1,
       "name": "siren-h2y45"
-    }
+    },
+    "headers": [
+      {
+        "source": "**/*",
+        "headers": [
+          {
+            "key": "Cross-Origin-Opener-Policy",
+            "value": "same-origin-allow-popups"
+          }
+        ]
+      }
+    ]
   }
 }
