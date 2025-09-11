@@ -1,21 +1,34 @@
 "use client";
 import { useAuth } from '../../contexts/auth-context';
 import { Loader2 } from 'lucide-react';
-import { Button } from '../ui/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import Logo from '../layout/logo';
-import { FormEvent, useState } from 'react';
+import { FormEvent, useState, useEffect } from 'react';
 import { Mail } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useToast } from '../../hooks/use-toast';
+import { Button } from '../ui/button';
 
 export default function AuthForm() {
-  const { isGsiScriptLoaded, user, loading, sendSignInLinkToEmail } = useAuth();
+  const { user, loading, sendSignInLinkToEmail } = useAuth();
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+        callback: window.handleCredentialResponse,
+      });
+      window.google.accounts.id.renderButton(
+        document.getElementById("g_id_signin_div"),
+        { theme: "outline", size: "large", type: "standard", shape: "rectangular", text: "signin_with", logo_alignment: "left", width: "320" }
+      );
+    }
+  }, []);
   
   const handleEmailSignIn = async (e: FormEvent) => {
     e.preventDefault();
@@ -65,31 +78,8 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center gap-4">
-        {!isGsiScriptLoaded ? (
-          <Button disabled className="w-[320px] h-[40px]">
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Loading Google Sign-In
-          </Button>
-        ) : (
-          <>
-            <div id="g_id_onload"
-              data-client_id={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID}
-              data-context="signin"
-              data-ux_mode="popup"
-              data-callback="handleCredentialResponse"
-              data-auto_prompt="false">
-            </div>
-            <div className="g_id_signin"
-              data-type="standard"
-              data-shape="rectangular"
-              data-theme="outline"
-              data-text="signin_with"
-              data-size="large"
-              data-logo_alignment="left"
-              data-width="320">
-            </div>
-          </>
-        )}
+        {/* Render the button directly */}
+        <div id="g_id_signin_div"></div>
        
         <div className="relative w-full max-w-[320px]">
             <div className="absolute inset-0 flex items-center">

@@ -7,6 +7,7 @@ import { ThemeProvider } from '../contexts/theme-context';
 import GoogleAnalytics from '../components/analytics/google-analytics';
 import Header from '../components/layout/header';
 import Footer from '../components/layout/footer';
+import Script from 'next/script'; // Import the Script component
 
 const playfairDisplay = Playfair_Display({
   subsets: ['latin'],
@@ -30,6 +31,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Load the Google Sign-In script here */}
+        <Script src="https://accounts.google.com/gsi/client" async defer strategy="beforeInteractive" />
       </head>
       <body
         className={`${playfairDisplay.variable} font-body`}

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
@@ -10,7 +9,6 @@ import { auth, db } from '../lib/firebase/client';
 import { docToUserProfileClient } from '../lib/types';
 import { useToast } from '../hooks/use-toast';
 
-// This declaration tells TypeScript that window.google and the callback can exist.
 declare global {
   interface Window {
     google?: any;
@@ -22,7 +20,6 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
-  isGsiScriptLoaded: boolean;
   signOut: () => void;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
@@ -37,7 +34,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isGsiScriptLoaded, setIsGsiScriptLoaded] = useState(false);
   const { toast } = useToast();
 
   const handleUser = useCallback(async (firebaseUser: User | null) => {
@@ -58,70 +54,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setLoading(false);
   }, []);
 
-  // This callback handles the response from Google Sign-In
-  const handleCredentialResponse = useCallback(async (response: any) => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/google/callback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-
-      if (!res.ok) {
-        const errorBody = await res.json();
-        throw new Error(errorBody.error || 'Failed to authenticate with the server.');
+  useEffect(() => {
+    // Make the callback function globally accessible for the Google script
+    window.handleCredentialResponse = async (response: any) => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/auth/google/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential }),
+        });
+        if (!res.ok) {
+            const errorBody = await res.json();
+            throw new Error(errorBody.error || 'Failed to authenticate with the server.');
+        }
+        const { token } = await res.json();
+        await signInWithCustomToken(auth, token);
+      } catch (error: any) {
+        console.error("Sign-in failed:", error);
+        toast({ title: "Sign-In Failed", description: error.message || "An unknown error occurred.", variant: "destructive" });
+        setLoading(false);
       }
-      
-      const { token } = await res.json();
-      await signInWithCustomToken(auth, token);
-      
-    } catch (error: any) {
-      console.error("Sign-in process failed:", error);
-      toast({
-        title: "Sign-In Failed",
-        description: error.message || "Could not sign in with Google. Please try again.",
-        variant: "destructive"
-      });
-      setLoading(false);
-    }
-  }, [toast]);
-
-  // Effect 1: Attach the callback to the window object immediately.
-  useEffect(() => {
-    window.handleCredentialResponse = handleCredentialResponse;
-    return () => {
-      delete window.handleCredentialResponse;
-    }
-  }, [handleCredentialResponse]);
-
-  // Effect 2: Load the Google GSI script and listen for auth state changes.
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      setIsGsiScriptLoaded(true);
     };
-    document.body.appendChild(script);
 
     const unsubscribe = onAuthStateChanged(auth, handleUser);
 
     return () => {
-      try {
-        document.body.removeChild(script);
-      } catch (e) {
-        // ignore if script is already gone
-      }
       unsubscribe();
+      delete window.handleCredentialResponse;
     };
-  }, [handleUser]);
+  }, [handleUser, toast]);
 
   const signOut = useCallback(async () => {
     try {
-      if (typeof window !== 'undefined' && window.google) {
-        window.google.accounts.id.disableAutoSelect();
+      if (window.google) {
+          window.google.accounts.id.disableAutoSelect();
       }
       await firebaseSignOut(auth);
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
@@ -130,7 +97,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
     }
   }, [toast]);
-  
+
   const sendSignInLinkToEmail = useCallback(async (email: string) => {
     const actionCodeSettings = {
         url: `${window.location.origin}/login`,
@@ -196,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, isGsiScriptLoaded, sendSignInLinkToEmail };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, sendSignInLinkToEmail };
 
   return (
     <AuthContext.Provider value={value}>
