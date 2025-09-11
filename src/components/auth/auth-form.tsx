@@ -102,10 +102,9 @@ export default function AuthForm() {
         {/* Container for the Google Sign-In button */}
         <div id="g_id_signin_div"></div>
         
-        <div className="flex items-center w-full max-w-[320px]">
-            <Separator className="flex-grow" />
-            <span className="mx-4 text-xs text-muted-foreground">OR</span>
-            <Separator className="flex-grow" />
+        <div className="relative w-full max-w-[320px]">
+            <Separator />
+            <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">OR</span>
         </div>
 
         <form onSubmit={handleEmailSignIn} className="w-full max-w-[320px] space-y-3">
