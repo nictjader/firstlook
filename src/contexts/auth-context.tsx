@@ -80,10 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (typeof window !== 'undefined' && window.google) {
-        window.google.accounts.id.initialize({
-            client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-        });
+    if (window.google) {
+      window.google.accounts.id.initialize({
+        client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
+      });
     }
 
     const unsubscribe = onAuthStateChanged(auth, handleUser);
