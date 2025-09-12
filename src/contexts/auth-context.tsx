@@ -55,44 +55,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    window.handleCredentialResponse = async (response: any) => {
-      setLoading(true);
-      try {
-        const res = await fetch('/api/auth/google/callback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ credential: response.credential }),
-        });
-        if (!res.ok) {
-            const errorBody = await res.json();
-            throw new Error(errorBody.error || 'Failed to authenticate with the server.');
-        }
-        const { token } = await res.json();
-        await signInWithCustomToken(auth, token);
-      } catch (error: any) {
-        console.error("Sign-in failed:", error);
-        toast({
-          title: "Sign-In Failed",
-          description: error.message || "An unknown error occurred.",
-          variant: "destructive"
-        });
-        setLoading(false);
-      }
-    };
-
-    if (window.google) {
-      window.google.accounts.id.initialize({
-        client_id: process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID,
-      });
-    }
-
     const unsubscribe = onAuthStateChanged(auth, handleUser);
-
-    return () => {
-      unsubscribe();
-      delete window.handleCredentialResponse;
-    };
-  }, [handleUser, toast]);
+    return () => unsubscribe();
+  }, [handleUser]);
 
   const signOut = useCallback(async () => {
     try {
