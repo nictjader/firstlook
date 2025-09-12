@@ -1,12 +1,40 @@
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Logo from '@/components/layout/logo';
+import { Separator } from '../ui/separator';
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { useState } from 'react';
+import { useToast } from '../../hooks/use-toast';
+
 
 export default function AuthForm() {
-  const { user, loading } = useAuth();
+  const { user, loading, sendEmailSignInLink } = useAuth();
+  const [email, setEmail] = useState('');
+  const [isEmailSending, setIsEmailSending] = useState(false);
+  const { toast } = useToast();
+  
+  const handleEmailSignIn = async (e: React.FormEvent) => {
+      e.preventDefault();
+      if (!email) {
+          toast({ title: 'Email Required', description: 'Please enter your email address.', variant: 'destructive' });
+          return;
+      }
+      setIsEmailSending(true);
+      try {
+          await sendEmailSignInLink(email);
+          toast({ variant: 'success', title: 'Check Your Email', description: 'A sign-in link has been sent to your email address.' });
+          setEmail('');
+      } catch (error: any) {
+          toast({ title: 'Sign-In Failed', description: error.message, variant: 'destructive' });
+      } finally {
+          setIsEmailSending(false);
+      }
+  };
+
 
   if (loading || user) {
     return (
@@ -28,7 +56,7 @@ export default function AuthForm() {
         <CardTitle>Welcome to FirstLook</CardTitle>
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center py-8">
+      <CardContent className="flex flex-col items-center justify-center py-8 space-y-6">
         {/* These divs are for the Google Identity Services HTML API */}
         <div
           id="g_id_onload"
@@ -48,6 +76,30 @@ export default function AuthForm() {
           data-logo_alignment="left"
           data-width="320"
         ></div>
+        
+        <div className="relative w-full max-w-xs">
+          <Separator className="shrink-0 bg-border" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-2 text-xs text-muted-foreground bg-card">OR</div>
+        </div>
+
+        <form onSubmit={handleEmailSignIn} className="w-full max-w-xs space-y-4">
+            <Input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isEmailSending}
+                required
+            />
+            <Button type="submit" className="w-full" disabled={isEmailSending}>
+                {isEmailSending ? (
+                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Sending...</>
+                ) : (
+                    <><Mail className="mr-2 h-4 w-4" /> Send Sign-In Link</>
+                )}
+            </Button>
+        </form>
+
       </CardContent>
       <CardFooter>
         <p className="text-xs text-center text-muted-foreground w-full">
