@@ -2,30 +2,24 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail as firebaseSendSignInLink } from 'firebase/auth';
+import { onAuthStateChanged, signOut as firebaseSignOut, sendSignInLinkToEmail as firebaseSendSignInLink, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
 import type { UserProfile } from '@/lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import { docToUserProfileClient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
-declare global {
-  interface Window {
-    google?: any;
-    handleCredentialResponse?: (response: any) => void;
-  }
-}
-
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signOut: () => void;
+  signInWithGoogle: () => void;
+  sendSignInLinkToEmail: (email: string) => Promise<void>;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
-  sendSignInLinkToEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -44,8 +38,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(firebaseUser);
         setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
       } else {
-        setUser(null);
-        setUserProfile(null);
+        // This case handles user creation on first login
+        try {
+            const newUserProfile: UserProfile = {
+                userId: firebaseUser.uid,
+                email: firebaseUser.email,
+                displayName: firebaseUser.displayName,
+                coins: 0,
+                unlockedStories: [],
+                readStories: [],
+                favoriteStories: [],
+                preferences: { subgenres: [] },
+                createdAt: new Date().toISOString(),
+                lastLogin: new Date().toISOString(),
+            };
+            await doc(db, "users", firebaseUser.uid).set(newUserProfile);
+            setUser(firebaseUser);
+            setUserProfile(newUserProfile);
+        } catch (error) {
+            console.error("Error creating user profile:", error);
+            setUser(null);
+            setUserProfile(null);
+        }
       }
     } else {
       setUser(null);
@@ -53,17 +67,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     setLoading(false);
   }, []);
+  
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, handleUser);
     return () => unsubscribe();
   }, [handleUser]);
 
+  const signInWithGoogle = useCallback(async () => {
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithRedirect(auth, provider);
+    } catch (error: any) {
+      console.error("Google sign-in error", error);
+      toast({ title: "Sign-In Failed", description: error.message, variant: "destructive" });
+      setLoading(false);
+    }
+  }, [toast]);
+
   const signOut = useCallback(async () => {
     try {
-      if (window.google) {
-          window.google.accounts.id.disableAutoSelect();
-      }
       await firebaseSignOut(auth);
       toast({ title: "Signed Out", description: "You have been successfully signed out." });
     } catch (error) {
@@ -137,7 +161,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, sendSignInLinkToEmail };
+  const value = { user, userProfile, loading, signOut, signInWithGoogle, sendSignInLinkToEmail, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
 
   return (
     <AuthContext.Provider value={value}>
