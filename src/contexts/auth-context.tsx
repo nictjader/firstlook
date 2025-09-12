@@ -2,20 +2,26 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signOut as firebaseSignOut, sendSignInLinkToEmail as firebaseSendSignInLink, GoogleAuthProvider, signInWithRedirect } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
 import type { UserProfile } from '@/lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
 import { docToUserProfileClient } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 
+// Define the Google credential response callback on the window object
+declare global {
+  interface Window {
+    google?: any;
+    handleCredentialResponse?: (response: any) => void;
+  }
+}
+
 interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
   signOut: () => void;
-  signInWithGoogle: () => void;
-  sendSignInLinkToEmail: (email: string) => Promise<void>;
   updateUserProfile: (updates: Partial<UserProfile>) => Promise<void>;
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
@@ -30,95 +36,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const handleUser = useCallback(async (firebaseUser: User | null) => {
-    if (firebaseUser) {
-      const userDocRef = doc(db, "users", firebaseUser.uid);
-      const userDocSnap = await getDoc(userDocRef);
-      if (userDocSnap.exists()) {
-        setUser(firebaseUser);
-        setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
-      } else {
-        // This case handles user creation on first login
-        try {
-            const newUserProfile: UserProfile = {
-                userId: firebaseUser.uid,
-                email: firebaseUser.email,
-                displayName: firebaseUser.displayName,
-                coins: 0,
-                unlockedStories: [],
-                readStories: [],
-                favoriteStories: [],
-                preferences: { subgenres: [] },
-                createdAt: new Date().toISOString(),
-                lastLogin: new Date().toISOString(),
-            };
-            await doc(db, "users", firebaseUser.uid).set(newUserProfile);
-            setUser(firebaseUser);
-            setUserProfile(newUserProfile);
-        } catch (error) {
-            console.error("Error creating user profile:", error);
-            setUser(null);
-            setUserProfile(null);
-        }
-      }
-    } else {
-      setUser(null);
-      setUserProfile(null);
+  const fetchUserProfile = useCallback(async (firebaseUser: User) => {
+    const userDocRef = doc(db, "users", firebaseUser.uid);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      setUserProfile(docToUserProfileClient(userDocSnap.data()!, firebaseUser.uid));
     }
-    setLoading(false);
   }, []);
-  
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, handleUser);
-    return () => unsubscribe();
-  }, [handleUser]);
+    // This is the callback function that the Google Sign-In library will call
+    // with the user's credential after a successful sign-in.
+    window.handleCredentialResponse = async (response: any) => {
+      setLoading(true);
+      try {
+        // Send the Google credential to our backend API
+        const res = await fetch('/api/auth/google/callback', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ credential: response.credential }),
+        });
 
-  const signInWithGoogle = useCallback(async () => {
-    setLoading(true);
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithRedirect(auth, provider);
-    } catch (error: any) {
-      console.error("Google sign-in error", error);
-      toast({ title: "Sign-In Failed", description: error.message, variant: "destructive" });
+        if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.details || 'Failed to exchange token.');
+        }
+
+        // Get the custom Firebase token from our backend
+        const { token } = await res.json();
+        
+        // Sign in to Firebase with the custom token
+        await signInWithCustomToken(auth, token);
+        
+        toast({
+            variant: 'success',
+            title: 'Sign In Successful',
+            description: 'Welcome back!',
+        });
+
+      } catch (error: any) {
+        console.error("Manual sign-in failed:", error);
+        toast({ title: "Sign-In Failed", description: error.message, variant: "destructive" });
+        setLoading(false);
+      }
+    };
+
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      if (firebaseUser) {
+        setUser(firebaseUser);
+        fetchUserProfile(firebaseUser);
+      } else {
+        setUser(null);
+        setUserProfile(null);
+      }
       setLoading(false);
-    }
-  }, [toast]);
+    });
+
+    return () => {
+      unsubscribe();
+      delete window.handleCredentialResponse;
+    };
+  }, [toast, fetchUserProfile]);
 
   const signOut = useCallback(async () => {
-    try {
-      await firebaseSignOut(auth);
-      toast({ title: "Signed Out", description: "You have been successfully signed out." });
-    } catch (error) {
-      console.error("Sign out error", error);
-      toast({ title: "Error", description: "Failed to sign out.", variant: "destructive" });
+    if (window.google) {
+      window.google.accounts.id.disableAutoSelect();
     }
-  }, [toast]);
-
-  const sendSignInLinkToEmail = useCallback(async (email: string) => {
-    const actionCodeSettings = {
-        url: `${window.location.origin}/login`,
-        handleCodeInApp: true,
-    };
-    await firebaseSendSignInLink(auth, email, actionCodeSettings);
-    window.localStorage.setItem('emailForSignIn', email);
-    toast({
-        title: 'Sign-in Link Sent',
-        description: `A sign-in link has been sent to ${email}.`,
-        variant: 'success'
-    });
+    await firebaseSignOut(auth);
+    toast({ title: "Signed Out", description: "You have been successfully signed out." });
   }, [toast]);
   
   const refreshUserProfile = useCallback(async () => {
     if (user) {
-      const userDocRef = doc(db, "users", user.uid);
-      const userDocSnap = await getDoc(userDocRef);
-      if (userDocSnap.exists()) {
-          setUserProfile(docToUserProfileClient(userDocSnap.data()!, user.uid));
-      }
+      await fetchUserProfile(user);
     }
-  }, [user]);
+  }, [user, fetchUserProfile]);
   
   const updateUserProfile = useCallback(async (updates: Partial<UserProfile>) => {
     if (user) {
@@ -161,13 +153,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, userProfile]);
 
-  const value = { user, userProfile, loading, signOut, signInWithGoogle, sendSignInLinkToEmail, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {
