@@ -1,8 +1,9 @@
+
 "use client";
 
 import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
 import type { User } from 'firebase/auth';
-import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut } from 'firebase/auth';
+import { onAuthStateChanged, signInWithCustomToken, signOut as firebaseSignOut, sendSignInLinkToEmail } from 'firebase/auth';
 import type { UserProfile } from '@/lib/types';
 import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
 import { auth, db } from '@/lib/firebase/client';
@@ -26,6 +27,7 @@ interface AuthContextType {
   refreshUserProfile: () => Promise<void>;
   toggleFavoriteStory: (storyId: string) => Promise<void>;
   markStoryAsRead: (storyId: string) => void;
+  sendEmailSignInLink: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -152,8 +154,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [user, userProfile]);
+  
+  const sendEmailSignInLink = useCallback(async (email: string) => {
+    const actionCodeSettings = {
+      url: `${window.location.origin}/login?finishSignUp=1`,
+      handleCodeInApp: true,
+    };
+    await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+    window.localStorage.setItem('emailForSignIn', email);
+  }, []);
 
-  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead };
+
+  const value = { user, userProfile, loading, signOut, updateUserProfile, refreshUserProfile, toggleFavoriteStory, markStoryAsRead, sendEmailSignInLink };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
