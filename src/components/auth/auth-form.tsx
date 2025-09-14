@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
@@ -7,9 +8,8 @@ import Logo from '@/components/layout/logo';
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '../../hooks/use-toast';
-
 
 export default function AuthForm() {
   const { user, loading, sendEmailSignInLink } = useAuth();
@@ -17,6 +17,39 @@ export default function AuthForm() {
   const [isEmailSending, setIsEmailSending] = useState(false);
   const { toast } = useToast();
   
+  useEffect(() => {
+    // This effect ensures the Google button is rendered.
+    // It's the standard way to handle rendering for the manual GIS flow.
+    const renderGoogleButton = () => {
+      if (window.google && window.google.accounts && document.getElementById("g_id_signin_div")) {
+        window.google.accounts.id.renderButton(
+          document.getElementById("g_id_signin_div")!,
+          { 
+            theme: "outline", 
+            size: "large", 
+            type: "standard", 
+            text: "signin_with",
+            shape: "rectangular",
+            logo_alignment: "left",
+            width: "320"
+          }
+        );
+      }
+    };
+    
+    // The google script is loaded asynchronously, so we might need to wait for it.
+    if (window.google) {
+        renderGoogleButton();
+    } else {
+        // Fallback if the script isn't loaded yet.
+        const script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+        if (script) {
+            script.addEventListener('load', renderGoogleButton);
+            return () => script.removeEventListener('load', renderGoogleButton);
+        }
+    }
+  }, []);
+
   const handleEmailSignIn = async (e: React.FormEvent) => {
       e.preventDefault();
       if (!email) {
@@ -34,7 +67,6 @@ export default function AuthForm() {
           setIsEmailSending(false);
       }
   };
-
 
   if (loading || user) {
     return (
@@ -57,25 +89,9 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-8 space-y-6">
-        {/* These divs are for the Google Identity Services HTML API */}
-        <div
-          id="g_id_onload"
-          data-client_id={process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID}
-          data-context="signin"
-          data-ux_mode="popup"
-          data-callback="handleCredentialResponse"
-          data-auto_prompt="false"
-        ></div>
-        <div
-          className="g_id_signin"
-          data-type="standard"
-          data-shape="rectangular"
-          data-theme="outline"
-          data-text="signin_with"
-          data-size="large"
-          data-logo_alignment="left"
-          data-width="320"
-        ></div>
+        
+        {/* This div is the target for the Google button rendering */}
+        <div id="g_id_signin_div"></div>
         
         <div className="relative w-full max-w-xs flex items-center">
           <div className="flex-grow border-t border-border"></div>
