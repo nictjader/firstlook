@@ -77,9 +77,10 @@ export default function AuthForm() {
           data-width="320"
         ></div>
         
-        <div className="relative w-full max-w-xs">
-          <Separator className="shrink-0 bg-border" />
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-2 text-xs text-muted-foreground bg-card">OR</div>
+        <div className="relative w-full max-w-xs flex items-center">
+          <div className="flex-grow border-t border-border"></div>
+          <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
+          <div className="flex-grow border-t border-border"></div>
         </div>
 
         <form onSubmit={handleEmailSignIn} className="w-full max-w-xs space-y-4">
