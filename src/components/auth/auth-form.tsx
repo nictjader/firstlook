@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
@@ -31,7 +32,8 @@ export default function AuthForm() {
             text: "signin_with",
             shape: "rectangular",
             logo_alignment: "left",
-            width: "320"
+            width: "320",
+            callback: window.handleCredentialResponse
           }
         );
         // Enable one-tap login
