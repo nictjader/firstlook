@@ -79,6 +79,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error: any) {
         console.error("Manual sign-in failed:", error);
         toast({ title: "Sign-In Failed", description: error.message, variant: "destructive" });
+      } finally {
         setLoading(false);
       }
     };

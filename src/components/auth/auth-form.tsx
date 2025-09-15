@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useAuth } from '@/contexts/auth-context';
@@ -8,7 +7,7 @@ import Logo from '@/components/layout/logo';
 import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useToast } from '../../hooks/use-toast';
 
 export default function AuthForm() {
@@ -16,27 +15,30 @@ export default function AuthForm() {
   const [email, setEmail] = useState('');
   const [isEmailSending, setIsEmailSending] = useState(false);
   const { toast } = useToast();
-  
+  const googleButtonDiv = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     // This effect ensures the Google button is rendered.
     // It's the standard way to handle rendering for the manual GIS flow.
     const renderGoogleButton = () => {
-      if (window.google && window.google.accounts && document.getElementById("g_id_signin_div")) {
+      if (window.google && window.google.accounts && googleButtonDiv.current) {
         window.google.accounts.id.renderButton(
-          document.getElementById("g_id_signin_div")!,
-          { 
-            theme: "outline", 
-            size: "large", 
-            type: "standard", 
+          googleButtonDiv.current,
+          {
+            theme: "outline",
+            size: "large",
+            type: "standard",
             text: "signin_with",
             shape: "rectangular",
             logo_alignment: "left",
             width: "320"
           }
         );
+        // Enable one-tap login
+        window.google.accounts.id.prompt();
       }
     };
-    
+
     // The google script is loaded asynchronously, so we might need to wait for it.
     if (window.google) {
         renderGoogleButton();
@@ -89,10 +91,10 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-8 space-y-6">
-        
+
         {/* This div is the target for the Google button rendering */}
-        <div id="g_id_signin_div"></div>
-        
+        <div ref={googleButtonDiv}></div>
+
         <div className="relative w-full max-w-xs flex items-center">
           <div className="flex-grow border-t border-border"></div>
           <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
