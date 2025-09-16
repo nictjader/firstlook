@@ -55,11 +55,10 @@ function HomePageContent() {
     <div className="space-y-6 sm:space-y-8">
       <div className="text-center">
         <h1 className="text-3xl sm:text-4xl font-headline font-bold text-primary mb-2">
-          Discover Your Next Obsession
+          Get Addicted to Romance Novels Now
         </h1>
-        <p className="text-muted-foreground">
-          Dive into a world of passion and adventure. Your next favorite story
-          awaits.
+        <p className="text-muted-foreground max-w-2xl mx-auto">
+          Dive into free previews of heart-pounding love stories. Pay only for the chapters you can’t resist—your next obsession starts with one click.
         </p>
       </div>
 
