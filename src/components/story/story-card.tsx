@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart, Lock, CheckCircle2, Library } from 'lucide-react';
 import { useAuth } from '../../contexts/auth-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { capitalizeWords } from '../../lib/utils';
 import { useRouter } from 'next/navigation';
 import { PLACEHOLDER_IMAGE_URL } from '../../lib/config';
@@ -21,26 +21,19 @@ export default function StoryCard({ story, isPriority = false, showChapterInfo =
   const { title, coverImageUrl, coinCost, storyId, subgenre } = story;
   const { user, userProfile, toggleFavoriteStory } = useAuth();
   const router = useRouter();
-  const [isRead, setIsRead] = useState(false);
+
+  const userUnlockedStoryIds = useMemo(() => 
+    new Set(userProfile?.unlockedStories.map(s => s.storyId) ?? [])
+  , [userProfile?.unlockedStories]);
+
+  const userReadStoryIds = useMemo(() =>
+    new Set(userProfile?.readStories ?? [])
+  , [userProfile?.readStories]);
 
   const isFavorited = userProfile?.favoriteStories?.includes(storyId) ?? false;
-  const isUnlocked = userProfile?.unlockedStories?.some(s => s.storyId === storyId) ?? false;
+  const isUnlocked = userUnlockedStoryIds.has(storyId);
+  const isRead = userReadStoryIds.has(storyId);
   
-  useEffect(() => {
-    if (userProfile) {
-      setIsRead(userProfile.readStories?.includes(storyId) ?? false);
-    } else {
-      try {
-        const localReadJson = window.localStorage.getItem('firstlook_read_stories');
-        const localReadStories: string[] = localReadJson ? JSON.parse(localReadJson) : [];
-        setIsRead(localReadStories.includes(storyId));
-      } catch (error) {
-        setIsRead(false);
-      }
-    }
-  }, [userProfile, storyId]);
-
-
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.preventDefault(); 
     e.stopPropagation();
@@ -83,7 +76,7 @@ export default function StoryCard({ story, isPriority = false, showChapterInfo =
             {showChapterInfo && story.partNumber && (
               <span className="flex items-center text-xs font-medium text-accent">
                 <Library className="w-3.5 h-3.5 mr-1" />
-                Chapter {story.partNumber} of {story.totalPartsInSeries}
+                Chapter {story.partNumber}
               </span>
             )}
           </div>
