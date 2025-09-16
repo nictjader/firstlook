@@ -41,6 +41,13 @@ function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
               return d.toISOString();
             }
         }
+        // This was causing issues with some data. A more robust fallback.
+        try {
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) return d.toISOString();
+        } catch (e) {
+            // ignore
+        }
         console.warn('Unsupported timestamp format encountered in docToStory:', timestamp);
         return new Date().toISOString();
     };
@@ -451,53 +458,36 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
     const allStories = snapshot.docs.map(doc => docToStory(doc));
     
-    const storyGroups = new Map<string, Story[]>();
-
+    const titleToStoriesMap = new Map<string, Story[]>();
     allStories.forEach(story => {
-        const groupId = story.seriesId || story.storyId;
-        if (!storyGroups.has(groupId)) {
-            storyGroups.set(groupId, []);
+        const title = story.seriesTitle || story.title;
+        if (!titleToStoriesMap.has(title)) {
+            titleToStoriesMap.set(title, []);
         }
-        storyGroups.get(groupId)!.push(story);
-    });
-
-    const titleToGroupIds = new Map<string, string[]>();
-    storyGroups.forEach((stories, groupId) => {
-        const title = stories[0].seriesTitle || stories[0].title;
-        if (!titleToGroupIds.has(title)) {
-            titleToGroupIds.set(title, []);
-        }
-        titleToGroupIds.get(title)!.push(groupId);
+        titleToStoriesMap.get(title)!.push(story);
     });
 
     const batch = db.batch();
     let deletedCount = 0;
 
-    titleToGroupIds.forEach((groupIds) => {
-        if (groupIds.length > 1) {
-            let newestGroup: Story[] | null = null;
-            let newestDate = new Date(0);
-
-            groupIds.forEach(id => {
-                const group = storyGroups.get(id)!;
-                const groupDate = new Date(Math.max(...group.map(s => new Date(s.publishedAt).getTime())));
-                if (groupDate > newestDate) {
-                    newestDate = groupDate;
-                    newestGroup = group;
-                }
-            });
-
-            groupIds.forEach(id => {
-                const group = storyGroups.get(id)!;
-                if (group !== newestGroup) {
-                    group.forEach(storyToDelete => {
-                        const storyRef = db.collection('stories').doc(storyToDelete.storyId);
-                        batch.delete(storyRef);
-                        deletedCount++;
-                    });
-                }
-            });
+    titleToStoriesMap.forEach((stories, title) => {
+        if (stories.length <= 1) {
+            return; // Not a duplicate
         }
+        
+        // Find the story with the most recent publishedAt date. This will be the one we keep.
+        const storyToKeep = stories.reduce((newest, current) => {
+            return new Date(current.publishedAt) > new Date(newest.publishedAt) ? current : newest;
+        });
+
+        // Add all other stories in the group to the delete batch
+        stories.forEach(story => {
+            if (story.storyId !== storyToKeep.storyId) {
+                const storyRef = db.collection('stories').doc(story.storyId);
+                batch.delete(storyRef);
+                deletedCount++;
+            }
+        });
     });
 
     if (deletedCount > 0) {

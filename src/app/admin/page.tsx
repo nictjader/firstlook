@@ -216,7 +216,7 @@ function AdminDashboardContent() {
                         disabled={isToolRunning || !analysisResult || Object.keys(analysisResult.duplicateTitles).length === 0}
                       >
                         {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                        Cleanup
+                        Cleanup Duplicates
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
