@@ -458,36 +458,57 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
     const allStories = snapshot.docs.map(doc => docToStory(doc));
     
-    const titleToStoriesMap = new Map<string, Story[]>();
+    // Group stories by a unique identifier: seriesId for series, or title for standalones
+    const storyGroups = new Map<string, Story[]>();
     allStories.forEach(story => {
-        const title = story.seriesTitle || story.title;
-        if (!titleToStoriesMap.has(title)) {
-            titleToStoriesMap.set(title, []);
+        const effectiveTitle = story.seedTitleIdea || story.title; // Match based on original seed
+        const groupId = story.seriesId ? `series-${effectiveTitle}` : `standalone-${effectiveTitle}`;
+
+        if (!storyGroups.has(groupId)) {
+            storyGroups.set(groupId, []);
         }
-        titleToStoriesMap.get(title)!.push(story);
+        storyGroups.get(groupId)!.push(story);
     });
 
     const batch = db.batch();
     let deletedCount = 0;
 
-    titleToStoriesMap.forEach((stories, title) => {
-        if (stories.length <= 1) {
-            return; // Not a duplicate
-        }
+    storyGroups.forEach((stories, groupId) => {
+        // If a group has more stories than the totalPartsInSeries, it implies a duplicate generation.
+        // For standalones, any group with more than 1 story is a duplicate.
+        const isSeries = stories[0].seriesId;
+        const totalParts = stories[0].totalPartsInSeries || 1;
         
-        // Find the story with the most recent publishedAt date. This will be the one we keep.
-        const storyToKeep = stories.reduce((newest, current) => {
-            return new Date(current.publishedAt) > new Date(newest.publishedAt) ? current : newest;
-        });
+        if (stories.length > totalParts) {
+            // This is a duplicated story or series. We need to find the "best" set to keep.
+            // "Best" is defined as the one with the most recent publication date.
+            stories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
 
-        // Add all other stories in the group to the delete batch
-        stories.forEach(story => {
-            if (story.storyId !== storyToKeep.storyId) {
-                const storyRef = db.collection('stories').doc(story.storyId);
-                batch.delete(storyRef);
-                deletedCount++;
-            }
-        });
+            // The set to keep is the one containing the most recent chapter.
+            const newestStory = stories[0];
+            const seriesToKeepId = newestStory.seriesId;
+
+            // Group all stories by their seriesId (or storyId for standalones)
+            const seriesInstances = new Map<string | undefined, Story[]>();
+            stories.forEach(s => {
+                const instanceId = s.seriesId;
+                if(!seriesInstances.has(instanceId)) {
+                    seriesInstances.set(instanceId, []);
+                }
+                seriesInstances.get(instanceId)!.push(s);
+            });
+            
+            // Identify all series instances that are not the "one to keep" and delete them.
+            seriesInstances.forEach((chapters, instanceId) => {
+                if(instanceId !== seriesToKeepId) {
+                    chapters.forEach(chapter => {
+                        const storyRef = db.collection('stories').doc(chapter.storyId);
+                        batch.delete(storyRef);
+                        deletedCount++;
+                    });
+                }
+            });
+        }
     });
 
     if (deletedCount > 0) {
