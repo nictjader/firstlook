@@ -3,11 +3,11 @@
 
 import { useState } from 'react';
 import { Button } from '../../components/ui/button';
-import { Loader2, Bot, AlertCircle, Search, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenSquare, BarChart3, Users } from 'lucide-react';
+import { Loader2, Bot, AlertCircle, Search, Wrench, Tags, Book, Library, BookText, FileText, Layers, Coins, Lock, Trash2, PenSquare, BarChart3, Users, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
-import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction, getChapterAnalysisAction } from '../../lib/actions/adminActions';
+import { generateStoryAI, standardizeGenresAction, removeTagsAction, analyzeDatabaseAction, standardizeStoryPricesAction, generateAndUploadCoverImageAction, cleanupDuplicateStoriesAction, getChapterAnalysisAction, regenerateMissingChaptersAction } from '../../lib/actions/adminActions';
 import { useAuth } from '../../contexts/auth-context';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { capitalizeWords } from '../../lib/utils';
@@ -34,6 +34,11 @@ function AdminDashboardContent() {
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
   const [isAnalyzingChapters, setIsAnalyzingChapters] = useState(false);
   const [chapterAnalysisData, setChapterAnalysisData] = useState<ChapterAnalysis[] | null>(null);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  
+  const addLog = (log: Omit<Log, 'id'>) => {
+      setLogs(prev => [...prev, { ...log, id: Date.now() + Math.random() }]);
+  };
   
   const updateLog = (id: number, updates: Partial<Log>) => {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
@@ -131,6 +136,39 @@ function AdminDashboardContent() {
     }
   };
 
+  const handleRegenerateMissing = async () => {
+    setIsRegenerating(true);
+    setLogs([]);
+    setCompleted(0);
+    setAnalysisResult(null);
+    setCleanupResult(null);
+  
+    addLog({ status: 'generating', message: 'Finding incomplete series...' });
+  
+    try {
+      const results = await regenerateMissingChaptersAction();
+  
+      if (results.length === 0) {
+        addLog({ status: 'success', message: 'No missing chapters found. Your library is complete!' });
+      } else {
+        results.forEach(result => {
+            if (result.success) {
+                addLog({ status: 'success', message: `Successfully regenerated: "${result.title}"`, storyId: result.storyId });
+            } else {
+                addLog({ status: 'error', message: `Failed to regenerate chapter for "${result.title}"`, error: result.error || 'Unknown error' });
+            }
+        });
+        addLog({ status: 'success', message: `Regeneration process complete. Processed ${results.length} chapters.` });
+      }
+  
+    } catch (error: any) {
+      console.error(`Critical error in handleRegenerateMissing:`, error);
+      addLog({ status: 'error', message: 'A critical error occurred during regeneration.', error: error.message });
+    } finally {
+      setIsRegenerating(false);
+    }
+  };
+
   const handleGenerate = async () => {
     if (!user) {
         alert("You must be logged in to generate stories.");
@@ -174,7 +212,7 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters || isRegenerating;
   
   return (
     <>
@@ -186,13 +224,13 @@ function AdminDashboardContent() {
       <div className="max-w-4xl mx-auto space-y-8">
         <h1 className="text-3xl font-headline font-bold text-primary text-center">Admin Dashboard</h1>
 
-        {isGenerating && (
+        {(isGenerating || isRegenerating) && (
           <Alert variant="default" className="border-primary/50">
             <Loader2 className="h-4 w-4 animate-spin" />
-            <AlertTitle>Generation in Progress</AlertTitle>
+            <AlertTitle>Operation in Progress</AlertTitle>
             <AlertDescription>
-              Generating {numStories} stories. This may take several minutes. Please do not navigate away.
-              ({completed}/{numStories} completed)
+              {isGenerating && `Generating ${numStories} stories. This may take several minutes. Please do not navigate away. (${completed}/${numStories} completed)`}
+              {isRegenerating && 'Regenerating missing chapters. This may take several minutes. Please do not navigate away.'}
             </AlertDescription>
           </Alert>
         )}
@@ -204,7 +242,7 @@ function AdminDashboardContent() {
           </CardHeader>
           <Separator/>
           <CardContent className="pt-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                 <Button onClick={handleAnalyzeDatabase} disabled={isToolRunning}>
                   {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
                   {isAnalyzing ? 'Analyzing...' : 'Analyze Database'}
@@ -266,6 +304,32 @@ function AdminDashboardContent() {
                     {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
                     {isRemovingTags ? 'Removing...' : 'Remove Tags'}
                 </Button>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="secondary"
+                        disabled={isToolRunning}
+                      >
+                        {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                        Regenerate Missing Chapters
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Regenerate Missing Chapters?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This will scan for incomplete series and use AI to write new chapters to fill the gaps. This can take a long time and will create new documents in your database. This action cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRegenerateMissing} className="bg-secondary hover:bg-secondary/90">
+                           {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                           Yes, Regenerate
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
               </div>
 
               {cleanupResult && (

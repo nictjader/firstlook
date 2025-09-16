@@ -2,7 +2,8 @@
 'use server';
 
 import { generateStory } from '../../ai/flows/story-generator';
-import type { GeneratedStoryIdentifiers } from '../types';
+import { generateMissingChapter } from '../../ai/flows/series-chapter-generator';
+import type { GeneratedStoryIdentifiers, StoryGenerationOutput } from '../types';
 import { storySeeds } from '../story-seeds';
 import type { StorySeed } from '../types';
 import { getAdminDb } from '../firebase/admin';
@@ -458,55 +459,65 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
     const allStories = snapshot.docs.map(doc => docToStory(doc));
     
-    // Group stories by a unique identifier: seriesId for series, or title for standalones
-    const storyGroups = new Map<string, Story[]>();
-    allStories.forEach(story => {
-        const effectiveTitle = story.seedTitleIdea || story.title; // Match based on original seed
-        const groupId = story.seriesId ? `series-${effectiveTitle}` : `standalone-${effectiveTitle}`;
+    const standaloneTitleMap = new Map<string, Story[]>();
+    const seriesMap = new Map<string, Story[]>();
 
-        if (!storyGroups.has(groupId)) {
-            storyGroups.set(groupId, []);
+    allStories.forEach(story => {
+        if(story.seriesId) {
+            if(!seriesMap.has(story.seriesId)) {
+                seriesMap.set(story.seriesId, []);
+            }
+            seriesMap.get(story.seriesId)!.push(story);
+        } else {
+            const title = story.seedTitleIdea || story.title;
+             if(!standaloneTitleMap.has(title)) {
+                standaloneTitleMap.set(title, []);
+            }
+            standaloneTitleMap.get(title)!.push(story);
         }
-        storyGroups.get(groupId)!.push(story);
     });
 
     const batch = db.batch();
     let deletedCount = 0;
 
-    storyGroups.forEach((stories, groupId) => {
-        // If a group has more stories than the totalPartsInSeries, it implies a duplicate generation.
-        // For standalones, any group with more than 1 story is a duplicate.
-        const isSeries = stories[0].seriesId;
-        const totalParts = stories[0].totalPartsInSeries || 1;
-        
-        if (stories.length > totalParts) {
-            // This is a duplicated story or series. We need to find the "best" set to keep.
-            // "Best" is defined as the one with the most recent publication date.
-            stories.sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime());
-
-            // The set to keep is the one containing the most recent chapter.
-            const newestStory = stories[0];
-            const seriesToKeepId = newestStory.seriesId;
-
-            // Group all stories by their seriesId (or storyId for standalones)
-            const seriesInstances = new Map<string | undefined, Story[]>();
-            stories.forEach(s => {
-                const instanceId = s.seriesId;
-                if(!seriesInstances.has(instanceId)) {
-                    seriesInstances.set(instanceId, []);
-                }
-                seriesInstances.get(instanceId)!.push(s);
+    // Handle duplicate standalone stories
+    standaloneTitleMap.forEach((stories) => {
+        if (stories.length > 1) {
+            // Keep the first one (most recent), delete the rest
+            stories.slice(1).forEach(story => {
+                const storyRef = db.collection('stories').doc(story.storyId);
+                batch.delete(storyRef);
+                deletedCount++;
             });
-            
-            // Identify all series instances that are not the "one to keep" and delete them.
-            seriesInstances.forEach((chapters, instanceId) => {
-                if(instanceId !== seriesToKeepId) {
-                    chapters.forEach(chapter => {
-                        const storyRef = db.collection('stories').doc(chapter.storyId);
-                        batch.delete(storyRef);
-                        deletedCount++;
-                    });
-                }
+        }
+    });
+
+    // Handle duplicate series (multiple series with the same title)
+    const seriesByTitle = new Map<string, Story[][]>();
+    seriesMap.forEach(chapters => {
+        const title = chapters[0].seriesTitle || chapters[0].title;
+        if(!seriesByTitle.has(title)) {
+            seriesByTitle.set(title, []);
+        }
+        seriesByTitle.get(title)!.push(chapters);
+    });
+
+    seriesByTitle.forEach((seriesInstances) => {
+        if (seriesInstances.length > 1) {
+            // Sort instances by the most recent chapter within them
+            seriesInstances.sort((a, b) => {
+                const mostRecentA = Math.max(...a.map(c => new Date(c.publishedAt).getTime()));
+                const mostRecentB = Math.max(...b.map(c => new Date(c.publishedAt).getTime()));
+                return mostRecentB - mostRecentA;
+            });
+
+            // Keep the first instance, delete all chapters from other instances
+            seriesInstances.slice(1).forEach(instance => {
+                instance.forEach(chapter => {
+                    const storyRef = db.collection('stories').doc(chapter.storyId);
+                    batch.delete(storyRef);
+                    deletedCount++;
+                });
             });
         }
     });
@@ -585,4 +596,88 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         seriesTitle: chapter.seriesTitle,
         subgenre: chapter.subgenre,
     }));
+}
+
+
+/**
+ * Finds and regenerates missing chapters for all series in the database.
+ */
+export async function regenerateMissingChaptersAction(): Promise<StoryGenerationOutput[]> {
+  const db = await getAdminDb();
+  const storiesRef = db.collection('stories');
+  const snapshot = await storiesRef.get();
+  
+  if (snapshot.empty) {
+    return [];
+  }
+
+  const allStories = snapshot.docs.map(docToStory);
+  const seriesMap = new Map<string, Story[]>();
+
+  // Group stories by seriesId
+  allStories.forEach(story => {
+    if (story.seriesId) {
+      if (!seriesMap.has(story.seriesId)) {
+        seriesMap.set(story.seriesId, []);
+      }
+      seriesMap.get(story.seriesId)!.push(story);
+    }
+  });
+
+  const regenerationPromises: Promise<StoryGenerationOutput>[] = [];
+
+  // Identify and queue regeneration for missing chapters
+  seriesMap.forEach(chapters => {
+    const totalParts = chapters[0]?.totalPartsInSeries;
+    if (!totalParts || chapters.length >= totalParts) {
+      return; // Series is complete or data is invalid
+    }
+
+    const existingPartNumbers = new Set(chapters.map(c => c.partNumber));
+    const representativeChapter = chapters[0];
+
+    for (let i = 1; i <= totalParts; i++) {
+      if (!existingPartNumbers.has(i)) {
+        console.log(`Queueing regeneration for ${representativeChapter.seriesTitle}, Part ${i}`);
+        
+        // Collate existing content into a synopsis for the AI
+        const seriesSynopsis = chapters
+          .sort((a, b) => (a.partNumber || 0) - (b.partNumber || 0))
+          .map(c => `Synopsis for Part ${c.partNumber}: ${c.synopsis}`)
+          .join('\n');
+
+        const generationInput = {
+          seriesId: representativeChapter.seriesId!,
+          seriesTitle: representativeChapter.seriesTitle!,
+          subgenre: representativeChapter.subgenre,
+          mainCharacters: `The main characters are ${representativeChapter.characterNames?.join(' and ')}.`,
+          characterNames: representativeChapter.characterNames || [],
+          seriesSynopsis: seriesSynopsis,
+          partNumberToGenerate: i,
+          totalPartsInSeries: totalParts,
+          coverImagePrompt: representativeChapter.coverImagePrompt,
+          author: representative-chapter.author || 'FirstLook AI',
+        };
+
+        regenerationPromises.push(
+          generateMissingChapter(generationInput).then(async (result) => {
+            if (result.success && result.storyData) {
+              const storyDocRef = db.collection('stories').doc(result.storyId);
+              await storyDocRef.set({
+                  ...result.storyData,
+                  publishedAt: FieldValue.serverTimestamp(),
+              });
+            }
+            return result;
+          })
+        );
+      }
+    }
+  });
+
+  if (regenerationPromises.length === 0) {
+      return [];
+  }
+
+  return Promise.all(regenerationPromises);
 }
