@@ -1,3 +1,4 @@
+// src/components/auth/auth-form.tsx
 
 "use client";
 
@@ -5,7 +6,6 @@ import { useAuth } from '@/contexts/auth-context';
 import { Loader2, Mail } from 'lucide-react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import Logo from '@/components/layout/logo';
-import { Separator } from '../ui/separator';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { useState, useEffect, useRef } from 'react';
@@ -18,44 +18,82 @@ export default function AuthForm() {
   const { toast } = useToast();
   const googleButtonDiv = useRef<HTMLDivElement>(null);
 
+  // --- START OF DEBUGGING LOGS ---
+
+  console.log('[AuthForm] Component rendering.');
+  
+  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID;
+  console.log('[AuthForm] NEXT_PUBLIC_GOOGLE_OAUTH_CLIENT_ID:', googleClientId ? `"${googleClientId}"` : undefined);
+
+  if (!googleClientId) {
+      console.error('[AuthForm] CRITICAL: Google Client ID environment variable is missing!');
+  }
+
+  // --- END OF DEBUGGING LOGS ---
+
   useEffect(() => {
-    // This effect ensures the Google button is rendered.
-    // It's the standard way to handle rendering for the manual GIS flow.
+    console.log('[AuthForm] useEffect triggered.');
+
     const renderGoogleButton = () => {
-      if (window.google && window.google.accounts && googleButtonDiv.current) {
-        window.google.accounts.id.renderButton(
-          googleButtonDiv.current,
-          {
-            theme: "outline",
-            size: "large",
-            type: "standard",
-            text: "signin_with",
-            shape: "rectangular",
-            logo_alignment: "left",
-            width: "320",
-            callback: window.handleCredentialResponse
-          }
-        );
-        // Enable one-tap login
-        window.google.accounts.id.prompt();
+      console.log('[AuthForm] Attempting to render Google button.');
+      if (googleButtonDiv.current) {
+        console.log('[AuthForm] Target div exists.');
+        try {
+          window.google.accounts.id.renderButton(
+            googleButtonDiv.current,
+            {
+              theme: "outline",
+              size: "large",
+              type: "standard",
+              text: "signin_with",
+              shape: "rectangular",
+              logo_alignment: "left",
+              width: "320",
+              callback: window.handleCredentialResponse
+            }
+          );
+          console.log('[AuthForm] google.accounts.id.renderButton() called successfully.');
+          window.google.accounts.id.prompt();
+        } catch (error) {
+          console.error('[AuthForm] Error calling renderButton:', error);
+        }
+      } else {
+        console.warn('[AuthForm] Target div for Google button does not exist yet.');
       }
     };
 
-    // The google script is loaded asynchronously, so we might need to wait for it.
-    if (window.google) {
-        renderGoogleButton();
+    if (window.google?.accounts?.id) {
+      console.log('[AuthForm] window.google object found immediately.');
+      renderGoogleButton();
     } else {
-        // Fallback if the script isn't loaded yet.
-        const script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
-        if (script) {
-            script.addEventListener('load', renderGoogleButton);
-            return () => script.removeEventListener('load', renderGoogleButton);
+      console.log('[AuthForm] window.google not found, will wait for script load.');
+      const script = document.querySelector('script[src="https://accounts.google.com/gsi/client"]');
+      if (script) {
+        const handleScriptLoad = () => {
+            console.log('[AuthForm] Google script "load" event fired.');
+            renderGoogleButton();
+        };
+        script.addEventListener('load', handleScriptLoad);
+        
+        // Also check if it's already loaded but our check missed it.
+        if (window.google?.accounts?.id) {
+          console.log('[AuthForm] window.google was found after setting up listener.');
+          renderGoogleButton();
         }
+
+        return () => {
+          console.log('[AuthForm] Cleaning up script load listener.');
+          script.removeEventListener('load', handleScriptLoad);
+        }
+      } else {
+          console.error('[AuthForm] Could not find the Google GSI script tag in the document.');
+      }
     }
   }, []);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
       e.preventDefault();
+      // ... (rest of the function is unchanged)
       if (!email) {
           toast({ title: 'Email Required', description: 'Please enter your email address.', variant: 'destructive' });
           return;
@@ -73,6 +111,7 @@ export default function AuthForm() {
   };
 
   if (loading || user) {
+    // ... (unchanged)
     return (
       <Card className="w-full max-w-md text-center">
         <CardHeader>
@@ -93,10 +132,9 @@ export default function AuthForm() {
         <CardDescription>Fall in love with a story.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col items-center justify-center py-8 space-y-6">
-
-        {/* This div is the target for the Google button rendering */}
+        
         <div ref={googleButtonDiv}></div>
-
+        
         <div className="relative w-full max-w-xs flex items-center">
           <div className="flex-grow border-t border-border"></div>
           <span className="flex-shrink mx-4 text-xs text-muted-foreground">OR</span>
