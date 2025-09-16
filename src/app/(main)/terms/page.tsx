@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="max-w-3xl">
+    <div className="max-w-3xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl font-headline text-primary">Terms of Service</CardTitle>
