@@ -36,9 +36,15 @@ export default function AuthForm() {
 
     const renderGoogleButton = () => {
       console.log('[AuthForm] Attempting to render Google button.');
-      if (googleButtonDiv.current) {
-        console.log('[AuthForm] Target div exists.');
+      if (googleButtonDiv.current && window.google?.accounts?.id) {
+        console.log('[AuthForm] Target div and google.accounts.id exist.');
         try {
+          // ** THE FIX: Initialize first, then render. **
+          window.google.accounts.id.initialize({
+            client_id: googleClientId!,
+            callback: window.handleCredentialResponse
+          });
+          
           window.google.accounts.id.renderButton(
             googleButtonDiv.current,
             {
@@ -48,17 +54,16 @@ export default function AuthForm() {
               text: "signin_with",
               shape: "rectangular",
               logo_alignment: "left",
-              width: "320",
-              callback: window.handleCredentialResponse
+              width: "320"
             }
           );
-          console.log('[AuthForm] google.accounts.id.renderButton() called successfully.');
+          console.log('[AuthForm] google.accounts.id.initialize() and renderButton() called successfully.');
           window.google.accounts.id.prompt();
         } catch (error) {
-          console.error('[AuthForm] Error calling renderButton:', error);
+          console.error('[AuthForm] Error during Google button setup:', error);
         }
       } else {
-        console.warn('[AuthForm] Target div for Google button does not exist yet.');
+        console.warn('[AuthForm] Target div for Google button does not exist yet or google.accounts.id is not ready.');
       }
     };
 
@@ -89,7 +94,7 @@ export default function AuthForm() {
           console.error('[AuthForm] Could not find the Google GSI script tag in the document.');
       }
     }
-  }, []);
+  }, [googleClientId]);
 
   const handleEmailSignIn = async (e: React.FormEvent) => {
       e.preventDefault();
