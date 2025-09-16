@@ -35,7 +35,14 @@ function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
         if (timestamp instanceof Date) {
             return timestamp.toISOString();
         }
-        return new Date(timestamp).toISOString();
+        if (typeof timestamp === 'string') {
+            const d = new Date(timestamp);
+            if (!isNaN(d.getTime())) {
+              return d.toISOString();
+            }
+        }
+        console.warn('Unsupported timestamp format encountered in docToStory:', timestamp);
+        return new Date().toISOString();
     };
 
     return {
