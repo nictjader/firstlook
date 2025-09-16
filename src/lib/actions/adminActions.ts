@@ -300,6 +300,9 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     allStories.forEach(chapter => {
       totalWordCount += chapter.wordCount || 0;
+      const effectiveTitle = chapter.seriesTitle || chapter.title;
+      titleCounts.set(effectiveTitle, (titleCounts.get(effectiveTitle) || 0) + 1);
+
       if (chapter.isPremium && chapter.coinCost > 0) {
         paidChapterCount++;
         totalWordCountPaid += chapter.wordCount || 0;
@@ -311,10 +314,8 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     storyGroups.forEach((chapters) => {
         const representativeStory = chapters[0];
-        const storyTitle = representativeStory.seriesTitle || representativeStory.title;
         const genre = representativeStory.subgenre;
 
-        titleCounts.set(storyTitle, (titleCounts.get(storyTitle) || 0) + 1);
         storiesPerGenre[genre] = (storiesPerGenre[genre] || 0) + 1;
 
         if (representativeStory.seriesId) {
@@ -337,8 +338,19 @@ export async function analyzeDatabaseAction(): Promise<DatabaseMetrics> {
 
     const duplicateTitles: Record<string, number> = {};
     titleCounts.forEach((count, title) => {
-        if (count > 1) {
-            duplicateTitles[title] = count;
+        // A series will have multiple chapters with the same seriesTitle, so we only flag duplicates if the count
+        // exceeds the number of parts in that series, or if a standalone title appears more than once.
+        const series = Array.from(storyGroups.values()).find(g => g[0].seriesTitle === title);
+        if (series) {
+            // It's a series. Is the chapter count higher than the number of parts?
+            if (count > (series[0].totalPartsInSeries || 1)) {
+                 duplicateTitles[title] = count;
+            }
+        } else {
+             // It's a standalone story.
+            if (count > 1) {
+                duplicateTitles[title] = count;
+            }
         }
     });
     
