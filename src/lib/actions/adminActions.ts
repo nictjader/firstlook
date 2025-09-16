@@ -464,11 +464,13 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
 
     allStories.forEach(story => {
         if(story.seriesId) {
+            // This is a chapter of a series. Don't treat chapters of the SAME series as duplicates.
             if(!seriesMap.has(story.seriesId)) {
                 seriesMap.set(story.seriesId, []);
             }
             seriesMap.get(story.seriesId)!.push(story);
         } else {
+            // This is a standalone story. Group by title to find duplicates.
             const title = story.seedTitleIdea || story.title;
              if(!standaloneTitleMap.has(title)) {
                 standaloneTitleMap.set(title, []);
@@ -483,7 +485,8 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     // Handle duplicate standalone stories
     standaloneTitleMap.forEach((stories) => {
         if (stories.length > 1) {
-            // Keep the first one (most recent), delete the rest
+            // The stories are already sorted by `publishedAt` descending.
+            // Keep the first one (most recent), delete the rest.
             stories.slice(1).forEach(story => {
                 const storyRef = db.collection('stories').doc(story.storyId);
                 batch.delete(storyRef);
@@ -496,7 +499,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
     const seriesByTitle = new Map<string, Story[][]>();
     seriesMap.forEach(chapters => {
         const title = chapters[0].seriesTitle || chapters[0].title;
-        if(!seriesByTitle.has(title)) {
+        if (!seriesByTitle.has(title)) {
             seriesByTitle.set(title, []);
         }
         seriesByTitle.get(title)!.push(chapters);
@@ -511,7 +514,7 @@ export async function cleanupDuplicateStoriesAction(): Promise<CleanupResult> {
                 return mostRecentB - mostRecentA;
             });
 
-            // Keep the first instance, delete all chapters from other instances
+            // Keep the first instance (the most recent series), delete all chapters from other instances
             seriesInstances.slice(1).forEach(instance => {
                 instance.forEach(chapter => {
                     const storyRef = db.collection('stories').doc(chapter.storyId);
@@ -656,7 +659,7 @@ export async function regenerateMissingChaptersAction(): Promise<StoryGeneration
           partNumberToGenerate: i,
           totalPartsInSeries: totalParts,
           coverImagePrompt: representativeChapter.coverImagePrompt,
-          author: representative-chapter.author || 'FirstLook AI',
+          author: representativeChapter.author || 'FirstLook AI',
         };
 
         regenerationPromises.push(
