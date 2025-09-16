@@ -1,44 +1,49 @@
-
 'use client';
 
 import { useState } from 'react';
 import { Button } from '../../../components/ui/button';
 import { Textarea } from '../../../components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../../components/ui/card';
-import { Loader2, Send, CheckCircle } from 'lucide-react';
+import { Loader2, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../../../components/ui/accordion';
+import { submitFeedback } from '../../../lib/actions/feedbackActions';
+import { Alert, AlertDescription, AlertTitle } from '../../../components/ui/alert';
 
 export default function FeedbackPage() {
   const [submitted, setSubmitted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  // This function handles the form submission in the background.
+  const [error, setError] = useState<string | null>(null);
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsSubmitting(true);
+    setError(null);
     
-    const form = event.currentTarget;
-    const formData = new FormData(form);
-    const formActionUrl = form.action;
+    const formData = new FormData(event.currentTarget);
+    const suggestion = formData.get('suggestion') as string;
+    const bugReport = formData.get('bug') as string;
+    const praise = formData.get('praise') as string;
+    const other = formData.get('other') as string;
+
+    const feedbackContent = {
+        suggestion,
+        bugReport,
+        praise,
+        other,
+    };
 
     try {
-      // The 'no-cors' mode allows us to send the request without needing
-      // special permissions from Google, but it means we won't get a
-      // direct success/error response from the server. We assume success
-      // if the request doesn't throw an error.
-      await fetch(formActionUrl, {
-        method: 'POST',
-        body: formData,
-        mode: 'no-cors',
-      });
-      setSubmitted(true);
-    } catch (error) {
-      console.error('Feedback submission error:', error);
-      // Since we can't see the real response, we'll just log the error
-      // and still show the success message to the user.
-      setSubmitted(true);
+      const result = await submitFeedback(feedbackContent);
+      if (result.success) {
+        setSubmitted(true);
+      } else {
+        throw new Error(result.error || 'An unknown error occurred.');
+      }
+    } catch (e: any) {
+      console.error('Feedback submission error:', e);
+      setError(e.message);
     } finally {
-      // No need to set isSubmitting back to false, as we're now showing the success message.
+      setIsSubmitting(false);
     }
   };
 
@@ -68,14 +73,15 @@ export default function FeedbackPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* 
-          This form is now connected to your Google Form.
-          action: The URL where the form data will be sent.
-          name attributes: These link the textareas to the columns in your Google Sheet.
-        */}
+        {error && (
+            <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Submission Failed</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        )}
         <form 
           onSubmit={handleSubmit}
-          action="https://docs.google.com/forms/d/e/1FAIpQLSeq1zeXOUPtk_3Ur8tIRhceiee6MmzphgwSeEriVWYG5yoOog/formResponse"
           className="space-y-6"
         >
             <Accordion type="single" collapsible className="w-full" defaultValue="suggestion">
@@ -83,7 +89,7 @@ export default function FeedbackPage() {
                 <AccordionTrigger className="text-lg font-semibold">Suggestion</AccordionTrigger>
                 <AccordionContent>
                    <Textarea
-                    name="entry.110781839" // This is the unique ID for your "Suggestion" field.
+                    name="suggestion"
                     placeholder="Have an idea to improve the app? Let us know!"
                     rows={4}
                   />
@@ -93,7 +99,7 @@ export default function FeedbackPage() {
                 <AccordionTrigger className="text-lg font-semibold">Bug Report</AccordionTrigger>
                 <AccordionContent>
                    <Textarea
-                    name="entry.373277614" // This is the unique ID for your "Bug Report" field.
+                    name="bug"
                     placeholder="Something not working right? Please describe the issue."
                     rows={4}
                   />
@@ -103,7 +109,7 @@ export default function FeedbackPage() {
                 <AccordionTrigger className="text-lg font-semibold">Praise</AccordionTrigger>
                 <AccordionContent>
                   <Textarea
-                    name="entry.386438416" // This is the unique ID for your "Praise" field.
+                    name="praise"
                     placeholder="Enjoying the app? We'd love to hear what you like!"
                     rows={4}
                   />
@@ -113,7 +119,7 @@ export default function FeedbackPage() {
                 <AccordionTrigger className="text-lg font-semibold">Other</AccordionTrigger>
                 <AccordionContent>
                    <Textarea
-                    name="entry.1552051604" // This is the unique ID for your "Other" field.
+                    name="other"
                     placeholder="Have some other feedback? Share it here."
                     rows={4}
                   />
