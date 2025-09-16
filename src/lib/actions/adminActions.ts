@@ -8,13 +8,59 @@ import type { StorySeed } from '../types';
 import { getAdminDb } from '../firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
 import { ai } from '../../ai';
-import { FieldValue, FieldPath, type DocumentData } from 'firebase-admin/firestore';
+import { FieldValue, FieldPath, type DocumentData, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '../types';
 import { extractBase64FromDataUri, capitalizeWords } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
-import { docToStory } from '../types';
+import { docToStory as docToStoryClient } from '../types'; // Keep client version for specific uses
 import { PREMIUM_STORY_COST, PLACEHOLDER_IMAGE_URL } from '../config';
 import { chapterPricingData } from '../pricing-data';
+
+
+// SERVER-SIDE version of docToStory
+function docToStory(doc: QueryDocumentSnapshot | DocumentData): Story {
+    const data = doc.data();
+    if (!data) {
+      throw new Error(`Document with id ${doc.id} has no data.`);
+    }
+
+    const storyId = data.storyId || doc.id;
+    const isSeriesStory = !!data.seriesId && typeof data.partNumber === 'number';
+
+    const safeToISOString = (timestamp: any): string => {
+        if (!timestamp) return new Date().toISOString();
+        if (typeof timestamp.toDate === 'function') { // Firestore Admin Timestamp
+            return timestamp.toDate().toISOString();
+        }
+        if (timestamp instanceof Date) {
+            return timestamp.toISOString();
+        }
+        return new Date(timestamp).toISOString();
+    };
+
+    return {
+      storyId: storyId,
+      title: data.title || 'Untitled',
+      characterNames: data.characterNames || [],
+      seriesId: isSeriesStory ? data.seriesId : undefined,
+      seriesTitle: isSeriesStory ? data.seriesTitle : undefined,
+      partNumber: isSeriesStory ? data.partNumber : undefined,
+      totalPartsInSeries: isSeriesStory ? data.totalPartsInSeries : undefined,
+      isPremium: data.isPremium || false,
+      coinCost: data.coinCost || 0,
+      content: data.content || '',
+      synopsis: data.synopsis || data.previewText || '',
+      subgenre: data.subgenre || 'contemporary',
+      wordCount: data.wordCount || 0,
+      publishedAt: safeToISOString(data.publishedAt),
+      coverImageUrl: data.coverImageUrl || '',
+      coverImagePrompt: data.coverImagePrompt || '',
+      author: data.author || 'Anonymous',
+      status: data.status || 'published',
+      seedTitleIdea: data.seedTitleIdea,
+    };
+}
+
 
 /**
  * Selects a random story seed from the predefined list, ensuring it hasn't been used.
