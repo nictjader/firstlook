@@ -73,7 +73,7 @@ const AIStoryResponseSchema = z.object({
   coinCost: z
     .number()
     .describe(
-      `The number of coins required to unlock the story. Should be 0 for free standalone stories and for the first part of a series. For all other premium content (subsequent parts of a series or premium standalone stories), it must be exactly 50.`
+      `The number of coins required to unlock the story. Should be 0 for free standalone stories and for the first part of a series. For all other premium content (subsequent parts of a series or premium standalone stories), it must be exactly 70.`
     ),
   content: z
     .string()
@@ -128,8 +128,8 @@ const storyGenerationPrompt = ai.definePrompt({
         - **If and only if** you create a multi-part series (e.g., a two-part story), you MUST use this exact pre-defined ID for the 'seriesId' field for ALL parts of the series: \`{{{potentialSeriesId}}}\`.
         - For standalone stories, the 'seriesId', 'seriesTitle', 'partNumber', and 'totalPartsInSeries' fields MUST all be null.
     5.  **Monetization Logic:**
-        - A standalone story can be free (coinCost: 0) or premium (coinCost: 50).
-        - For a series, Part 1 MUST be free (coinCost: 0). Subsequent parts MUST cost exactly 50 coins.
+        - A standalone story can be free (coinCost: 0) or premium (coinCost: 70).
+        - For a series, Part 1 MUST be free (coinCost: 0). Subsequent parts MUST cost exactly 70 coins.
     6.  **Output Format:** You MUST return the output in the specified JSON format. Do not deviate from the schema.
 
     Now, write the story.

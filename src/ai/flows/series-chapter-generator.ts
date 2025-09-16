@@ -98,12 +98,14 @@ const generateSeriesChapterFlow = ai.defineFlow(
         throw new Error('AI failed to generate a chapter.');
       }
       
+      const coinCost = input.partNumberToGenerate > 1 ? 70 : 0;
+
       const storyData: Omit<Story, 'publishedAt' | 'coverImageUrl'> = {
         storyId: newStoryId,
         title: output.newTitle,
         characterNames: input.characterNames,
-        isPremium: input.partNumberToGenerate > 1, // Part 1 is free, others are premium
-        coinCost: input.partNumberToGenerate > 1 ? 70 : 0, // Updated pricing
+        isPremium: coinCost > 0,
+        coinCost: coinCost,
         content: output.content,
         synopsis: output.newSynopsis,
         subgenre: input.subgenre as Subgenre,
