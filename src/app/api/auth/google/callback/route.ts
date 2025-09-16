@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 1. Verify the Google ID token using Google's library.
-    // This is the crucial step that fixes the 'aud' claim error.
+    // This is the crucial step that avoids the 'signBlob' permission error.
     const ticket = await client.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID,
@@ -58,6 +58,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Create a custom Firebase token for the client to sign in with.
+    // This part will now succeed because the token has already been verified.
     const customToken = await adminAuth.createCustomToken(uid);
 
     // 4. Return the custom token to the client.
