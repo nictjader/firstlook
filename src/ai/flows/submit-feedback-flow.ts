@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview A Genkit flow for handling user feedback submissions.
@@ -5,7 +6,7 @@
  * for now, and can be extended to save to a database or send notifications.
  */
 
-import { ai } from '@/ai/genkit';
+import { ai } from '@/ai';
 import { z } from 'zod';
 
 export const FeedbackSchema = z.object({
