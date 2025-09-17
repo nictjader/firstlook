@@ -17,6 +17,7 @@ const nextConfig = {
     ],
   },
 
+  /*
   webpack: (config, { isServer }) => {
     // Suppress warnings that don't break the build
     config.ignoreWarnings = [
@@ -26,6 +27,7 @@ const nextConfig = {
     
     return config;
   },
+  */
 };
 
 module.exports = nextConfig;
