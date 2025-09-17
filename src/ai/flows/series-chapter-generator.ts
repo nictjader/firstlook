@@ -63,7 +63,7 @@ const seriesChapterGenerationPrompt = ai.definePrompt({
     - **Series Title:** {{{seriesTitle}}}
     - **Subgenre:** {{{subgenre}}}
     - **Main Characters:** {{{mainCharacters}}}
-    - **Character Names:** {{#each characterNames}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
+    - **Character Names to Use:** {{#each characterNames}}{{{this}}}{{#unless @last}}, {{/unless}}{{/each}}
     - **Synopsis of Existing Chapters:** {{{seriesSynopsis}}}
 
     **Your Task:**
@@ -98,13 +98,14 @@ const generateSeriesChapterFlow = ai.defineFlow(
         throw new Error('AI failed to generate a chapter.');
       }
       
-      const coinCost = input.partNumberToGenerate > 1 ? 70 : 0;
+      const isPremium = input.partNumberToGenerate > 1;
+      const coinCost = isPremium ? 70 : 0;
 
       const storyData: Omit<Story, 'publishedAt' | 'coverImageUrl'> = {
         storyId: newStoryId,
         title: output.newTitle,
         characterNames: input.characterNames,
-        isPremium: coinCost > 0,
+        isPremium: isPremium,
         coinCost: coinCost,
         content: output.content,
         synopsis: output.newSynopsis,

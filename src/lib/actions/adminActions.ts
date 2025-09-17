@@ -669,6 +669,7 @@ export async function regenerateMissingChaptersAction(): Promise<StoryGeneration
               await storyDocRef.set({
                   ...result.storyData,
                   publishedAt: FieldValue.serverTimestamp(),
+                  coverImageUrl: representativeChapter.coverImageUrl || '' // Use existing cover
               });
             }
             return result;
