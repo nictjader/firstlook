@@ -44,6 +44,8 @@ function AdminDashboardContent() {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
   };
 
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters || isRegenerating;
+
   const handleAnalyzeDatabase = async () => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
@@ -144,13 +146,13 @@ function AdminDashboardContent() {
     setCleanupResult(null);
   
     const initialLogId = Date.now() + Math.random();
-    setLogs([{ id: initialLogId, status: 'generating', message: 'Finding incomplete series...' }]);
+    addLog({ id: initialLogId, status: 'generating', message: 'Finding incomplete series...' });
   
     try {
       const results = await regenerateMissingChaptersAction();
   
-      // Clear the initial "Finding..." message
-      setLogs(prevLogs => prevLogs.filter(log => log.id !== initialLogId));
+      // Update or remove the initial "Finding..." message
+      updateLog(initialLogId, { status: 'success', message: 'Scan complete. See chapter results below.' });
   
       if (results.length === 0) {
         addLog({ status: 'success', message: 'No missing chapters found. Your library is complete!' });
@@ -166,10 +168,8 @@ function AdminDashboardContent() {
       }
   
     } catch (error: any) {
-      // Clear the initial "Finding..." message even on critical failure
-      setLogs(prevLogs => prevLogs.filter(log => log.id !== initialLogId));
+      updateLog(initialLogId, { status: 'error', message: 'A critical error occurred during the regeneration process.', error: error.message });
       console.error(`Critical error in handleRegenerateMissing:`, error);
-      addLog({ status: 'error', message: 'A critical error occurred during regeneration.', error: error.message });
     } finally {
       setIsRegenerating(false);
     }
@@ -218,8 +218,6 @@ function AdminDashboardContent() {
     setIsGenerating(false);
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters || isRegenerating;
-  
   return (
     <>
       <Alert variant="warning" className="mb-6">
@@ -271,8 +269,8 @@ function AdminDashboardContent() {
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCleanupDuplicates} className="bg-destructive hover:bg-destructive/90">
+                        <AlertDialogCancel disabled={isToolRunning}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCleanupDuplicates} disabled={isToolRunning} className="bg-destructive hover:bg-destructive/90">
                            {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                            Yes, Cleanup Duplicates
                         </AlertDialogAction>
@@ -294,8 +292,8 @@ function AdminDashboardContent() {
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                            <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleStandardizePrices}>
+                            <AlertDialogCancel disabled={isToolRunning}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleStandardizePrices} disabled={isToolRunning}>
                                 {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                                 Yes, Update Prices
                             </AlertDialogAction>
@@ -328,8 +326,8 @@ function AdminDashboardContent() {
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleRegenerateMissing} className="bg-secondary hover:bg-secondary/90">
+                        <AlertDialogCancel disabled={isToolRunning}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleRegenerateMissing} disabled={isToolRunning} className="bg-secondary hover:bg-secondary/90">
                            {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                            Yes, Regenerate
                         </AlertDialogAction>
@@ -512,7 +510,7 @@ function AdminDashboardContent() {
                 onChange={(e) => setNumStories(Math.max(1, parseInt(e.target.value) || 1))}
                 min="1"
                 max="20"
-                disabled={isGenerating}
+                disabled={isToolRunning}
               />
             </div>
              <Button onClick={handleGenerate} disabled={isToolRunning || !user} className="w-full mt-4">
@@ -531,3 +529,5 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
