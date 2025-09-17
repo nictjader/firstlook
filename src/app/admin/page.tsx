@@ -17,6 +17,7 @@ import MetricCard from '../../components/admin/metric-card';
 import GenerationLog, { type Log } from '../../components/admin/generation-log';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../../components/ui/alert-dialog";
 import ChapterAnalysisTable from '../../components/admin/chapter-analysis-table';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '../../components/ui/tooltip';
 
 function AdminDashboardContent() {
   const { user } = useAuth();
@@ -240,19 +241,34 @@ function AdminDashboardContent() {
           </CardHeader>
           <Separator/>
           <CardContent className="pt-6">
+            <TooltipProvider>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <Button onClick={handleAnalyzeDatabase} disabled={isToolRunning}>
-                  {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze DB'}
-                </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button onClick={handleAnalyzeDatabase} disabled={isToolRunning}>
+                        {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
+                        {isAnalyzing ? 'Analyzing...' : 'Analyze DB'}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Scan the database and get metrics on all content.</p>
+                    </TooltipContent>
+                  </Tooltip>
                 
                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="outline" disabled={isToolRunning}>
-                            {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
-                            {isPricing ? 'Updating...' : 'Std. Prices'}
-                        </Button>
-                    </AlertDialogTrigger>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="outline" disabled={isToolRunning}>
+                                {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
+                                {isPricing ? 'Updating...' : 'Std. Prices'}
+                            </Button>
+                        </AlertDialogTrigger>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Run a bulk update of chapter prices from `pricing-data.ts`.</p>
+                    </TooltipContent>
+                  </Tooltip>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Confirm Bulk Price Update</AlertDialogTitle>
@@ -270,26 +286,47 @@ function AdminDashboardContent() {
                     </AlertDialogContent>
                 </AlertDialog>
 
-                <Button onClick={handleStandardizeGenres} disabled={isToolRunning} variant="outline">
-                    {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
-                    {isCleaning ? 'Cleaning...' : 'Std. Genres'}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handleStandardizeGenres} disabled={isToolRunning} variant="outline">
+                        {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
+                        {isCleaning ? 'Cleaning...' : 'Std. Genres'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Standardize story genres based on the `story-seeds.ts` file.</p>
+                  </TooltipContent>
+                </Tooltip>
 
-                <Button onClick={handleRemoveTags} disabled={isToolRunning} variant="outline">
-                    {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
-                    {isRemovingTags ? 'Removing...' : 'Remove Tags'}
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button onClick={handleRemoveTags} disabled={isToolRunning} variant="outline">
+                        {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
+                        {isRemovingTags ? 'Removing...' : 'Remove Tags'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Remove the legacy 'tags' field from all stories.</p>
+                  </TooltipContent>
+                </Tooltip>
                 
                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button
-                        variant="outline"
-                        disabled={isToolRunning || !analysisResult || Object.keys(analysisResult.duplicateTitles).length === 0}
-                      >
-                        {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                        Cleanup Dups
-                      </Button>
-                    </AlertDialogTrigger>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                        <Button
+                            variant="outline"
+                            disabled={isToolRunning || !analysisResult || Object.keys(analysisResult.duplicateTitles).length === 0}
+                        >
+                            {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                            Cleanup Dupes
+                        </Button>
+                        </AlertDialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                        <p>Delete duplicate story entries from the database.</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
@@ -301,19 +338,26 @@ function AdminDashboardContent() {
                         <AlertDialogCancel disabled={isToolRunning}>Cancel</AlertDialogCancel>
                         <AlertDialogAction onClick={handleCleanupDuplicates} disabled={isToolRunning} className="bg-destructive hover:bg-destructive/90">
                            {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                           Yes, Cleanup Duplicates
+                           Yes, Cleanup Dupes
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
 
                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" disabled={isToolRunning}>
-                        {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                        Regen Chapters
-                      </Button>
-                    </AlertDialogTrigger>
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="outline" disabled={isToolRunning}>
+                            {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
+                            Regen Chapters
+                        </Button>
+                        </AlertDialogTrigger>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                        <p>Scan for and regenerate missing chapters in a series.</p>
+                        </TooltipContent>
+                    </Tooltip>
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Regenerate Missing Chapters?</AlertDialogTitle>
@@ -331,7 +375,7 @@ function AdminDashboardContent() {
                     </AlertDialogContent>
                   </AlertDialog>
               </div>
-
+            </TooltipProvider>
               {cleanupResult && (
                 <Alert variant={cleanupResult.success ? 'success' : 'destructive'} className="mt-4">
                   <AlertTitle>{cleanupResult.success ? 'Operation Complete' : 'Operation Failed'}</AlertTitle>
@@ -461,7 +505,7 @@ function AdminDashboardContent() {
                                 <CardHeader>
                                     <CardTitle className="text-lg flex items-center text-destructive"><AlertCircle className="mr-2 h-5 w-5" />Duplicate Titles Found</CardTitle>
                                     <CardDescription>
-                                        The following story titles have multiple entries in the database. You should clean these up. The "Cleanup Duplicates" button is now enabled.
+                                        The following story titles have multiple entries in the database. You should clean these up. The "Cleanup Dupes" button is now enabled.
                                     </CardDescription>
                                 </CardHeader>
                                 <CardContent>
@@ -516,6 +560,8 @@ function AdminDashboardContent() {
 export default function AdminPage() {
     return <AdminDashboardContent />;
 }
+
+    
 
     
 
