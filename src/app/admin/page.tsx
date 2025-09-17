@@ -26,14 +26,13 @@ function AdminDashboardContent() {
   const [completed, setCompleted] = useState(0);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<DatabaseMetrics | null>(null);
+  const [chapterAnalysisData, setChapterAnalysisData] = useState<ChapterAnalysis[] | null>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
   const [isCleaning, setIsCleaning] = useState(false);
   const [cleanupResult, setCleanupResult] = useState<CleanupResult | null>(null);
   const [isPricing, setIsPricing] = useState(false);
   const [isRemovingTags, setIsRemovingTags] = useState(false);
   const [isCleaningDuplicates, setIsCleaningDuplicates] = useState(false);
-  const [isAnalyzingChapters, setIsAnalyzingChapters] = useState(false);
-  const [chapterAnalysisData, setChapterAnalysisData] = useState<ChapterAnalysis[] | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   
   const addLog = (log: Omit<Log, 'id'>) => {
@@ -44,36 +43,27 @@ function AdminDashboardContent() {
       setLogs(prev => prev.map(log => log.id === id ? { ...log, ...updates } : log));
   };
 
-  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isAnalyzingChapters || isRegenerating;
+  const isToolRunning = isAnalyzing || isGenerating || isCleaning || isRemovingTags || isPricing || isCleaningDuplicates || isRegenerating;
 
   const handleAnalyzeDatabase = async () => {
     setIsAnalyzing(true);
     setAnalysisResult(null);
+    setChapterAnalysisData(null);
     setAnalysisError(null);
     setCleanupResult(null);
     try {
-      const result = await analyzeDatabaseAction();
-      setAnalysisResult(result);
+      // Run both analyses in parallel
+      const [metricsResult, chaptersResult] = await Promise.all([
+        analyzeDatabaseAction(),
+        getChapterAnalysisAction()
+      ]);
+      setAnalysisResult(metricsResult);
+      setChapterAnalysisData(chaptersResult);
     } catch (error: any) {
       console.error("Failed to analyze database:", error);
       setAnalysisError(error.message || "An unknown error occurred while analyzing the database.");
     } finally {
       setIsAnalyzing(false);
-    }
-  };
-
-  const handleChapterAnalysis = async () => {
-    setIsAnalyzingChapters(true);
-    setChapterAnalysisData(null);
-    setAnalysisError(null);
-    try {
-      const result = await getChapterAnalysisAction();
-      setChapterAnalysisData(result);
-    } catch (error: any) {
-      console.error("Failed to analyze chapters:", error);
-      setAnalysisError(error.message || "An unknown error occurred during chapter analysis.");
-    } finally {
-        setIsAnalyzingChapters(false);
     }
   };
 
@@ -144,6 +134,7 @@ function AdminDashboardContent() {
     setCompleted(0);
     setAnalysisResult(null);
     setCleanupResult(null);
+    setChapterAnalysisData(null);
   
     const initialLogId = Date.now() + Math.random();
     addLog({ id: initialLogId, status: 'generating', message: 'Finding incomplete series...' });
@@ -185,6 +176,7 @@ function AdminDashboardContent() {
     setCompleted(0);
     setAnalysisResult(null); // Clear old analysis
     setCleanupResult(null);
+    setChapterAnalysisData(null);
 
     const promises = Array.from({ length: numStories }).map(async (_, index) => {
       const logId = Date.now() + index;
@@ -246,42 +238,17 @@ function AdminDashboardContent() {
           </CardHeader>
           <Separator/>
           <CardContent className="pt-6">
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 <Button onClick={handleAnalyzeDatabase} disabled={isToolRunning}>
-                  {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                  {isAnalyzing ? 'Analyzing...' : 'Analyze Database'}
+                  {isAnalyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <BarChart3 className="mr-2 h-4 w-4" />}
+                  {isAnalyzing ? 'Analyzing...' : 'Analyze DB'}
                 </Button>
-                 <AlertDialog>
+                
+                <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button
-                        variant="destructive"
-                        disabled={isToolRunning || !analysisResult || Object.keys(analysisResult.duplicateTitles).length === 0}
-                      >
-                        {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
-                        Cleanup Duplicates
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          This action will permanently delete duplicate stories from the database, keeping only the most recently published version of each. This cannot be undone.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel disabled={isToolRunning}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleCleanupDuplicates} disabled={isToolRunning} className="bg-destructive hover:bg-destructive/90">
-                           {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                           Yes, Cleanup Duplicates
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button disabled={isToolRunning} variant="outline">
+                        <Button variant="outline" disabled={isToolRunning}>
                             {isPricing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Coins className="mr-2 h-4 w-4" />}
-                            {isPricing ? 'Updating...' : 'Standardize Prices'}
+                            {isPricing ? 'Updating...' : 'Std. Prices'}
                         </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -300,22 +267,49 @@ function AdminDashboardContent() {
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
+
                 <Button onClick={handleStandardizeGenres} disabled={isToolRunning} variant="outline">
                     {isCleaning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wrench className="mr-2 h-4 w-4" />}
-                    {isCleaning ? 'Cleaning...' : 'Standardize Genres'}
+                    {isCleaning ? 'Cleaning...' : 'Std. Genres'}
                 </Button>
+
                 <Button onClick={handleRemoveTags} disabled={isToolRunning} variant="outline">
                     {isRemovingTags ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Tags className="mr-2 h-4 w-4" />}
                     {isRemovingTags ? 'Removing...' : 'Remove Tags'}
                 </Button>
-                <AlertDialog>
+                
+                 <AlertDialog>
                     <AlertDialogTrigger asChild>
                       <Button
-                        variant="secondary"
-                        disabled={isToolRunning}
+                        variant="outline"
+                        disabled={isToolRunning || !analysisResult || Object.keys(analysisResult.duplicateTitles).length === 0}
                       >
+                        {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                        Cleanup Dups
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          This action will permanently delete duplicate stories from the database, keeping only the most recently published version of each. This cannot be undone.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isToolRunning}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleCleanupDuplicates} disabled={isToolRunning} className="bg-destructive hover:bg-destructive/90">
+                           {isCleaningDuplicates ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                           Yes, Cleanup Duplicates
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" disabled={isToolRunning}>
                         {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                        Regenerate Missing Chapters
+                        Regen Chapters
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -327,7 +321,7 @@ function AdminDashboardContent() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel disabled={isToolRunning}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleRegenerateMissing} disabled={isToolRunning} className="bg-secondary hover:bg-secondary/90">
+                        <AlertDialogAction onClick={handleRegenerateMissing} disabled={isToolRunning}>
                            {isRegenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
                            Yes, Regenerate
                         </AlertDialogAction>
@@ -351,7 +345,7 @@ function AdminDashboardContent() {
               )}
 
               {analysisResult && (
-                <div className="mt-6 space-y-4">
+                <div className="mt-6 space-y-6">
                     <h2 className="text-2xl font-headline font-semibold text-primary">Database Analysis Complete</h2>
                     
                     <div className="space-y-6">
@@ -448,6 +442,18 @@ function AdminDashboardContent() {
                                 />
                             </CardContent>
                         </Card>
+
+                        {chapterAnalysisData && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-lg flex items-center"><BarChart3 className="mr-2 h-5 w-5 text-primary" />Detailed Chapter List</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <ChapterAnalysisTable data={chapterAnalysisData} />
+                                </CardContent>
+                            </Card>
+                        )}
+                        
                          {Object.keys(analysisResult.duplicateTitles).length > 0 && (
                             <Card className="border-destructive">
                                 <CardHeader>
@@ -471,27 +477,6 @@ function AdminDashboardContent() {
            </CardContent>
         </Card>
         
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center text-xl"><BarChart3 className="mr-2 h-5 w-5" /> Chapter Analysis</CardTitle>
-            <CardDescription>
-              Generate a detailed list of all chapters for strategic re-pricing.
-            </CardDescription>
-          </CardHeader>
-          <Separator/>
-          <CardContent className="pt-6">
-            <Button onClick={handleChapterAnalysis} disabled={isToolRunning} className="w-full">
-                {isAnalyzingChapters ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
-                {isAnalyzingChapters ? 'Analyzing Chapters...' : 'Run Chapter Analysis'}
-            </Button>
-            {chapterAnalysisData && (
-                <div className="mt-6">
-                    <ChapterAnalysisTable data={chapterAnalysisData} />
-                </div>
-            )}
-          </CardContent>
-        </Card>
-
         <Card>
            <CardHeader>
             <CardTitle className="flex items-center text-xl"><Bot className="mr-2 h-5 w-5" /> Story Generator</CardTitle>
