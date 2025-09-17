@@ -143,10 +143,14 @@ function AdminDashboardContent() {
     setAnalysisResult(null);
     setCleanupResult(null);
   
-    addLog({ status: 'generating', message: 'Finding incomplete series...' });
+    const initialLogId = Date.now() + Math.random();
+    setLogs([{ id: initialLogId, status: 'generating', message: 'Finding incomplete series...' }]);
   
     try {
       const results = await regenerateMissingChaptersAction();
+  
+      // Clear the initial "Finding..." message
+      setLogs(prevLogs => prevLogs.filter(log => log.id !== initialLogId));
   
       if (results.length === 0) {
         addLog({ status: 'success', message: 'No missing chapters found. Your library is complete!' });
@@ -162,6 +166,8 @@ function AdminDashboardContent() {
       }
   
     } catch (error: any) {
+      // Clear the initial "Finding..." message even on critical failure
+      setLogs(prevLogs => prevLogs.filter(log => log.id !== initialLogId));
       console.error(`Critical error in handleRegenerateMissing:`, error);
       addLog({ status: 'error', message: 'A critical error occurred during regeneration.', error: error.message });
     } finally {
