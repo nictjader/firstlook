@@ -135,7 +135,6 @@ const storyGenerationPrompt = ai.definePrompt({
     Now, write the story.
   `,
   config: {
-    model: 'gemini-2.5-flash',
     temperature: 1.0,
   },
 });
@@ -152,10 +151,15 @@ const storyGenerationFlow = ai.defineFlow(
     const potentialSeriesId = uuidv4(); 
 
     try {
-      const { output } = await storyGenerationPrompt({
-        ...seed,
-        potentialSeriesId,
-      });
+      const { output } = await storyGenerationPrompt(
+        {
+          ...seed,
+          potentialSeriesId,
+        },
+        {
+          model: 'gemini-2.5-flash',
+        }
+      );
 
       if (!output) {
         throw new Error('AI failed to generate a story.');
