@@ -171,7 +171,7 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
 
     try {
         const { media } = await ai.generate({
-            model: 'gemini-2.5-flash-image-preview',
+            model: ai.model('gemini-2.5-flash-image-preview'),
             prompt: fullPrompt,
             config: {
                 responseModalities: ['TEXT', 'IMAGE'],
@@ -660,7 +660,7 @@ export async function regenerateMissingChaptersAction(): Promise<StoryGeneration
           totalPartsInSeries: totalParts,
           coverImagePrompt: representativeChapter.coverImagePrompt,
           author: representativeChapter.author || 'FirstLook AI',
-          approxWordCount: 2500,
+          approxWordCount: 2500, // Add the missing property with a default value
         };
 
         regenerationPromises.push(

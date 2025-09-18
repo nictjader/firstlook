@@ -104,6 +104,7 @@ const StoryPromptInputSchema = StoryGenerationInputSchema.extend({
 // Create a dedicated prompt object for story generation.
 const storyGenerationPrompt = ai.definePrompt({
   name: 'storyGenerationPrompt',
+  model: ai.model('gemini-2.5-flash'),
   input: { schema: StoryPromptInputSchema },
   output: { schema: AIStoryResponseSchema },
   prompt: `
@@ -155,9 +156,6 @@ const storyGenerationFlow = ai.defineFlow(
         {
           ...seed,
           potentialSeriesId,
-        },
-        {
-          model: 'gemini-2.5-flash',
         }
       );
 

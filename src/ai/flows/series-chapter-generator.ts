@@ -53,6 +53,7 @@ const AIChapterResponseSchema = z.object({
 // Create a dedicated prompt for generating a missing series chapter.
 const seriesChapterGenerationPrompt = ai.definePrompt({
   name: 'seriesChapterGenerationPrompt',
+  model: ai.model('gemini-2.5-flash'),
   input: { schema: SeriesChapterInputSchema },
   output: { schema: AIChapterResponseSchema },
   prompt: `
@@ -90,10 +91,8 @@ const generateSeriesChapterFlow = ai.defineFlow(
   async (input) => {
     const newStoryId = uuidv4();
     try {
-      // FIX: Match the working pattern by passing model at invocation time.
-      const { output } = await seriesChapterGenerationPrompt(input, {
-        model: 'gemini-2.5-flash',
-      });
+      // Call the prompt - model config is already defined in the prompt
+      const { output } = await seriesChapterGenerationPrompt(input);
 
       if (!output) {
         throw new Error('AI failed to generate a chapter.');
