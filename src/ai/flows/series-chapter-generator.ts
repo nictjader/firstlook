@@ -128,7 +128,7 @@ const generateSeriesChapterFlow = ai.defineFlow(
         storyData: storyData,
       };
     } catch (e: any) {
-      console.error('Error in generateSeriesChapter:', e);
+      console.error('Error in generateSeriesChapter:', e.message, e);
       return {
         storyId: newStoryId,
         title: `Failed Chapter ${input.partNumberToGenerate} for "${input.seriesTitle}"`,
