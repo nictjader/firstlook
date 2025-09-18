@@ -76,10 +76,6 @@ const seriesChapterGenerationPrompt = ai.definePrompt({
 
     Now, write Chapter {{partNumberToGenerate}}.
   `,
-  config: {
-    model: 'googleai/gemini-1.5-flash-preview',
-    temperature: 0.9,
-  },
 });
 
 
@@ -92,7 +88,13 @@ const generateSeriesChapterFlow = ai.defineFlow(
   async (input) => {
     const newStoryId = uuidv4();
     try {
-      const { output } = await seriesChapterGenerationPrompt(input);
+      // FIXED: Explicitly pass model configuration when calling the prompt
+      const { output } = await seriesChapterGenerationPrompt(input, {
+        model: 'googleai/gemini-1.5-flash-preview',
+        config: {
+          temperature: 0.9,
+        },
+      });
 
       if (!output) {
         throw new Error('AI failed to generate a chapter.');
