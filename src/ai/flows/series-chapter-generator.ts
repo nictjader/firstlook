@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview This file defines an AI flow for generating a specific missing
@@ -76,6 +75,10 @@ const seriesChapterGenerationPrompt = ai.definePrompt({
 
     Now, write Chapter {{partNumberToGenerate}}.
   `,
+  config: {
+    model: 'gemini-2.5-flash',
+    temperature: 0.9,
+  },
 });
 
 
@@ -88,10 +91,8 @@ const generateSeriesChapterFlow = ai.defineFlow(
   async (input) => {
     const newStoryId = uuidv4();
     try {
-      // Call the prompt with the model explicitly defined
-      const { output } = await seriesChapterGenerationPrompt(input, {
-        model: 'gemini-2.5-flash',
-      });
+      // Call the prompt - model config is already defined in the prompt
+      const { output } = await seriesChapterGenerationPrompt(input);
 
       if (!output) {
         throw new Error('AI failed to generate a chapter.');
