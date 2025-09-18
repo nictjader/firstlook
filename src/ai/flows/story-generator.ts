@@ -135,7 +135,7 @@ const storyGenerationPrompt = ai.definePrompt({
     Now, write the story.
   `,
   config: {
-    model: 'googleai/gemini-1.5-flash-preview',
+    model: 'gemini-2.5-flash',
     temperature: 1.0,
   },
 });

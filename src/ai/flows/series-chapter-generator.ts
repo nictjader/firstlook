@@ -88,9 +88,9 @@ const generateSeriesChapterFlow = ai.defineFlow(
   async (input) => {
     const newStoryId = uuidv4();
     try {
-      // FIXED: Explicitly pass model configuration when calling the prompt
+      // Use the latest stable models confirmed by Firebase Studio
       const { output } = await seriesChapterGenerationPrompt(input, {
-        model: 'googleai/gemini-1.5-flash-preview',
+        model: 'gemini-2.5-flash',
         config: {
           temperature: 0.9,
         },

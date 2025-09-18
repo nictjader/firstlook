@@ -171,7 +171,7 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
 
     try {
         const { media } = await ai.generate({
-            model: 'googleai/gemini-2.0-flash-preview-image-generation',
+            model: 'gemini-2.5-flash-image-preview',
             prompt: fullPrompt,
             config: {
                 responseModalities: ['TEXT', 'IMAGE'],
