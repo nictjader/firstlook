@@ -11,7 +11,7 @@ import {
   type Subgenre,
   type StoryGenerationOutput,
 } from '../../lib/types';
-import { ai } from '..';
+import { ai, googleAI } from '..';
 
 // Define the input required to generate a missing chapter.
 // This includes context from the existing parts of the series.
@@ -53,7 +53,7 @@ const AIChapterResponseSchema = z.object({
 // Create a dedicated prompt for generating a missing series chapter.
 const seriesChapterGenerationPrompt = ai.definePrompt({
   name: 'seriesChapterGenerationPrompt',
-  model: ai.model('gemini-2.5-flash'),
+  model: googleAI.model('gemini-2.5-flash'),
   input: { schema: SeriesChapterInputSchema },
   output: { schema: AIChapterResponseSchema },
   prompt: `

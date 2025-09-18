@@ -1,4 +1,3 @@
-
 'use server';
 /**
  * @fileOverview This file defines the AI flow for generating romance stories.
@@ -14,7 +13,7 @@ import {
   type StoryGenerationOutput,
   type StorySeed,
 } from '../../lib/types';
-import { ai } from '..';
+import { ai, googleAI } from '..';
 import { storySeeds } from '../../lib/story-seeds';
 
 
@@ -104,7 +103,7 @@ const StoryPromptInputSchema = StoryGenerationInputSchema.extend({
 // Create a dedicated prompt object for story generation.
 const storyGenerationPrompt = ai.definePrompt({
   name: 'storyGenerationPrompt',
-  model: ai.model('gemini-2.5-flash'),
+  model: googleAI.model('gemini-2.5-flash'),
   input: { schema: StoryPromptInputSchema },
   output: { schema: AIStoryResponseSchema },
   prompt: `
