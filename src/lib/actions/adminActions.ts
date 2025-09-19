@@ -7,7 +7,7 @@ import { storySeeds } from '../story-seeds';
 import type { StorySeed } from '../types';
 import { getAdminDb } from '../firebase/admin';
 import { getStorage } from 'firebase-admin/storage';
-import { ai, googleAI } from '../../ai';
+import { ai } from '../../ai';
 import { FieldValue, FieldPath, type DocumentData, type QueryDocumentSnapshot } from 'firebase-admin/firestore';
 import type { CleanupResult, Story, DatabaseMetrics, ChapterAnalysis } from '../types';
 import { extractBase64FromDataUri, capitalizeWords } from '../utils';
@@ -170,7 +170,7 @@ export async function generateAndUploadCoverImageAction(storyId: string, prompt:
 
     try {
         const { media } = await ai.generate({
-            model: googleAI.model('gemini-2.5-flash-image-preview'),
+            model: 'googleai/gemini-2.5-flash-image-preview',
             prompt: fullPrompt,
             config: {
                 responseModalities: ['TEXT', 'IMAGE'],
@@ -585,7 +585,7 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         return [];
     }
 
-    const allChapters = snapshot.docs.map(doc => docToStory(doc));
+    const allChapters = snapshot.docs.map(docToStory(doc));
 
     return allChapters.map(chapter => ({
         chapterId: chapter.storyId,
@@ -685,5 +685,3 @@ export async function regenerateMissingChaptersAction(): Promise<StoryGeneration
 
   return Promise.all(regenerationPromises);
 }
-
-    

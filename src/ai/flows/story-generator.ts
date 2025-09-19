@@ -13,7 +13,7 @@ import {
   type StoryGenerationOutput,
   type StorySeed,
 } from '../../lib/types';
-import { ai, googleAI } from '..';
+import { ai } from '..';
 import { storySeeds } from '../../lib/story-seeds';
 
 
@@ -103,7 +103,7 @@ const StoryPromptInputSchema = StoryGenerationInputSchema.extend({
 // Create a dedicated prompt object for story generation.
 const storyGenerationPrompt = ai.definePrompt({
   name: 'storyGenerationPrompt',
-  model: googleAI.model('gemini-2.5-flash'),
+  model: 'googleai/gemini-2.5-flash',
   input: { schema: StoryPromptInputSchema },
   output: { schema: AIStoryResponseSchema },
   prompt: `
