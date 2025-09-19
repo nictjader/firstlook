@@ -11,4 +11,9 @@ initializeApp();
 export const googleAI = googleAIPlugin();
 
 // Initialize Genkit with the plugin
-export const ai = genkit
+const ai = genkit({
+  plugins: [googleAI],
+});
+
+// Re-export the initialized ai object for use in other parts of the application
+export { ai };
