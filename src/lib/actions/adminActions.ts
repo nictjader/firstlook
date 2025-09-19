@@ -658,6 +658,7 @@ export async function regenerateMissingChaptersAction(): Promise<StoryGeneration
           seriesSynopsis: seriesSynopsis,
           partNumberToGenerate: i,
           totalPartsInSeries: totalParts,
+          approxWordCount: 2500, // Re-add the missing property
           coverImagePrompt: representativeChapter.coverImagePrompt,
           author: representativeChapter.author || 'FirstLook AI',
         };
@@ -685,7 +686,3 @@ export async function regenerateMissingChaptersAction(): Promise<StoryGeneration
 
   return Promise.all(regenerationPromises);
 }
-
-    
-
-    
