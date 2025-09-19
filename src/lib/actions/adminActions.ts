@@ -1,3 +1,4 @@
+
 'use server';
 
 import { generateStory } from '../../ai/flows/story-generator';
@@ -585,7 +586,7 @@ export async function getChapterAnalysisAction(): Promise<ChapterAnalysis[]> {
         return [];
     }
 
-    const allChapters = snapshot.docs.map(docToStory(doc));
+    const allChapters = snapshot.docs.map(doc => docToStory(doc));
 
     return allChapters.map(chapter => ({
         chapterId: chapter.storyId,
@@ -685,3 +686,5 @@ export async function regenerateMissingChaptersAction(): Promise<StoryGeneration
 
   return Promise.all(regenerationPromises);
 }
+
+    
